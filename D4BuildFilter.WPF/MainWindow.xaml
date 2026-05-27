@@ -293,14 +293,15 @@
                         <StackPanel>
                             <UniformGrid Columns="2">
                                 <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}" Margin="0,3,14,3" />
+                                <CheckBox Content="Less strict — match 2+ per slot (vs 3+)" IsChecked="{Binding OptLessStrict}" Margin="0,3,14,3" />
                                 <CheckBox Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}" Margin="0,3,14,3" />
                                 <CheckBox Content="Build uniques → purple" IsChecked="{Binding OptBuildUniques}" Margin="0,3,14,3" />
-                                <CheckBox Content="Silver tier (2+ affixes)" IsChecked="{Binding OptSilverTier}" Margin="0,3,14,3" />
                                 <CheckBox Content="Item-power tiers (900 / 850)" IsChecked="{Binding OptItemPowerTiers}" Margin="0,3,14,3" />
                                 <CheckBox Content="Greater Affixes → blue" IsChecked="{Binding OptGreaterAffixes}" Margin="0,3,14,3" />
                                 <CheckBox Content="Charms &amp; Seals → green" IsChecked="{Binding OptCharmsSeals}" Margin="0,3,14,3" />
                                 <CheckBox Content="Codex upgrades → white" IsChecked="{Binding OptCodex}" Margin="0,3,14,3" />
                                 <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}" Margin="0,3,14,3" />
+                                <CheckBox Content="Silver tier (combined mode only)" IsChecked="{Binding OptSilverTier}" Margin="0,3,14,3" />
                             </UniformGrid>
                             <TextBlock TextWrapping="Wrap" Foreground="#9a8c80" FontSize="11" Margin="0,8,0,0">
                                 <Run Text="Gold tier (3+ build affixes) is always on · Mythics are never touched." /><LineBreak />
@@ -328,6 +329,15 @@
                         <TextBlock Text="{Binding FilterInfo}" Foreground="#b6a597"
                                    VerticalAlignment="Center" Margin="16,0,0,0" FontSize="12" FontFamily="Consolas" />
                     </StackPanel>
+
+                    <!-- Re-import warning: options regenerate the code; an imported filter won't auto-update -->
+                    <Border Background="#3a2a14" BorderBrush="#e0915a" BorderThickness="1"
+                            CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
+                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#f0c89a">
+                            <Run FontWeight="Bold" Text="⚠ Changed an option (e.g. Strict ↔ Less strict)?" />
+                            <Run Text=" The code above is rebuilt every time you toggle something — but a filter you've ALREADY pasted into Diablo 4 won't update on its own. To apply a change: copy the new code and import it again, or check/uncheck the matching rules directly in the in-game filter." />
+                        </TextBlock>
+                    </Border>
 
                     <!-- How to import -->
                     <Border Background="#231a14" BorderBrush="#5a4a3e" BorderThickness="1"

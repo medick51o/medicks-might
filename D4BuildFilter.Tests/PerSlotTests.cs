@@ -55,6 +55,27 @@ public class PerSlotTests
     }
 
     [Fact]
+    public void Less_strict_lowers_per_slot_threshold_to_2_without_adding_rules()
+    {
+        var rb = new ResolvedBuild("t", "Barbarian", new[]
+        {
+            new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(),
+                new[] { new ResolvedSlot("Boots", new[] { "Strength", "Maximum Life", "Armor", "Movement Speed" }) }),
+        });
+        var b = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
+
+        var strict = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, LessStrict = false }, "t");
+        var loose = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, LessStrict = true }, "t");
+
+        Assert.Equal(strict.RuleCount, loose.RuleCount);   // threshold change only — NO extra rules (cap-safe)
+
+        uint MinCount(string code) => (uint)FilterDecoder.Decode(code).Rules
+            .SelectMany(r => r.Conditions).First(c => c.Type == 6).MaskOrCount!.Value;
+        Assert.Equal(3u, MinCount(strict.ImportCode));
+        Assert.Equal(2u, MinCount(loose.ImportCode));
+    }
+
+    [Fact]
     public void Per_slot_falls_back_to_combined_when_no_slot_data()
     {
         // Pasted builds carry no slot breakdown; PerSlotRules must still produce a valid filter.

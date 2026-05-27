@@ -47,6 +47,10 @@ public sealed record FilterOptions
     /// that rolled chest affixes). Falls back to the combined tiers when the build has no slot data
     /// (e.g. pasted builds). Uses more rules — watch the 25-rule cap on big multi-builds.</summary>
     public bool PerSlotRules { get; init; }
+    /// <summary>Strictness for the build-affix match: false = STRICT (require 3 of a slot's/build's
+    /// affixes), true = LESS STRICT (require only 2 → more items highlighted). Costs no extra rules
+    /// (just lowers each rule's minCount), so it always fits the 25-rule cap.</summary>
+    public bool LessStrict { get; init; }
     /// <summary>Item-power tiers: 900+ → orange, 850+ → cyan.</summary>
     public bool ItemPowerTiers { get; init; } = true;
     /// <summary>Any rare/legendary with a Greater Affix → blue.</summary>
@@ -188,11 +192,12 @@ public static class FilterCompiler
         //    COUNT, not which slot they belong on — a Blizzard loot-filter limitation).
         foreach (var b in builds)
         {
+            int want = opts.LessStrict ? Loose : Strict;   // 3 = strict, 2 = less strict
             if (opts.PerSlotRules && b.SlotPools.Count > 0)
             {
                 foreach (var sp in b.SlotPools)
                 {
-                    int min = Math.Min(Strict, sp.AffixIds.Count);   // a slot with <3 ideal affixes uses its count
+                    int min = Math.Min(want, sp.AffixIds.Count);   // a slot with fewer ideal affixes uses its count
                     rules.Add(FilterBuilder.MakeRule($"{sp.Label} [{min}+]", Visibility.Recolor,
                         Tier(Conditions.Types(sp.ItemTypeIds), Conditions.RarityMask(RareLeg),
                              Conditions.Affixes(sp.AffixIds, min)), b.Color));
@@ -200,9 +205,10 @@ public static class FilterCompiler
             }
             else
             {
-                rules.Add(FilterBuilder.MakeRule($"Rare/Leg [{Strict}+]", Visibility.Recolor,
-                    Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Strict)), b.Color));
-                if (opts.SilverTier)
+                rules.Add(FilterBuilder.MakeRule($"Rare/Leg [{want}+]", Visibility.Recolor,
+                    Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, want)), b.Color));
+                // Combined silver (2+) only adds value when the gold tier is the strict 3+ one.
+                if (opts.SilverTier && !opts.LessStrict)
                     rules.Add(FilterBuilder.MakeRule($"Rare/Leg [{Loose}+]", Visibility.Recolor,
                         Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
             }

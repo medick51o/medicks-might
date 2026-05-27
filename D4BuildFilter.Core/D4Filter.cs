@@ -122,11 +122,12 @@ public static class FilterBuilder
     private static string Clamp(string name) =>
         name.Length <= MaxNameLength ? name : name[..MaxNameLength].TrimEnd();
 
-    public static byte[] MakeRule(string name, Visibility visibility, IReadOnlyList<byte[]> conditions, uint color = FilterColors.Default)
+    public static byte[] MakeRule(string name, Visibility visibility, IReadOnlyList<byte[]> conditions,
+        uint color = FilterColors.Default, bool enabled = true)
     {
         var rule = Wire.Concat(Wire.Efs(1, Clamp(name)), Wire.Efv(2, (ulong)visibility), Wire.Ef32(3, color));
         foreach (var c in conditions) rule = Wire.Concat(rule, c);
-        rule = Wire.Concat(rule, Wire.Efv(5, 1)); // enabled
+        rule = Wire.Concat(rule, Wire.Efv(5, enabled ? 1ul : 0ul)); // field 5: rule enabled (1) / disabled-but-present (0)
         return Wire.Efb(1, rule);
     }
 
