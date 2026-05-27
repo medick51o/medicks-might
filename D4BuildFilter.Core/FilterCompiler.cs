@@ -38,6 +38,13 @@ public static class FilterCompiler
     /// <summary>Dim tier: "one reroll from great" — at least this many pool affixes.</summary>
     public const int Loose = 2;
 
+    /// <summary>Item-power color tiers (orange = top band, cyan = high band). The numeric
+    /// "Item Power Range" condition takes [min,max]; we use an open-ended upper bound so each
+    /// tier means "this power and up". Tune the thresholds after an in-game check.</summary>
+    public const uint ItemPowerOrange = 900;
+    public const uint ItemPowerCyan = 850;
+    public const uint ItemPowerCap = 4000;
+
     /// <summary>
     /// Reduce a resolved build to its filterable affix pool + targetable uniques.
     /// Affixes map through <see cref="AffixMapper"/> (deduped by coarse id, first hit wins);
@@ -113,11 +120,14 @@ public static class FilterCompiler
         foreach (var b in builds)
             rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Loose}+]", Visibility.Recolor,
                 Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
-        // 4. Item-power tier -> orange. INTERIM: "Ancestral" (type 2 = 4) is the only item-power
-        //    signal we can encode today — it's exactly what rootsxo uses. Stands in for the future
-        //    900 / 850 split, which needs D4's numeric "Item Power Range" condition (not yet captured).
-        rules.Add(FilterBuilder.MakeRule("Ancestral (high item power)", Visibility.Recolor,
-            new[] { Conditions.RarityMask(RareLeg), Conditions.Ancestral() }, FilterColors.Orange));
+        // 4. Item-power tiers (the numeric "Item Power Range" condition is now decoded: type 0,
+        //    field4=min, field5=max). Top band -> orange, high band -> cyan. "Affixes conquer all":
+        //    these sit BELOW the build-affix tiers, so a real build match always wins the color.
+        //    Orange must precede cyan (top-down, first match wins) or 900+ items would read as cyan.
+        rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerOrange}+", Visibility.Recolor,
+            new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerOrange, ItemPowerCap) }, FilterColors.Orange));
+        rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerCyan}+", Visibility.Recolor,
+            new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerCyan, ItemPowerCap) }, FilterColors.Cyan));
         // 5. Greater Affixes -> blue: any rare/leg with >=1 GA not already matched above.
         rules.Add(FilterBuilder.MakeRule("Greater Affixes", Visibility.Recolor,
             Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));

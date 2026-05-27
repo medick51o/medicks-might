@@ -78,6 +78,7 @@ public static class AffixMapper
         ["shadow damage"] = "Shadow Damage Multiplier",
         ["holy damage"] = "Holy Damage Multiplier",
         ["lucky hit: up to a % chance to restore primary resource"] = "Lucky Hit Restore Primary Resource",
+        ["maximum evade charges"] = "Maximum Evade Charge",   // plural in some guides; singular in the DB
     };
 
     /// <summary>Ordered most-specific-first. A conditional affix containing one of these

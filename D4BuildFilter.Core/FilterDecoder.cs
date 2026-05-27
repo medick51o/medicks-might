@@ -8,6 +8,7 @@ public sealed class DecodedCondition
     public List<uint> Ids { get; } = new();
     public ulong? MaskOrCount { get; set; }   // field 4: rarity bitmask, or affix min-count
     public ulong? Count { get; set; }           // field 6: greater-affix count
+    public ulong? Max { get; set; }             // field 5: item-power range max (type 0)
     public List<string> Unknown { get; } = new(); // any field we don't recognize (discovery aid)
 }
 
@@ -76,6 +77,7 @@ public static class FilterDecoder
                 case { Field: 1, WireType: 0 }: c.Type = (int)fld.VarintValue; break;
                 case { Field: 2, WireType: 5 }: c.Ids.Add(fld.Fixed32Value); break;
                 case { Field: 4, WireType: 0 }: c.MaskOrCount = fld.VarintValue; break;
+                case { Field: 5, WireType: 0 }: c.Max = fld.VarintValue; break;
                 case { Field: 6, WireType: 0 }: c.Count = fld.VarintValue; break;
                 default:
                     c.Unknown.Add($"field{fld.Field}/wt{fld.WireType}=" +
@@ -88,10 +90,14 @@ public static class FilterDecoder
     }
 
     // Verified against real published filters (rootsxo Minion Barb).
+    // Verified against real published filters (rootsxo Minion Barb) + the S13 protobuf spec
+    // (fnuecke gist / bmbernie). type 0 = numeric item-power range (field4=min, field5=max);
+    // type 2 = item properties (e.g. Ancestral tier); type 7 = optional (any-of) affixes.
     private static readonly Dictionary<int, string> TypeNames = new()
     {
-        [1] = "Rarity", [2] = "ItemPower/Ancestral", [3] = "Codex", [4] = "GreaterAffix",
-        [5] = "ItemTypes", [6] = "Affixes", [8] = "Unique(byId)", [9] = "CharmSet(byId)",
+        [0] = "ItemPowerRange", [1] = "Rarity", [2] = "ItemProperties", [3] = "Codex",
+        [4] = "GreaterAffix", [5] = "ItemTypes", [6] = "Affixes(required)",
+        [7] = "Affixes(optional)", [8] = "Unique(byId)", [9] = "CharmSet(byId)",
     };
 
     public static string Describe(DecodedFilter f)
@@ -110,9 +116,18 @@ public static class FilterDecoder
                 string tn = TypeNames.GetValueOrDefault(c.Type, $"UNKNOWN({c.Type})");
                 var parts = new List<string> { $"type={c.Type}({tn})" };
                 if (c.Ids.Count > 0) parts.Add($"ids=[{string.Join(",", c.Ids.Select(id => "0x" + id.ToString("x6")))}]");
-                if (c.Type == 1 && c.MaskOrCount is { } m) parts.Add($"rarityMask=0x{m:x2}");
-                else if (c.MaskOrCount is { } mc) parts.Add($"minCount={mc}");
-                if (c.Count is { } cc) parts.Add($"count={cc}");
+                if (c.Type == 0)
+                {
+                    if (c.MaskOrCount is { } lo) parts.Add($"minPower={lo}");
+                    if (c.Max is { } hi) parts.Add($"maxPower={hi}");
+                }
+                else
+                {
+                    if (c.Type == 1 && c.MaskOrCount is { } m) parts.Add($"rarityMask=0x{m:x2}");
+                    else if (c.MaskOrCount is { } mc) parts.Add($"minCount={mc}");
+                    if (c.Count is { } cc) parts.Add($"count={cc}");
+                    if (c.Max is { } mx) parts.Add($"field5={mx}");
+                }
                 if (c.Unknown.Count > 0) parts.Add($"UNKNOWN[{string.Join("; ", c.Unknown)}]");
                 sb.AppendLine($"        {string.Join("  ", parts)}");
             }

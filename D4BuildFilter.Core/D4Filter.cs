@@ -78,6 +78,13 @@ public static class Conditions
     public static byte[] Ancestral() =>
         Wire.Efb(4, Wire.Concat(Wire.Efv(1, 2), Wire.Efv(4, 4)));
 
+    /// <summary>Item power within the inclusive numeric range [<paramref name="min"/>,
+    /// <paramref name="max"/>] — the "Item Power Range" condition. type 0, field4=min, field5=max.
+    /// Confirmed from real S13 exports (bmbernie's reverse-engineering: <c>1:0, 4:800, 5:900</c>,
+    /// and an in-game "Ancestral Gear" rule that encodes <c>4:900, 5:900</c>).</summary>
+    public static byte[] ItemPower(uint min, uint max) =>
+        Wire.Efb(4, Wire.Concat(Wire.Efv(1, 0), Wire.Efv(4, min), Wire.Efv(5, max)));
+
     /// <summary>Match specific Unique item(s) by id (per-unique targeting). Real filter rules
     /// "Equipable Uniques"/"Ancestral Uniques" = type 8 + repeated fixed32 ids.</summary>
     public static byte[] Uniques(IEnumerable<uint> ids)
