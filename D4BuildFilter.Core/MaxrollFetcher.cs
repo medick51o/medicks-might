@@ -97,6 +97,7 @@ public static class MaxrollFetcher
 
             var affixes = new List<string>();
             var uniqueNames = new List<string>();
+            var resolvedSlots = new List<ResolvedSlot>();
             var seenUnique = new HashSet<string>(StringComparer.Ordinal);
             if (profile.TryGetProperty("items", out var slotMap) && slotMap.ValueKind == JsonValueKind.Object)
             {
@@ -107,23 +108,29 @@ public static class MaxrollFetcher
                         : slot.Value.GetString();
                     if (itemKey is null || !items.TryGetProperty(itemKey, out var item)) continue;
 
+                    string itemId = item.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+
                     // Gear unique (or mythic)? Resolve its display name. Mythics are kept too; the
                     // compiler (FilterCompiler.Analyze + UniqueDatabase.IsMythic) splits them into
                     // their own category. (Charms don't resolve here — they're a separate type.)
-                    if (item.TryGetProperty("id", out var idEl) && idEl.GetString() is { } itemId
-                        && uniques.Resolve(itemId) is { } un && seenUnique.Add(un))
+                    if (itemId.Length > 0 && uniques.Resolve(itemId) is { } un && seenUnique.Add(un))
                         uniqueNames.Add(un);
 
                     if (!item.TryGetProperty("explicits", out var ex) || ex.ValueKind != JsonValueKind.Array) continue;
+                    var slotAffixes = new List<string>();
                     foreach (var e in ex.EnumerateArray())
                     {
                         if (!e.TryGetProperty("nid", out var nidEl)) continue;
                         var name = names.Resolve(nidEl.GetInt64());
-                        if (name is not null) affixes.Add(name);   // keep duplicates: the mapper dedupes by coarse id
+                        if (name is not null) { affixes.Add(name); slotAffixes.Add(name); }   // mapper dedupes by coarse id
                     }
+                    // Per-slot breakdown: derive a slot label from the item id (e.g. "1HMace_..." -> "1HMace",
+                    // "S05_BSK_Helm_..." -> "Helm") — the first id segment that resolves to an item type.
+                    if (slotAffixes.Count > 0 && SlotLabel(itemId) is { } label)
+                        resolvedSlots.Add(new ResolvedSlot(label, slotAffixes));
                 }
             }
-            variants.Add(new ResolvedVariant(vName, affixes, uniqueNames));
+            variants.Add(new ResolvedVariant(vName, affixes, uniqueNames, resolvedSlots));
         }
         return new ResolvedBuild(build, cls, variants);
     }
@@ -132,4 +139,14 @@ public static class MaxrollFetcher
         name.Contains("disabled", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("do not use", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("deprecated", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Slot label for a maxroll item id = the first underscore-segment that resolves to an
+    /// item type ("1HMace_Legendary_001" -> "1HMace", "S05_BSK_Helm_Unique_001" -> "Helm",
+    /// "Chest_Unique_Barb_100" -> "Chest"). null if none resolves (e.g. Talisman → no per-slot rule).</summary>
+    private static string? SlotLabel(string itemId)
+    {
+        foreach (var seg in itemId.Split('_'))
+            if (ItemTypeDatabase.ResolveSlot(seg) is not null) return seg;
+        return null;
+    }
 }

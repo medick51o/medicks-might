@@ -12,6 +12,9 @@ public class PerSlotTests
     [InlineData("boots", 0x0006d170u)]
     [InlineData("Ring 2", 0x0006d174u)]      // trailing index stripped
     [InlineData("chest-armor", 0x0006d16du)] // mobalytics kebab
+    [InlineData("Chest", 0x0006d16du)]       // maxroll item-id prefix
+    [InlineData("1HMace", 0x0006d13au)]      // maxroll exact weapon type
+    [InlineData("2HSword", 0x0006d14fu)]
     [InlineData("Helm", 0x0006d16eu)]
     public void ResolveSlot_maps_known_slots(string label, uint id)
     {

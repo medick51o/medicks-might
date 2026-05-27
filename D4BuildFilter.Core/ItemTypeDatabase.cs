@@ -89,6 +89,22 @@ public static class ItemTypeDatabase
             "dual wield weapon" => OneHanded,
             "ranged weapon" => Ranged,
             "weapon" or "two handed weapon" => AllWeapons,
+            // maxroll item-id prefixes give the EXACT weapon type (e.g. "1HMace", "2HSword").
+            "mace" or "1hmace" => new[] { 0x0006d13au },
+            "2hmace" => new[] { 0x0006d144u },
+            "sword" or "1hsword" => new[] { 0x0006d14cu },
+            "2hsword" => new[] { 0x0006d14fu },
+            "axe" or "1haxe" => new[] { 0x0006d151u },
+            "2haxe" => new[] { 0x0006d152u },
+            "dagger" => new[] { 0x0006d159u },
+            "polearm" or "2hpolearm" => new[] { 0x0006d15du },
+            "scythe" => new[] { 0x0006d154u },
+            "2hscythe" => new[] { 0x0006d155u },
+            "staff" or "2hstaff" => new[] { 0x0006d153u },
+            "wand" => new[] { 0x0006d163u },
+            "bow" => new[] { 0x0006d167u },
+            "crossbow" or "1hcrossbow" => new[] { 0x0006d168u },
+            "2hcrossbow" => new[] { 0x0006d169u },
             _ => null,
         };
     }
