@@ -36,10 +36,17 @@ if (args.Length >= 1 && args[0] == "fetch")
     }
     string src = args[1];
     string? raw = File.Exists(src) ? File.ReadAllText(src) : null;
-    // Route by source: Mobalytics (embedded __PRELOADED_STATE__) vs maxroll (planner JSON / nids).
+    // Route by source: d4builds (Firestore doc) vs Mobalytics (__PRELOADED_STATE__) vs maxroll (planner JSON).
+    bool isD4b = raw is not null ? raw.Contains("\"newStats\"") || raw.Contains("databases/(default)") : D4BuildsFetcher.IsD4BuildsUrl(src);
     bool isMoba = raw is not null ? raw.Contains("__PRELOADED_STATE__") : MobalyticsFetcher.IsMobalyticsUrl(src);
     string source;
-    if (isMoba)
+    if (isD4b)
+    {
+        raw ??= D4BuildsFetcher.FetchRawAsync(src).GetAwaiter().GetResult();
+        resolved = D4BuildsFetcher.Parse(raw);
+        source = "d4builds";
+    }
+    else if (isMoba)
     {
         raw ??= MobalyticsFetcher.FetchRawAsync(src).GetAwaiter().GetResult();
         resolved = MobalyticsFetcher.Parse(raw);

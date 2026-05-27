@@ -129,11 +129,19 @@ public partial class MainViewModel : ObservableObject
         {
             var resolved = await Task.Run(async () =>
             {
-                // Route by source: Mobalytics (embedded __PRELOADED_STATE__) vs maxroll (planner JSON).
+                // Route by source: d4builds (Firestore) vs Mobalytics (__PRELOADED_STATE__) vs maxroll.
                 string? raw = File.Exists(source) ? await File.ReadAllTextAsync(source) : null;
+                bool isD4b = raw is not null
+                    ? raw.Contains("\"newStats\"") || raw.Contains("databases/(default)")
+                    : D4BuildsFetcher.IsD4BuildsUrl(source);
                 bool isMoba = raw is not null
                     ? raw.Contains("__PRELOADED_STATE__")
                     : MobalyticsFetcher.IsMobalyticsUrl(source);
+                if (isD4b)
+                {
+                    raw ??= await D4BuildsFetcher.FetchRawAsync(source);
+                    return D4BuildsFetcher.Parse(raw);
+                }
                 if (isMoba)
                 {
                     raw ??= await MobalyticsFetcher.FetchRawAsync(source);
