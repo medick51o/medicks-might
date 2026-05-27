@@ -121,3 +121,4 @@ void Emit(FilterOptions opts, string label, string outPath)
 
 Emit(new FilterOptions(), "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
 Emit(new FilterOptions { StrictEndgame = true }, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");
+Emit(new FilterOptions { PerSlotRules = true }, "PER-SLOT (precise, no cross-slot false positives)", @"C:\Sync\Projects\D4BuildFilter\last_code_perslot.txt");

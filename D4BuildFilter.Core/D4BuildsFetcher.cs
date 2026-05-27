@@ -97,12 +97,20 @@ public static class D4BuildsFetcher
         if (string.IsNullOrWhiteSpace(vName)) vName = $"Variant {idx}";
 
         var affixes = new List<string>();
+        var slots = new List<ResolvedSlot>();
         if (v["newStats"] is JsonObject ns)
             foreach (var slot in ns)
                 if (slot.Value is JsonArray arr)
+                {
+                    var slotAffixes = new List<string>();
                     foreach (var a in arr)
                         if (a is JsonValue jv && jv.TryGetValue(out string? s) && !string.IsNullOrWhiteSpace(s))
+                        {
                             affixes.Add(s);
+                            slotAffixes.Add(s);
+                        }
+                    if (slotAffixes.Count > 0) slots.Add(new ResolvedSlot(slot.Key, slotAffixes));
+                }
 
         var uniques = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -114,7 +122,7 @@ public static class D4BuildsFetcher
                     && seen.Add(itemName))
                     uniques.Add(itemName);
 
-        return new ResolvedVariant(vName, affixes, uniques);
+        return new ResolvedVariant(vName, affixes, uniques, slots);
     }
 
     // ── Firestore typed-value JSON → plain JsonNode ──

@@ -3,9 +3,15 @@ using System.Text.RegularExpressions;
 
 namespace D4BuildFilter.Core;
 
+/// <summary>One gear slot's desired affixes (e.g. "Boots" -> [...]). Enables per-slot rules that
+/// avoid the combined-pool false positives. Optional — paste import / older data have no slots.</summary>
+public sealed record ResolvedSlot(string Slot, IReadOnlyList<string> Affixes);
+
 /// <summary>One build variant (a maxroll "profile") reduced to its desirable affix wishlist
-/// plus the gear uniques it equips (display names; mythics/charms excluded).</summary>
-public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes, IReadOnlyList<string> Uniques);
+/// plus the gear uniques it equips (display names). <paramref name="Slots"/> keeps the per-slot
+/// breakdown when the source provides it (null = flat list only, e.g. pasted builds).</summary>
+public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes, IReadOnlyList<string> Uniques,
+    IReadOnlyList<ResolvedSlot>? Slots = null);
 
 /// <summary>A whole maxroll build resolved to affix names, ready for the AffixMapper/encoder.
 /// Serializes (camelCase) to the same shape the Tester reads from build_resolved.json.</summary>

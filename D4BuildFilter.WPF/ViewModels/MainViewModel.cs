@@ -78,6 +78,7 @@ public partial class MainViewModel : ObservableObject
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
+    [ObservableProperty] private bool optPerSlot;
     [ObservableProperty] private bool optBuildUniques = true;
     [ObservableProperty] private bool optSilverTier = true;
     [ObservableProperty] private bool optItemPowerTiers = true;
@@ -87,6 +88,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool optHideRest = true;
 
     partial void OnStrictEndgameChanged(bool value) => Recompile();
+    partial void OnOptPerSlotChanged(bool value) => Recompile();
     partial void OnOptBuildUniquesChanged(bool value) => Recompile();
     partial void OnOptSilverTierChanged(bool value) => Recompile();
     partial void OnOptItemPowerTiersChanged(bool value) => Recompile();
@@ -98,6 +100,7 @@ public partial class MainViewModel : ObservableObject
     private FilterOptions CurrentOptions => new()
     {
         StrictEndgame = StrictEndgame,
+        PerSlotRules = OptPerSlot,
         BuildUniques = OptBuildUniques,
         SilverTier = OptSilverTier,
         ItemPowerTiers = OptItemPowerTiers,

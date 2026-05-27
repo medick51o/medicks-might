@@ -75,6 +75,7 @@ public static class MobalyticsFetcher
     {
         var affixes = new List<string>();
         var uniques = new List<string>();
+        var resolvedSlots = new List<ResolvedSlot>();
         var seenUnique = new HashSet<string>(StringComparer.Ordinal);
 
         var gb = FindFirst(variant, "genericBuilder");
@@ -95,17 +96,25 @@ public static class MobalyticsFetcher
                     uniques.Add(un);
 
                 // desired affixes for this slot (kebab-case slugs → spaced names; the mapper normalizes)
+                string slotName = slot.TryGetProperty("gameSlotSlug", out var ss) ? ss.GetString() ?? "" : "";
+                var slotAffixes = new List<string>();
                 if (ge.TryGetProperty("modifiers", out var mods) && mods.ValueKind == JsonValueKind.Object
                     && mods.TryGetProperty("gearStats", out var gear) && gear.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var stat in gear.EnumerateArray())
                         if (stat.ValueKind == JsonValueKind.Object && stat.TryGetProperty("id", out var sid)
                             && sid.GetString() is { } slug && slug.Length > 0)
-                            affixes.Add(SlugToName(slug));
+                        {
+                            var a = SlugToName(slug);
+                            affixes.Add(a);
+                            slotAffixes.Add(a);
+                        }
                 }
+                if (slotAffixes.Count > 0 && slotName.Length > 0)
+                    resolvedSlots.Add(new ResolvedSlot(slotName, slotAffixes));
             }
         }
-        return new ResolvedVariant(name, affixes, uniques);
+        return new ResolvedVariant(name, affixes, uniques, resolvedSlots);
     }
 
     private static string SlugToName(string slug) => slug.Replace('-', ' ').Trim();

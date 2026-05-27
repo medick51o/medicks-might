@@ -1,5 +1,10 @@
 namespace D4BuildFilter.Core;
 
+/// <summary>One gear slot's filter pool: the item-type id(s) to scope to + the build's desired
+/// affix ids for that slot. Used by the per-slot rule mode to avoid combined-pool false positives
+/// (e.g. boots that happen to roll chest affixes). <paramref name="Label"/> is for display.</summary>
+public sealed record SlotPool(string Label, IReadOnlyList<uint> ItemTypeIds, IReadOnlyList<uint> AffixIds);
+
 /// <summary>
 /// A resolved build analyzed into the pieces the encoder needs:
 /// its filterable coarse-affix pool, its targetable build uniques, and the
@@ -15,7 +20,8 @@ public sealed record CompiledBuild(
     IReadOnlyList<uint> UniqueIds,
     IReadOnlyList<string> UniquesTargeted,
     IReadOnlyList<string> UniquesPending,
-    IReadOnlyList<string> Mythics)
+    IReadOnlyList<string> Mythics,
+    IReadOnlyList<SlotPool> SlotPools)
 {
     /// <summary>The pool's coarse-affix display names, in pool order.</summary>
     public IEnumerable<string> PoolNames => Pool.Select(id => Names[id]);
@@ -33,8 +39,14 @@ public sealed record FilterOptions
     public bool StrictEndgame { get; init; }
     /// <summary>The build's own uniques → purple.</summary>
     public bool BuildUniques { get; init; } = true;
-    /// <summary>Rare/legendary with ≥2 build affixes → silver (the "one reroll away" tier).</summary>
+    /// <summary>Rare/legendary with ≥2 build affixes → silver (the "one reroll away" tier).
+    /// Ignored in <see cref="PerSlotRules"/> mode.</summary>
     public bool SilverTier { get; init; } = true;
+    /// <summary>PRECISE per-slot rules: emit one gold rule per gear slot (ItemType AND that slot's
+    /// affixes) instead of the single combined pool. Removes cross-slot false positives (e.g. boots
+    /// that rolled chest affixes). Falls back to the combined tiers when the build has no slot data
+    /// (e.g. pasted builds). Uses more rules — watch the 25-rule cap on big multi-builds.</summary>
+    public bool PerSlotRules { get; init; }
     /// <summary>Item-power tiers: 900+ → orange, 850+ → cyan.</summary>
     public bool ItemPowerTiers { get; init; } = true;
     /// <summary>Any rare/legendary with a Greater Affix → blue.</summary>
@@ -113,8 +125,36 @@ public static class FilterCompiler
             else if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
             else uniquesPending.Add(un);
 
+        // Per-slot pools (for the precise per-slot rule mode). Group each variant's slots by the
+        // item-type id SET they resolve to (so Ring 1 + Ring 2 merge, weapon categories merge),
+        // unioning the build's desired affix ids per group. Slots whose label can't resolve to an
+        // item type are skipped here (their affixes still live in the combined pool above).
+        var groups = new Dictionary<string, (uint[] TypeIds, string Label, HashSet<uint> Seen, List<uint> Ids)>();
+        foreach (var v in build.Variants)
+            if (v.Slots is { } vslots)
+                foreach (var rs in vslots)
+                {
+                    var typeIds = ItemTypeDatabase.ResolveSlot(rs.Slot);
+                    if (typeIds is null || typeIds.Count == 0) continue;
+                    var key = string.Join(",", typeIds);
+                    if (!groups.TryGetValue(key, out var g))
+                    {
+                        g = (typeIds.ToArray(), rs.Slot, new HashSet<uint>(), new List<uint>());
+                        groups[key] = g;
+                    }
+                    foreach (var src in rs.Affixes)
+                    {
+                        var m = AffixMapper.Map(src);
+                        if (m.Mapped && g.Seen.Add(m.CoarseId!.Value)) g.Ids.Add(m.CoarseId.Value);
+                    }
+                }
+        var slotPools = groups.Values
+            .Where(g => g.Ids.Count > 0)
+            .Select(g => new SlotPool(g.Label, g.TypeIds, g.Ids))
+            .ToList();
+
         return new CompiledBuild(build.Build, color, dim, pool, names,
-            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, mythics.ToList());
+            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, mythics.ToList(), slotPools);
     }
 
     /// <summary>
@@ -139,15 +179,34 @@ public static class FilterCompiler
                 if (b.UniqueIds.Count > 0)
                     rules.Add(FilterBuilder.MakeRule($"{b.Name} build uniques", Visibility.Recolor,
                         new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(b.UniqueIds) }, FilterColors.Purple));
-        // 2. Rare/leg with >=3 build affixes -> gold (keepers). Always on — the core of the filter.
+        // 2/3. Build-affix tiers (the core).
+        //  • PER-SLOT mode: one gold rule per gear slot = ItemType(slot) AND that slot's affixes.
+        //    Precise — a boots rule only matches boots, so chest/ring affixes that rolled on boots
+        //    no longer trigger a false "keep". Replaces the combined gold/silver.
+        //  • COMBINED mode: one pool across all slots → gold (>=3), plus optional silver (>=2).
+        //    Simpler but produces cross-slot false positives (the filter only filters by affix
+        //    COUNT, not which slot they belong on — a Blizzard loot-filter limitation).
         foreach (var b in builds)
-            rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Strict}+]", Visibility.Recolor,
-                Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Strict)), b.Color));
-        // 3. Rare/leg with >=2 build affixes -> silver (one reroll from great).
-        if (opts.SilverTier)
-            foreach (var b in builds)
-                rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Loose}+]", Visibility.Recolor,
-                    Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
+        {
+            if (opts.PerSlotRules && b.SlotPools.Count > 0)
+            {
+                foreach (var sp in b.SlotPools)
+                {
+                    int min = Math.Min(Strict, sp.AffixIds.Count);   // a slot with <3 ideal affixes uses its count
+                    rules.Add(FilterBuilder.MakeRule($"{b.Name} {sp.Label} [{min}+]", Visibility.Recolor,
+                        Tier(Conditions.Types(sp.ItemTypeIds), Conditions.RarityMask(RareLeg),
+                             Conditions.Affixes(sp.AffixIds, min)), b.Color));
+                }
+            }
+            else
+            {
+                rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Strict}+]", Visibility.Recolor,
+                    Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Strict)), b.Color));
+                if (opts.SilverTier)
+                    rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Loose}+]", Visibility.Recolor,
+                        Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
+            }
+        }
         // 4. Item-power tiers (the numeric "Item Power Range" condition: type 0, field4=min, field5=max).
         //    Top band -> orange, high band -> cyan. "Affixes conquer all": these sit BELOW the build
         //    tiers so a real build match wins. Orange precedes cyan (first match wins).

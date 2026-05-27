@@ -292,17 +292,20 @@
                             CornerRadius="4" Padding="14,10">
                         <StackPanel>
                             <UniformGrid Columns="2">
+                                <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}" Margin="0,3,14,3" />
                                 <CheckBox Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}" Margin="0,3,14,3" />
-                                <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}" Margin="0,3,14,3" />
                                 <CheckBox Content="Build uniques → purple" IsChecked="{Binding OptBuildUniques}" Margin="0,3,14,3" />
                                 <CheckBox Content="Silver tier (2+ affixes)" IsChecked="{Binding OptSilverTier}" Margin="0,3,14,3" />
                                 <CheckBox Content="Item-power tiers (900 / 850)" IsChecked="{Binding OptItemPowerTiers}" Margin="0,3,14,3" />
                                 <CheckBox Content="Greater Affixes → blue" IsChecked="{Binding OptGreaterAffixes}" Margin="0,3,14,3" />
                                 <CheckBox Content="Charms &amp; Seals → green" IsChecked="{Binding OptCharmsSeals}" Margin="0,3,14,3" />
                                 <CheckBox Content="Codex upgrades → white" IsChecked="{Binding OptCodex}" Margin="0,3,14,3" />
+                                <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}" Margin="0,3,14,3" />
                             </UniformGrid>
-                            <TextBlock Text="Gold tier (3+ build affixes) is always on · Mythics are never touched"
-                                       Foreground="#9a8c80" FontSize="11" Margin="0,8,0,0" />
+                            <TextBlock TextWrapping="Wrap" Foreground="#9a8c80" FontSize="11" Margin="0,8,0,0">
+                                <Run Text="Gold tier (3+ build affixes) is always on · Mythics are never touched." /><LineBreak />
+                                <Run Text="⚠ Heads-up on D4's filter limits: without " /><Run FontStyle="Italic" Text="Precise per-slot rules" /><Run Text=", the filter matches by affix COUNT across ALL slots — so an item can show a false 'keep' if it rolled enough of the build's affixes that actually belong on OTHER slots (e.g. boots that rolled chest/ring stats). Per-slot rules scope each rule to its item type to remove that (at the cost of more rules). With Silver tier, expect more borderline highlights." />
+                            </TextBlock>
                         </StackPanel>
                     </Border>
 
