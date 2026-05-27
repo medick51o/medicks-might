@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="D4BuildFilter.Core/D4BuildFilter.Core.csproj" />
+  <Project Path="D4BuildFilter.Tester/D4BuildFilter.Tester.csproj" />
+</Solution>
