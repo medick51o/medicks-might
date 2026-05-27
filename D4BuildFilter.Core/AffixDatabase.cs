@@ -83,6 +83,19 @@ public static class AffixDatabase
         ["Attacks Reduce Evade Cooldown"] = 0x0026c56c,
         ["Maximum Evade Charge"] = 0x0026c56e,
         ["Evade Grants Movement Speed"] = 0x0026c570,
+        // Remaining coarse filter-affixes from d4data CoreTOC (completes full 195-affix coverage:
+        // the rest are already covered by the entries above, the Skills table, or mapper aliases).
+        ["Overpower Damage"] = 0x001beae0,
+        ["Basic Skill Damage"] = 0x001bfce4,
+        ["Core/Spender Skill Damage"] = 0x001bfd1a,
+        ["Projectile Skill Damage"] = 0x001d6e65,
+        ["Crowd Control Duration Reduction"] = 0x001beab6,
+        ["Lucky Hit: Vulnerable Chance"] = 0x001d6244,
+        ["Imbuements Skills (Rogue)"] = 0x001d6e45,
+        ["WeaponMastery Skills (Barbarian)"] = 0x001d6e27,
+        ["+Earth Spike"] = 0x001cc052,
+        ["+Poison Creeper"] = 0x001cc18a,
+        ["+Smoke Grenade"] = 0x001c9557,
     };
 
     /// <summary>Skill-rank and skill-category affix IDs (all 9 classes), from DiabloTools/d4data
