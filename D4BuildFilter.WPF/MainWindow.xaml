@@ -261,6 +261,13 @@
                             <ListBox ItemsSource="{Binding UniquePendingLines}" Height="80"
                                      Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
 
+                            <TextBlock Text="Mythics — own category, left untouched (natural beam)"
+                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4"
+                                       Foreground="#ff6ec7"
+                                       Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
+                            <ListBox ItemsSource="{Binding MythicLines}" Height="80"
+                                     Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
+
                             <TextBlock Text="What the colors mean (top rule wins)"
                                        Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
                             <Border Background="#241d18" BorderBrush="#4a3c30" BorderThickness="1"

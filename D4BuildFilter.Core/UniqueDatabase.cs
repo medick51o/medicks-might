@@ -336,4 +336,20 @@ public static class UniqueDatabase
         };
 
     public static bool TryGet(string name, out uint id) => ByName.TryGetValue(name, out id);
+
+    /// <summary>The Mythic Uniques (a.k.a. Uber Uniques) — the distinct top tier players treat as
+    /// their OWN category, not regular uniques. d4data doesn't flag these, so this is a curated set
+    /// (names match the UniqueDatabase spelling). Per Medick's directive, mythics are split into
+    /// their own category and left UNTOUCHED by the filter (natural beam + "tink").</summary>
+    public static readonly IReadOnlySet<string> Mythics = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "Ahavarion, Spear of Lycander", "Doombringer", "The Grandfather", "Shattered Vow",
+        "Nesekem, the Herald", "Andariel's Visage", "Harlequin Crest", "Heir of Perdition",
+        "Tyrael's Might", "Shroud of False Death", "Melted Heart of Selig", "Ring of Starless Skies",
+        "Shard of Verathiel",
+        // Season 13 additions (may be absent from older bundled d4data — listed so they classify if seen)
+        "In-Geom", "Seal of Royal Grandeur", "Ring of Royal Grandeur",
+    };
+
+    public static bool IsMythic(string name) => Mythics.Contains(name);
 }

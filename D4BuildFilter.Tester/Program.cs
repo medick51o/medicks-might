@@ -106,6 +106,8 @@ if (build.UniquesTargeted.Count > 0)
     Console.WriteLine($"  build uniques -> PURPLE ({build.UniquesTargeted.Count}): {string.Join(", ", build.UniquesTargeted)}");
 if (build.UniquesPending.Count > 0)
     Console.WriteLine($"  build uniques without an id yet ({build.UniquesPending.Count}) — export to capture: {string.Join(", ", build.UniquesPending)}");
+if (build.Mythics.Count > 0)
+    Console.WriteLine($"  mythics (own category, left untouched) ({build.Mythics.Count}): {string.Join(", ", build.Mythics)}");
 Console.WriteLine($"  GOLD = >={FilterCompiler.Strict} of pool   SECONDARY = >={FilterCompiler.Loose} of pool\n");
 
 void Emit(FilterOptions opts, string label, string outPath)

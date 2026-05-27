@@ -88,13 +88,11 @@ public static class MobalyticsFetcher
 
                 var entity = ge.TryGetProperty("entity", out var en) ? en : default;
 
-                // unique gear → its display name (skip mythics: Medick leaves them untouched)
-                if (entityType == "uniqueItems" && entity.ValueKind == JsonValueKind.Object)
-                {
-                    bool mythic = entity.TryGetProperty("mythic", out var m) && m.ValueKind == JsonValueKind.True;
-                    if (!mythic && entity.TryGetProperty("title", out var ti) && ti.GetString() is { } un && seenUnique.Add(un))
-                        uniques.Add(un);
-                }
+                // unique/mythic gear → its display name. Mythics are kept here too; the compiler
+                // (FilterCompiler.Analyze + UniqueDatabase.IsMythic) splits them into their own category.
+                if (entityType == "uniqueItems" && entity.ValueKind == JsonValueKind.Object
+                    && entity.TryGetProperty("title", out var ti) && ti.GetString() is { } un && seenUnique.Add(un))
+                    uniques.Add(un);
 
                 // desired affixes for this slot (kebab-case slugs → spaced names; the mapper normalizes)
                 if (ge.TryGetProperty("modifiers", out var mods) && mods.ValueKind == JsonValueKind.Object

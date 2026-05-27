@@ -14,7 +14,8 @@ public sealed record CompiledBuild(
     IReadOnlyList<string> Dropped,
     IReadOnlyList<uint> UniqueIds,
     IReadOnlyList<string> UniquesTargeted,
-    IReadOnlyList<string> UniquesPending)
+    IReadOnlyList<string> UniquesPending,
+    IReadOnlyList<string> Mythics)
 {
     /// <summary>The pool's coarse-affix display names, in pool order.</summary>
     public IEnumerable<string> PoolNames => Pool.Select(id => Names[id]);
@@ -106,12 +107,14 @@ public static class FilterCompiler
         var uniqueIds = new List<uint>();
         var uniquesTargeted = new List<string>();
         var uniquesPending = new List<string>();
+        var mythics = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var un in buildUniques)
-            if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
+            if (UniqueDatabase.IsMythic(un)) mythics.Add(un);   // own category, left untouched (no rule)
+            else if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
             else uniquesPending.Add(un);
 
         return new CompiledBuild(build.Build, color, dim, pool, names,
-            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending);
+            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, mythics.ToList());
     }
 
     /// <summary>

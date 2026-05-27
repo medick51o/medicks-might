@@ -93,7 +93,7 @@ public static class D4BuildsFetcher
 
     private static ResolvedVariant ParseVariant(JsonObject v, int idx)
     {
-        string vName = (string?)v["variantName"];
+        string vName = (string?)v["variantName"] ?? "";
         if (string.IsNullOrWhiteSpace(vName)) vName = $"Variant {idx}";
 
         var affixes = new List<string>();

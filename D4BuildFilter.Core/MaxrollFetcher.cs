@@ -101,10 +101,10 @@ public static class MaxrollFetcher
                         : slot.Value.GetString();
                     if (itemKey is null || !items.TryGetProperty(itemKey, out var item)) continue;
 
-                    // Gear unique? Resolve its display name (mythics/charms don't resolve, so
-                    // they're skipped — mythics stay untouched, charms are a separate type).
+                    // Gear unique (or mythic)? Resolve its display name. Mythics are kept too; the
+                    // compiler (FilterCompiler.Analyze + UniqueDatabase.IsMythic) splits them into
+                    // their own category. (Charms don't resolve here — they're a separate type.)
                     if (item.TryGetProperty("id", out var idEl) && idEl.GetString() is { } itemId
-                        && !itemId.Contains("Mythic", StringComparison.OrdinalIgnoreCase)
                         && uniques.Resolve(itemId) is { } un && seenUnique.Add(un))
                         uniqueNames.Add(un);
 

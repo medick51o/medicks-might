@@ -65,10 +65,12 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<string> DroppedLines { get; } = new();
     public ObservableCollection<string> UniquePurpleLines { get; } = new();
     public ObservableCollection<string> UniquePendingLines { get; } = new();
+    public ObservableCollection<string> MythicLines { get; } = new();
 
     public bool HasDropped => DroppedLines.Count > 0;
     public bool HasPurple => UniquePurpleLines.Count > 0;
     public bool HasPending => UniquePendingLines.Count > 0;
+    public bool HasMythics => MythicLines.Count > 0;
 
     // ── Result: the compiled filter + the user's option toggles ──
     [ObservableProperty] private string importCode = "";
@@ -235,9 +237,12 @@ public partial class MainViewModel : ObservableObject
         foreach (var u in compiled.UniquesTargeted) UniquePurpleLines.Add(u);
         UniquePendingLines.Clear();
         foreach (var u in compiled.UniquesPending) UniquePendingLines.Add(u);
+        MythicLines.Clear();
+        foreach (var m in compiled.Mythics) MythicLines.Add(m);
         OnPropertyChanged(nameof(HasDropped));
         OnPropertyChanged(nameof(HasPurple));
         OnPropertyChanged(nameof(HasPending));
+        OnPropertyChanged(nameof(HasMythics));
 
         ImportCode = output.ImportCode;
         FilterInfo = $"{output.RuleCount} rules · {output.Bytes} bytes · round-trip {(output.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
