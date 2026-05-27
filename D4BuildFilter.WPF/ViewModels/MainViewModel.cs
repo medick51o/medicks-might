@@ -84,15 +84,15 @@ public partial class MainViewModel : ObservableObject
     partial void OnFilterTitleChanged(string value) { if (!_suppressRecompile) Recompile(); }
 
     /// <summary>Default branding prefix put on every filter — your name rides along into the game.</summary>
-    public const string TitlePrefix = "Loot Filters By Medick";
-    /// <summary>D4's in-game RENAME dialog caps names at 24 chars; we don't hard-cap here because an
-    /// IMPORTED code may keep a longer name (testing). The counter warns when over.</summary>
+    public const string TitlePrefix = "Medick's";
+    /// <summary>D4 drops filter/rule names over 24 chars on import (verified in-game), so the title
+    /// field is capped here and the encoder clamps too.</summary>
     public const int MaxTitleLength = 24;
     private bool _suppressRecompile;
     public string TitleLengthNote =>
-        $"{FilterTitle.Length} chars" + (FilterTitle.Length > MaxTitleLength
-            ? $"  ⚠ over D4's {MaxTitleLength}-char rename limit (testing whether import keeps it)"
-            : $"  ✓ within D4's {MaxTitleLength}-char limit");
+        $"{FilterTitle.Length} / {MaxTitleLength} characters — D4 drops the name above this on import";
+
+    private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n].TrimEnd();
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
@@ -220,10 +220,10 @@ public partial class MainViewModel : ObservableObject
         _resolved = resolved;
         BuildName = resolved.Build;
 
-        // Auto-brand the in-game filter title (the embedded name D4 shows on import). Editable below;
-        // not hard-capped so the long form can be tested against D4's import (rename dialog caps at 24).
+        // Auto-brand the in-game filter title (the embedded name D4 shows on import). D4 caps names
+        // at 24 chars, so "Medick's {build}" truncated to fit. Editable below (field also capped at 24).
         _suppressRecompile = true;
-        FilterTitle = $"{TitlePrefix} -- {source} {resolved.Build}";
+        FilterTitle = Truncate($"{TitlePrefix} {resolved.Build}", MaxTitleLength);
         _suppressRecompile = false;
 
         // Populate the variant checklist (all on by default). The field initializer keeps

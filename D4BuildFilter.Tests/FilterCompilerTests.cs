@@ -102,11 +102,30 @@ public class FilterCompilerTests
     }
 
     [Fact]
-    public void Filter_title_is_embedded_as_the_in_game_name()
+    public void Short_title_is_embedded_verbatim_as_the_in_game_name()
     {
-        const string title = "Loot Filters By Medick -- Maxroll Ball Lightning";
+        const string title = "Medick's Ball Lightning";   // 23 chars, fits D4's limit
         var o = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "Filter", title);
+        Assert.Equal(title, FilterDecoder.Decode(o.ImportCode).Name);
+    }
+
+    [Fact]
+    public void Long_names_are_clamped_to_24_chars()
+    {
+        // D4 drops a filter/rule name >24 chars on import; the encoder clamps so they always show.
+        const string longTitle = "Loot Filters By Medick -- Maxroll Ball Lightning";  // 48 chars
+        var o = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "Filter", longTitle);
         var dec = FilterDecoder.Decode(o.ImportCode);
-        Assert.Equal(title, dec.Name);   // D4 shows this as the filter name on import
+        Assert.True(dec.Name.Length <= FilterBuilder.MaxNameLength, $"filter name len {dec.Name.Length}");
+        Assert.StartsWith("Loot Filters By Medick", dec.Name);
+        Assert.All(dec.Rules, r => Assert.True(r.Name.Length <= FilterBuilder.MaxNameLength, $"rule '{r.Name}' len {r.Name.Length}"));
+    }
+
+    [Fact]
+    public void Rule_name_over_24_is_clamped()
+    {
+        var rule = FilterBuilder.MakeRule("This rule name is far too long for D4", Visibility.HideAll, new byte[0][]);
+        var dec = FilterDecoder.Decode(FilterBuilder.ToImportCode(FilterBuilder.MakeFilter("F", new[] { rule })));
+        Assert.True(dec.Rules[0].Name.Length <= FilterBuilder.MaxNameLength);
     }
 }

@@ -177,7 +177,7 @@ public static class FilterCompiler
         if (opts.BuildUniques)
             foreach (var b in builds)
                 if (b.UniqueIds.Count > 0)
-                    rules.Add(FilterBuilder.MakeRule($"{b.Name} build uniques", Visibility.Recolor,
+                    rules.Add(FilterBuilder.MakeRule("Build Uniques", Visibility.Recolor,
                         new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(b.UniqueIds) }, FilterColors.Purple));
         // 2/3. Build-affix tiers (the core).
         //  • PER-SLOT mode: one gold rule per gear slot = ItemType(slot) AND that slot's affixes.
@@ -193,17 +193,17 @@ public static class FilterCompiler
                 foreach (var sp in b.SlotPools)
                 {
                     int min = Math.Min(Strict, sp.AffixIds.Count);   // a slot with <3 ideal affixes uses its count
-                    rules.Add(FilterBuilder.MakeRule($"{b.Name} {sp.Label} [{min}+]", Visibility.Recolor,
+                    rules.Add(FilterBuilder.MakeRule($"{sp.Label} [{min}+]", Visibility.Recolor,
                         Tier(Conditions.Types(sp.ItemTypeIds), Conditions.RarityMask(RareLeg),
                              Conditions.Affixes(sp.AffixIds, min)), b.Color));
                 }
             }
             else
             {
-                rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Strict}+]", Visibility.Recolor,
+                rules.Add(FilterBuilder.MakeRule($"Rare/Leg [{Strict}+]", Visibility.Recolor,
                     Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Strict)), b.Color));
                 if (opts.SilverTier)
-                    rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Loose}+]", Visibility.Recolor,
+                    rules.Add(FilterBuilder.MakeRule($"Rare/Leg [{Loose}+]", Visibility.Recolor,
                         Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
             }
         }

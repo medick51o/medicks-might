@@ -114,9 +114,17 @@ public static class Conditions
 /// <summary>Assembles rules and a complete filter, then produces the import code.</summary>
 public static class FilterBuilder
 {
+    /// <summary>D4 silently DROPS a filter name OR rule name longer than this on import (the filter
+    /// reverts to "Loot Filter #N" and rules to "Rule #N" — verified in-game). So every name we
+    /// emit is clamped to this length.</summary>
+    public const int MaxNameLength = 24;
+
+    private static string Clamp(string name) =>
+        name.Length <= MaxNameLength ? name : name[..MaxNameLength].TrimEnd();
+
     public static byte[] MakeRule(string name, Visibility visibility, IReadOnlyList<byte[]> conditions, uint color = FilterColors.Default)
     {
-        var rule = Wire.Concat(Wire.Efs(1, name), Wire.Efv(2, (ulong)visibility), Wire.Ef32(3, color));
+        var rule = Wire.Concat(Wire.Efs(1, Clamp(name)), Wire.Efv(2, (ulong)visibility), Wire.Ef32(3, color));
         foreach (var c in conditions) rule = Wire.Concat(rule, c);
         rule = Wire.Concat(rule, Wire.Efv(5, 1)); // enabled
         return Wire.Efb(1, rule);
@@ -128,7 +136,7 @@ public static class FilterBuilder
         var data = Array.Empty<byte>();
         foreach (var rule in rules) data = Wire.Concat(data, rule);
         // field 3 is NOT a rule count (a real 13-rule filter sets it to 1); treat as a format flag.
-        data = Wire.Concat(data, Wire.Efs(2, name), Wire.Efv(3, 1), Wire.Efv(4, 1));
+        data = Wire.Concat(data, Wire.Efs(2, Clamp(name)), Wire.Efv(3, 1), Wire.Efv(4, 1));
         return data;
     }
 
