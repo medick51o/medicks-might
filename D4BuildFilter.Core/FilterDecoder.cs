@@ -9,6 +9,7 @@ public sealed class DecodedCondition
     public ulong? MaskOrCount { get; set; }   // field 4: rarity bitmask, or affix min-count
     public ulong? Count { get; set; }           // field 6: greater-affix count
     public ulong? Max { get; set; }             // field 5: item-power range max (type 0)
+    public List<uint> GreaterAffixOf { get; } = new(); // field 3: affix ids that must roll as Greater Affixes
     public List<string> Unknown { get; } = new(); // any field we don't recognize (discovery aid)
 }
 
@@ -76,6 +77,12 @@ public static class FilterDecoder
             {
                 case { Field: 1, WireType: 0 }: c.Type = (int)fld.VarintValue; break;
                 case { Field: 2, WireType: 5 }: c.Ids.Add(fld.Fixed32Value); break;
+                case { Field: 3, WireType: 2 }:
+                    // per-affix "must roll as a Greater Affix" marker: sub-message { 1: id, 2: id }
+                    // (real filters repeat the affix id in both fields — see bmbernie's RE notes).
+                    foreach (var sub in ProtobufReader.Read(fld.Bytes))
+                        if (sub is { Field: 1, WireType: 5 }) c.GreaterAffixOf.Add(sub.Fixed32Value);
+                    break;
                 case { Field: 4, WireType: 0 }: c.MaskOrCount = fld.VarintValue; break;
                 case { Field: 5, WireType: 0 }: c.Max = fld.VarintValue; break;
                 case { Field: 6, WireType: 0 }: c.Count = fld.VarintValue; break;
@@ -116,6 +123,7 @@ public static class FilterDecoder
                 string tn = TypeNames.GetValueOrDefault(c.Type, $"UNKNOWN({c.Type})");
                 var parts = new List<string> { $"type={c.Type}({tn})" };
                 if (c.Ids.Count > 0) parts.Add($"ids=[{string.Join(",", c.Ids.Select(id => "0x" + id.ToString("x6")))}]");
+                if (c.GreaterAffixOf.Count > 0) parts.Add($"gaRequired=[{string.Join(",", c.GreaterAffixOf.Select(id => "0x" + id.ToString("x6")))}]");
                 if (c.Type == 0)
                 {
                     if (c.MaskOrCount is { } lo) parts.Add($"minPower={lo}");
