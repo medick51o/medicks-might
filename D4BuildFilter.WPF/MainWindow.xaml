@@ -15,6 +15,9 @@
     </Window.DataContext>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <local:ActiveColorConverter x:Key="ActiveColor" />
+        <local:ActiveTextConverter x:Key="ActiveText" />
+        <local:StringToVisibilityConverter x:Key="StringToVis" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#e3d8cc" />
@@ -93,6 +96,55 @@
             <Setter Property="Foreground" Value="#d4af37" />
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
+
+        <!-- Clickable build "chip" used in the tier lists -->
+        <Style x:Key="BuildChip" TargetType="Button">
+            <Setter Property="Background" Value="#2a221c" />
+            <Setter Property="Foreground" Value="#d8cabb" />
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="#3c2f25" />
+                                <Setter Property="Foreground" Value="#f0d6a8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small text link button ("view full list ↗") -->
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#9fb6d8" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#cfe0f5" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="16">
@@ -116,8 +168,15 @@
         <Grid Grid.Row="1">
 
             <!-- ─── INPUT STATE ─── -->
-            <Grid Visibility="{Binding IsInputState, Converter={StaticResource BoolToVis}}">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="660">
+            <ScrollViewer x:Name="InputScroll"
+                          Visibility="{Binding IsInputState, Converter={StaticResource BoolToVis}}"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <!-- InputColumn.Width is pinned to the ScrollViewer viewport in code-behind, so the
+                   WrapPanels wrap against a finite width and centering works (a plain Disabled
+                   ScrollViewer otherwise sizes its content to the widest tier row). -->
+              <Grid>
+                <StackPanel x:Name="InputColumn" HorizontalAlignment="Left" Margin="0,4,0,16">
+                <StackPanel HorizontalAlignment="Center" MaxWidth="660" Margin="0,16,0,0">
 
                     <!-- Source toggle: maxroll URL vs. paste from any guide -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,18">
@@ -150,7 +209,8 @@
                         <TextBlock Text="Paste a maxroll, mobalytics, or d4builds build URL"
                                    FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,8" />
                         <TextBlock Text="maxroll.gg/d4/planner/…  ·  mobalytics.gg/diablo-4/builds/…  ·  d4builds.gg/builds/…"
-                                   FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,0,0,16" />
+                                   FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,0,0,16"
+                                   TextWrapping="Wrap" TextAlignment="Center" />
                         <TextBox Text="{Binding MaxrollUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Width="620" Height="34" FontSize="13" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
@@ -185,7 +245,123 @@
                                HorizontalAlignment="Center" Margin="0,14,0,0" FontSize="12"
                                TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" />
                 </StackPanel>
-            </Grid>
+
+                <!-- ══════ This season's top builds — live community tier lists ══════ -->
+                <StackPanel MaxWidth="1100" HorizontalAlignment="Center" Margin="0,30,0,0">
+                    <TextBlock Text="This season's top builds" FontSize="18" FontWeight="Bold"
+                               Foreground="#d4af37" HorizontalAlignment="Center" />
+                    <TextBlock Text="Pulled live from the community. Click any build to open it on the source site."
+                               FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,2,0,14" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- ── Maxroll ── -->
+                        <Border Grid.Column="0" Background="#1d1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="16,12" Margin="0,0,7,0">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
+                                            Content="view full list ↗" VerticalAlignment="Center"
+                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding MaxrollTierUrl}" />
+                                    <TextBlock Text="Maxroll" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Text="endgame tier list" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding MaxrollTierStatus}" Foreground="#b6a597" FontSize="12"
+                                           TextWrapping="Wrap" Margin="0,2,0,2"
+                                           Visibility="{Binding MaxrollTierStatus, Converter={StaticResource StringToVis}}" />
+                                <ItemsControl ItemsSource="{Binding MaxrollTiers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3,0,7">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="34" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="4"
+                                                        Width="26" Height="26" VerticalAlignment="Top"
+                                                        HorizontalAlignment="Center" Margin="0,1,0,0">
+                                                    <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="14"
+                                                               Foreground="#1a1410" HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                </Border>
+                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                    Command="{Binding OpenCommand}" ToolTip="{Binding Tip}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── D4Builds ── -->
+                        <Border Grid.Column="1" Background="#1d1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="16,12" Margin="7,0,0,0">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
+                                            Content="view full list ↗" VerticalAlignment="Center"
+                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding D4BuildsTierUrl}" />
+                                    <TextBlock Text="D4Builds" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Text="endgame tier list" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding D4BuildsTierStatus}" Foreground="#b6a597" FontSize="12"
+                                           TextWrapping="Wrap" Margin="0,2,0,2"
+                                           Visibility="{Binding D4BuildsTierStatus, Converter={StaticResource StringToVis}}" />
+                                <ItemsControl ItemsSource="{Binding D4BuildsTiers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3,0,7">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="34" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="4"
+                                                        Width="26" Height="26" VerticalAlignment="Top"
+                                                        HorizontalAlignment="Center" Margin="0,1,0,0">
+                                                    <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="14"
+                                                               Foreground="#1a1410" HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                </Border>
+                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                    Command="{Binding OpenCommand}" ToolTip="{Binding Tip}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock Text="Tier lists belong to Maxroll.gg and D4Builds.gg respectively — shown here with attribution."
+                               FontSize="10" Foreground="#6b625a" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                </StackPanel>
+                </StackPanel>
+              </Grid>
+            </ScrollViewer>
 
             <!-- ─── LOADING STATE ─── -->
             <Grid Visibility="{Binding IsLoadingState, Converter={StaticResource BoolToVis}}">
@@ -289,23 +465,89 @@
                     <!-- Filter options — toggles recompile the code live -->
                     <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
                     <Border Background="#231a14" BorderBrush="#4a3c30" BorderThickness="1"
-                            CornerRadius="4" Padding="14,10">
+                            CornerRadius="4" Padding="14,12">
                         <StackPanel>
+                            <!-- ── Primary matching choice: per-slot mode + the two color-coded build-affix tiers ── -->
+                            <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}"
+                                      Foreground="{Binding OptPerSlot, Converter={StaticResource ActiveText}}" Margin="0,0,0,8" />
+                            <TextBlock Text="Build-affix tiers — how many of a slot's affixes an item needs, and the color it gets:"
+                                       FontSize="11" Foreground="#9a8c80" Margin="0,0,0,6" />
                             <UniformGrid Columns="2">
-                                <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}" Margin="0,3,14,3" />
-                                <CheckBox Content="Less strict — match 2+ per slot (vs 3+)" IsChecked="{Binding OptLessStrict}" Margin="0,3,14,3" />
-                                <CheckBox Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}" Margin="0,3,14,3" />
-                                <CheckBox Content="Build uniques → purple" IsChecked="{Binding OptBuildUniques}" Margin="0,3,14,3" />
-                                <CheckBox Content="Item-power tiers (900 / 850)" IsChecked="{Binding OptItemPowerTiers}" Margin="0,3,14,3" />
-                                <CheckBox Content="Greater Affixes → blue" IsChecked="{Binding OptGreaterAffixes}" Margin="0,3,14,3" />
-                                <CheckBox Content="Charms &amp; Seals → green" IsChecked="{Binding OptCharmsSeals}" Margin="0,3,14,3" />
-                                <CheckBox Content="Codex upgrades → white" IsChecked="{Binding OptCodex}" Margin="0,3,14,3" />
-                                <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}" Margin="0,3,14,3" />
-                                <CheckBox Content="Silver tier (combined mode only)" IsChecked="{Binding OptSilverTier}" Margin="0,3,14,3" />
+                                <!-- 3+ → Gold -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptGoldTier, Converter={StaticResource ActiveColor}, ConverterParameter=#FFD700}" />
+                                    <CheckBox Content="3+ affixes per slot → Gold (best items)" IsChecked="{Binding OptGoldTier}"
+                                              Foreground="{Binding OptGoldTier, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- 2+ → Silver -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptSilverTier, Converter={StaticResource ActiveColor}, ConverterParameter=#AAAAAA}" />
+                                    <CheckBox Content="2+ affixes per slot → Silver (one roll away)" IsChecked="{Binding OptSilverTier}"
+                                              Foreground="{Binding OptSilverTier, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
                             </UniformGrid>
-                            <TextBlock TextWrapping="Wrap" Foreground="#9a8c80" FontSize="11" Margin="0,8,0,0">
-                                <Run Text="Gold tier (3+ build affixes) is always on · Mythics are never touched." /><LineBreak />
-                                <Run Text="⚠ Heads-up on D4's filter limits: without " /><Run FontStyle="Italic" Text="Precise per-slot rules" /><Run Text=", the filter matches by affix COUNT across ALL slots — so an item can show a false 'keep' if it rolled enough of the build's affixes that actually belong on OTHER slots (e.g. boots that rolled chest/ring stats). Per-slot rules scope each rule to its item type to remove that (at the cost of more rules). With Silver tier, expect more borderline highlights." />
+
+                            <Border Height="1" Background="#3a312b" Margin="0,10,0,10" />
+
+                            <!-- ── Secondary tiers (each marker shows its in-game highlight color, grays when off) ── -->
+                            <UniformGrid Columns="2">
+                                <!-- Build uniques → purple -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptBuildUniques, Converter={StaticResource ActiveColor}, ConverterParameter=#A020F0}" />
+                                    <CheckBox Content="Build uniques → Purple" IsChecked="{Binding OptBuildUniques}"
+                                              Foreground="{Binding OptBuildUniques, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- Greater Affixes → blue -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptGreaterAffixes, Converter={StaticResource ActiveColor}, ConverterParameter=#2251E8}" />
+                                    <CheckBox Content="Greater Affixes → Blue" IsChecked="{Binding OptGreaterAffixes}"
+                                              Foreground="{Binding OptGreaterAffixes, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- Item-power tiers → orange / cyan -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,3,0"
+                                            Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#FF8C00}" />
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#00FFFF}" />
+                                    <CheckBox Content="Item power → Orange / Cyan (900 / 850)" IsChecked="{Binding OptItemPowerTiers}"
+                                              Foreground="{Binding OptItemPowerTiers, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- Charms &amp; Seals → green -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptCharmsSeals, Converter={StaticResource ActiveColor}, ConverterParameter=#00C800}" />
+                                    <CheckBox Content="Charms &amp; Seals → Green" IsChecked="{Binding OptCharmsSeals}"
+                                              Foreground="{Binding OptCharmsSeals, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- Codex upgrades → white -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="{Binding OptCodex, Converter={StaticResource ActiveColor}, ConverterParameter=#FFFFFF}" />
+                                    <CheckBox Content="Codex upgrades → White" IsChecked="{Binding OptCodex}"
+                                              Foreground="{Binding OptCodex, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- Hide everything else → no highlight (hollow marker) -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                            Background="Transparent" BorderBrush="#6b625a" BorderThickness="1" />
+                                    <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}"
+                                              Foreground="{Binding OptHideRest, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                                <!-- Strict endgame → behavioral (no highlight color) -->
+                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
+                                    <Border Width="13" Height="13" Margin="0,0,7,0" Background="Transparent" />
+                                    <CheckBox Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}"
+                                              Foreground="{Binding StrictEndgame, Converter={StaticResource ActiveText}}" />
+                                </StackPanel>
+                            </UniformGrid>
+
+                            <TextBlock TextWrapping="Wrap" Foreground="#9a8c80" FontSize="11" Margin="0,10,0,0">
+                                <Run Text="Each gear slot gets its own rule, scoped to that item type — so a boots rule only ever matches boots. Gold = great keepers, Silver = one roll away (it sits below Gold, so a 3+ item still goes Gold). Mythics are never touched." /><LineBreak />
+                                <Run Text="⚠ Turning OFF " /><Run FontStyle="Italic" Text="Precise per-slot rules" /><Run Text=" falls back to matching by affix COUNT across ALL slots, which can show false 'keeps' (e.g. boots that rolled chest/ring stats)." />
                             </TextBlock>
                         </StackPanel>
                     </Border>
@@ -330,11 +572,19 @@
                                    VerticalAlignment="Center" Margin="16,0,0,0" FontSize="12" FontFamily="Consolas" />
                     </StackPanel>
 
+                    <!-- Rule-cap warning: D4 rejects filters over 25 rules on import -->
+                    <Border Background="#3a1414" BorderBrush="#d0524a" BorderThickness="1"
+                            CornerRadius="4" Padding="12,8" Margin="0,10,0,0"
+                            Visibility="{Binding HasCapWarning, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding CapWarning}" TextWrapping="Wrap" FontSize="12"
+                                   FontWeight="SemiBold" Foreground="#f3b0ab" />
+                    </Border>
+
                     <!-- Re-import warning: options regenerate the code; an imported filter won't auto-update -->
                     <Border Background="#3a2a14" BorderBrush="#e0915a" BorderThickness="1"
                             CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
                         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#f0c89a">
-                            <Run FontWeight="Bold" Text="⚠ Changed an option (e.g. Strict ↔ Less strict)?" />
+                            <Run FontWeight="Bold" Text="⚠ Changed an option (e.g. toggled a Gold/Silver tier)?" />
                             <Run Text=" The code above is rebuilt every time you toggle something — but a filter you've ALREADY pasted into Diablo 4 won't update on its own. To apply a change: copy the new code and import it again, or check/uncheck the matching rules directly in the in-game filter." />
                         </TextBlock>
                     </Border>

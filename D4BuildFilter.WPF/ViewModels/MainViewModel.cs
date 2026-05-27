@@ -50,6 +50,46 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void UseUrlMode() => PasteMode = false;
     [RelayCommand] private void UsePasteMode() => PasteMode = true;
 
+    // ── Landing page: live community tier lists (this season's top builds) ──
+    public ObservableCollection<TierGroupVM> MaxrollTiers { get; } = new();
+    public ObservableCollection<TierGroupVM> D4BuildsTiers { get; } = new();
+
+    [ObservableProperty] private string maxrollTierStatus = "Loading…";
+    [ObservableProperty] private string d4BuildsTierStatus = "Loading…";
+
+    public string MaxrollTierUrl => TierListFetcher.MaxrollUrl;
+    public string D4BuildsTierUrl => TierListFetcher.D4BuildsUrl;
+
+    [RelayCommand] private void OpenTierUrl(string url) => OpenUrl(url);
+
+    public MainViewModel() => _ = LoadTierListsAsync();
+
+    /// <summary>Pull both tier lists on startup (independently — one failing never blocks the other).
+    /// Awaits resume on the UI context so the ObservableCollections are touched on the dispatcher.</summary>
+    private async Task LoadTierListsAsync()
+    {
+        await Task.WhenAll(
+            LoadOneAsync(TierListFetcher.FetchMaxrollAsync, MaxrollTiers, s => MaxrollTierStatus = s, "Maxroll"),
+            LoadOneAsync(TierListFetcher.FetchD4BuildsAsync, D4BuildsTiers, s => D4BuildsTierStatus = s, "D4Builds"));
+    }
+
+    private async Task LoadOneAsync(Func<CancellationToken, Task<TierList>> fetch,
+        ObservableCollection<TierGroupVM> target, Action<string> setStatus, string source)
+    {
+        try
+        {
+            var list = await fetch(default);
+            target.Clear();
+            foreach (var g in list.Builds.GroupBy(b => b.Tier))
+                target.Add(new TierGroupVM(g.Key, g.Select(b => new TierBuildVM(b, OpenUrl)).ToList()));
+            setStatus(target.Count == 0 ? "No builds found — open the full list ↗" : "");
+        }
+        catch
+        {
+            setStatus("Couldn't load right now — open the full list ↗");
+        }
+    }
+
     // ── Result: header ──
     [ObservableProperty]
     private string buildName = "";
@@ -76,6 +116,16 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string importCode = "";
     [ObservableProperty] private string filterInfo = "";
 
+    /// <summary>D4 rejects any filter with more than 25 rules on import. Set when the current
+    /// toggles push past that so the UI can warn (both Gold + Silver tiers on a many-slot build
+    /// is the usual culprit).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCapWarning))]
+    private string capWarning = "";
+    public bool HasCapWarning => !string.IsNullOrEmpty(CapWarning);
+    /// <summary>D4's hard cap on rules per filter.</summary>
+    public const int MaxRules = 25;
+
     /// <summary>The branded in-game filter title (D4 shows this as the filter name on import).
     /// Auto-seeded as "{TitlePrefix} -- {Source} {Build}"; editable, recompiles live.</summary>
     [ObservableProperty]
@@ -97,9 +147,9 @@ public partial class MainViewModel : ObservableObject
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
     [ObservableProperty] private bool optPerSlot = true;   // recommended default (falls back to combined w/o slot data)
-    [ObservableProperty] private bool optLessStrict;       // false = 3+ (strict), true = 2+ (looser)
+    [ObservableProperty] private bool optGoldTier = true;  // 3+ affixes per slot → gold ("best items")
+    [ObservableProperty] private bool optSilverTier = true; // 2+ affixes per slot → silver ("one roll away")
     [ObservableProperty] private bool optBuildUniques = true;
-    [ObservableProperty] private bool optSilverTier = true;
     [ObservableProperty] private bool optItemPowerTiers = true;
     [ObservableProperty] private bool optGreaterAffixes = true;
     [ObservableProperty] private bool optCharmsSeals = true;
@@ -108,9 +158,9 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnStrictEndgameChanged(bool value) => Recompile();
     partial void OnOptPerSlotChanged(bool value) => Recompile();
-    partial void OnOptLessStrictChanged(bool value) => Recompile();
-    partial void OnOptBuildUniquesChanged(bool value) => Recompile();
+    partial void OnOptGoldTierChanged(bool value) => Recompile();
     partial void OnOptSilverTierChanged(bool value) => Recompile();
+    partial void OnOptBuildUniquesChanged(bool value) => Recompile();
     partial void OnOptItemPowerTiersChanged(bool value) => Recompile();
     partial void OnOptGreaterAffixesChanged(bool value) => Recompile();
     partial void OnOptCharmsSealsChanged(bool value) => Recompile();
@@ -121,7 +171,7 @@ public partial class MainViewModel : ObservableObject
     {
         StrictEndgame = StrictEndgame,
         PerSlotRules = OptPerSlot,
-        LessStrict = OptLessStrict,
+        GoldTier = OptGoldTier,
         BuildUniques = OptBuildUniques,
         SilverTier = OptSilverTier,
         ItemPowerTiers = OptItemPowerTiers,
@@ -277,6 +327,10 @@ public partial class MainViewModel : ObservableObject
 
         ImportCode = output.ImportCode;
         FilterInfo = $"{output.RuleCount} rules · {output.Bytes} bytes · round-trip {(output.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
+        CapWarning = output.RuleCount > MaxRules
+            ? $"⚠ {output.RuleCount} rules — Diablo 4 rejects filters over {MaxRules} on import. "
+              + "Turn off a tier (Gold 3+ or Silver 2+), or deselect some variants, to get back under the limit."
+            : "";
 
         StatusMessage = "";
     }

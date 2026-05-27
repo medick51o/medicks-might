@@ -55,8 +55,9 @@ public class PerSlotTests
     }
 
     [Fact]
-    public void Less_strict_lowers_per_slot_threshold_to_2_without_adding_rules()
+    public void Per_slot_emits_gold_3plus_and_silver_2plus_tiers_for_a_rich_slot()
     {
+        // A slot with >=3 ideal affixes produces two distinct rules: Gold [3+] and Silver [2+].
         var rb = new ResolvedBuild("t", "Barbarian", new[]
         {
             new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(),
@@ -64,15 +65,32 @@ public class PerSlotTests
         });
         var b = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
 
-        var strict = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, LessStrict = false }, "t");
-        var loose = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, LessStrict = true }, "t");
+        var both = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = true }, "t");
+        var goldOnly = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = false }, "t");
 
-        Assert.Equal(strict.RuleCount, loose.RuleCount);   // threshold change only — NO extra rules (cap-safe)
+        Assert.Equal(goldOnly.RuleCount + 1, both.RuleCount);   // Silver adds exactly one rule for this one slot
 
-        uint MinCount(string code) => (uint)FilterDecoder.Decode(code).Rules
-            .SelectMany(r => r.Conditions).First(c => c.Type == 6).MaskOrCount!.Value;
-        Assert.Equal(3u, MinCount(strict.ImportCode));
-        Assert.Equal(2u, MinCount(loose.ImportCode));
+        var mins = FilterDecoder.Decode(both.ImportCode).Rules
+            .SelectMany(r => r.Conditions).Where(c => c.Type == 6).Select(c => (uint)c.MaskOrCount!.Value).ToList();
+        Assert.Contains(3u, mins);   // Gold tier
+        Assert.Contains(2u, mins);   // Silver tier
+    }
+
+    [Fact]
+    public void Per_slot_silver_is_skipped_when_it_would_duplicate_gold()
+    {
+        // A slot with only 2 ideal affixes: Gold [2+] and Silver [2+] would be identical, so only one fires.
+        var rb = new ResolvedBuild("t", "Barbarian", new[]
+        {
+            new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(),
+                new[] { new ResolvedSlot("Boots", new[] { "Strength", "Maximum Life" }) }),
+        });
+        var b = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
+
+        var both = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = true }, "t");
+        var goldOnly = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = false }, "t");
+
+        Assert.Equal(goldOnly.RuleCount, both.RuleCount);   // no duplicate Silver rule added
     }
 
     [Fact]

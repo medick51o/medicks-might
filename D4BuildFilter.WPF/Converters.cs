@@ -1,0 +1,50 @@
+using System;
+using System.Globalization;
+using System.Windows;
+using System.Windows.Data;
+using System.Windows.Media;
+
+namespace D4BuildFilter.WPF;
+
+/// <summary>Visible when the bound string is non-empty (e.g. a loading/error note), else collapsed.</summary>
+public sealed class StringToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => string.IsNullOrWhiteSpace(value as string) ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Options-panel color swatch: when the bound toggle is ON, paint it the rule's real
+/// in-game highlight color (passed as the hex ConverterParameter, e.g. "#FFD700"); when OFF,
+/// dim it to a muted gray so the marker reads as "this color won't be produced".</summary>
+public sealed class ActiveColorConverter : IValueConverter
+{
+    private static readonly SolidColorBrush Off = new(Color.FromRgb(0x4a, 0x44, 0x3d));
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        bool on = value is true;
+        if (!on || parameter is not string hex) return Off;
+        try { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
+        catch { return Off; }
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Options-panel label text: bright when the toggle is ON, grayed when OFF — so the
+/// whole row (swatch + words) visibly goes inactive together.</summary>
+public sealed class ActiveTextConverter : IValueConverter
+{
+    private static readonly SolidColorBrush On = new(Color.FromRgb(0xe3, 0xd8, 0xcc));
+    private static readonly SolidColorBrush Off = new(Color.FromRgb(0x6b, 0x62, 0x5a));
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? On : Off;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
