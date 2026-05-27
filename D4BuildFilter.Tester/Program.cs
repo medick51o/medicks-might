@@ -50,6 +50,19 @@ if (args.Length >= 1 && args[0] == "fetch")
         Console.WriteLine($"  {v.Name}: {v.Affixes.Count} affixes, {v.Uniques.Count} gear uniques");
     Console.WriteLine($"  -> wrote {ResolvedPath}\n");
 }
+else if (args.Length >= 1 && args[0] == "paste")
+{
+    // PASTE MODE: `dotnet run -- paste <file>` — universal import. Reads affix names (and any
+    // unique item names) copied from ANY build guide, maps them, and builds the filter. The same
+    // back half as fetch, just sourced from free text instead of a maxroll URL.
+    if (args.Length < 2) { Console.WriteLine("usage: paste <path-to-text-file>"); return; }
+    var text = File.ReadAllText(args[1]);
+    var buildName = Path.GetFileNameWithoutExtension(args[1]);
+    resolved = PastedBuild.Parse(text, buildName);
+    File.WriteAllText(ResolvedPath, JsonSerializer.Serialize(resolved, jsonOpts));
+    var v0 = resolved.Variants[0];
+    Console.WriteLine($"Pasted \"{resolved.Build}\" — {v0.Affixes.Count} affix lines, {v0.Uniques.Count} unique names recognized\n");
+}
 else
 {
     // Default: build from the previously-resolved build on disk.
