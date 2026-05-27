@@ -35,17 +35,25 @@ if (args.Length >= 1 && args[0] == "fetch")
         return;
     }
     string src = args[1];
-    string raw = File.Exists(src)
-        ? File.ReadAllText(src)
-        : MaxrollFetcher.FetchRawAsync(src).GetAwaiter().GetResult();
-
-    var lookup = NameLookup.Default();
-    var uniqueLookup = UniqueLookup.Default();
-    resolved = MaxrollFetcher.Parse(raw, lookup, uniqueLookup);
+    string? raw = File.Exists(src) ? File.ReadAllText(src) : null;
+    // Route by source: Mobalytics (embedded __PRELOADED_STATE__) vs maxroll (planner JSON / nids).
+    bool isMoba = raw is not null ? raw.Contains("__PRELOADED_STATE__") : MobalyticsFetcher.IsMobalyticsUrl(src);
+    string source;
+    if (isMoba)
+    {
+        raw ??= MobalyticsFetcher.FetchRawAsync(src).GetAwaiter().GetResult();
+        resolved = MobalyticsFetcher.Parse(raw);
+        source = "mobalytics";
+    }
+    else
+    {
+        raw ??= MaxrollFetcher.FetchRawAsync(src).GetAwaiter().GetResult();
+        resolved = MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default());
+        source = "maxroll";
+    }
     File.WriteAllText(ResolvedPath, JsonSerializer.Serialize(resolved, jsonOpts));
 
-    Console.WriteLine($"Fetched \"{resolved.Build}\" ({resolved.Class}) — {resolved.Variants.Count} variants "
-        + $"(DB: {lookup.Count} affix SNOs, {uniqueLookup.Count} unique items)");
+    Console.WriteLine($"Fetched \"{resolved.Build}\" ({resolved.Class}) — {resolved.Variants.Count} variants [{source}]");
     foreach (var v in resolved.Variants)
         Console.WriteLine($"  {v.Name}: {v.Affixes.Count} affixes, {v.Uniques.Count} gear uniques");
     Console.WriteLine($"  -> wrote {ResolvedPath}\n");

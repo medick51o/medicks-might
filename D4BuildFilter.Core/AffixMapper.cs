@@ -79,6 +79,14 @@ public static class AffixMapper
         ["holy damage"] = "Holy Damage Multiplier",
         ["lucky hit: up to a % chance to restore primary resource"] = "Lucky Hit Restore Primary Resource",
         ["maximum evade charges"] = "Maximum Evade Charge",   // plural in some guides; singular in the DB
+        ["all damage multipler"] = "All Damage Multiplier",   // Mobalytics ships this affix slug misspelled
+        // Mobalytics names resource regen as "<resource> per second"; map to our "<resource> Regeneration".
+        ["fury per second"] = "Fury Regeneration",
+        ["mana per second"] = "Mana Regeneration",
+        ["spirit per second"] = "Spirit Regeneration",
+        ["essence per second"] = "Essence Regeneration",
+        ["energy per second"] = "Energy Regeneration",
+        ["bonus weapon damage"] = "Weapon Damage",
     };
 
     /// <summary>Ordered most-specific-first. A conditional affix containing one of these
