@@ -123,15 +123,23 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        StatusMessage = "Fetching build from maxroll…";
+        StatusMessage = "Fetching build…";
         State = AppState.Loading;
         try
         {
             var resolved = await Task.Run(async () =>
             {
-                string raw = File.Exists(source)
-                    ? await File.ReadAllTextAsync(source)
-                    : await MaxrollFetcher.FetchRawAsync(source);
+                // Route by source: Mobalytics (embedded __PRELOADED_STATE__) vs maxroll (planner JSON).
+                string? raw = File.Exists(source) ? await File.ReadAllTextAsync(source) : null;
+                bool isMoba = raw is not null
+                    ? raw.Contains("__PRELOADED_STATE__")
+                    : MobalyticsFetcher.IsMobalyticsUrl(source);
+                if (isMoba)
+                {
+                    raw ??= await MobalyticsFetcher.FetchRawAsync(source);
+                    return MobalyticsFetcher.Parse(raw);
+                }
+                raw ??= await MaxrollFetcher.FetchRawAsync(source);
                 return MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default());
             });
             Ingest(resolved);

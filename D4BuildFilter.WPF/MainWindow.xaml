@@ -147,9 +147,9 @@
 
                     <!-- URL mode -->
                     <StackPanel Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="Paste a maxroll.gg build planner URL"
+                        <TextBlock Text="Paste a maxroll.gg or mobalytics.gg build URL"
                                    FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,8" />
-                        <TextBlock Text="Example: https://maxroll.gg/d4/planner/abcd1234#2"
+                        <TextBlock Text="e.g. maxroll.gg/d4/planner/abcd1234#2  ·  mobalytics.gg/diablo-4/builds/...   (d4builds → use Paste)"
                                    FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,0,0,16" />
                         <TextBox Text="{Binding MaxrollUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Width="620" Height="34" FontSize="13" />
