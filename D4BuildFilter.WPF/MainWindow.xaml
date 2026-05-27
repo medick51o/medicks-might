@@ -269,7 +269,7 @@
                                     <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — your build's uniques" /></TextBlock>
                                     <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — rare/legendary with 3+ build affixes" /></TextBlock>
                                     <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — rare/legendary with 2+ build affixes" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Text="  — Ancestral (high item power)" /></TextBlock>
+                                    <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text=" / Cyan" /><Run Text="  — high item power (900 / 850)" /></TextBlock>
                                     <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
                                     <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
                                     <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex of Power upgrades" /></TextBlock>
@@ -279,45 +279,36 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Mode toggle -->
-                    <TextBlock Text="Filter strictness" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Normal" Command="{Binding UseNormalCommand}" Width="160" Height="36">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding NormalSelected}" Value="True">
-                                            <Setter Property="Background" Value="#9c2b25" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button Content="Strict Endgame" Command="{Binding UseStrictCommand}" Width="160" Height="36" Margin="8,0,0,0">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding StrictSelected}" Value="True">
-                                            <Setter Property="Background" Value="#9c2b25" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </StackPanel>
-                    <TextBlock Text="{Binding ActiveModeLabel}" Foreground="#b6a597"
-                               FontSize="12" Margin="0,8,0,0" TextWrapping="Wrap" />
+                    <!-- Filter options — toggles recompile the code live -->
+                    <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
+                    <Border Background="#231a14" BorderBrush="#4a3c30" BorderThickness="1"
+                            CornerRadius="4" Padding="14,10">
+                        <StackPanel>
+                            <UniformGrid Columns="2">
+                                <CheckBox Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}" Margin="0,3,14,3" />
+                                <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}" Margin="0,3,14,3" />
+                                <CheckBox Content="Build uniques → purple" IsChecked="{Binding OptBuildUniques}" Margin="0,3,14,3" />
+                                <CheckBox Content="Silver tier (2+ affixes)" IsChecked="{Binding OptSilverTier}" Margin="0,3,14,3" />
+                                <CheckBox Content="Item-power tiers (900 / 850)" IsChecked="{Binding OptItemPowerTiers}" Margin="0,3,14,3" />
+                                <CheckBox Content="Greater Affixes → blue" IsChecked="{Binding OptGreaterAffixes}" Margin="0,3,14,3" />
+                                <CheckBox Content="Charms &amp; Seals → green" IsChecked="{Binding OptCharmsSeals}" Margin="0,3,14,3" />
+                                <CheckBox Content="Codex upgrades → white" IsChecked="{Binding OptCodex}" Margin="0,3,14,3" />
+                            </UniformGrid>
+                            <TextBlock Text="Gold tier (3+ build affixes) is always on · Mythics are never touched"
+                                       Foreground="#9a8c80" FontSize="11" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
 
                     <!-- Import code -->
                     <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
-                    <TextBox Text="{Binding CurrentCode, Mode=OneWay}"
+                    <TextBox Text="{Binding ImportCode, Mode=OneWay}"
                              IsReadOnly="True" Height="120" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto" FontSize="11" />
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <Button Content="📋 Copy import code"
                                 Command="{Binding CopyCodeCommand}"
                                 Width="200" Height="40" />
-                        <TextBlock Text="{Binding CurrentInfo}" Foreground="#b6a597"
+                        <TextBlock Text="{Binding FilterInfo}" Foreground="#b6a597"
                                    VerticalAlignment="Center" Margin="16,0,0,0" FontSize="12" FontFamily="Consolas" />
                     </StackPanel>
 

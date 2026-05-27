@@ -23,6 +23,30 @@ public sealed record CompiledBuild(
 /// <summary>One compiled filter: the base64 import code plus a self-check.</summary>
 public sealed record FilterOutput(string Label, string ImportCode, int RuleCount, int Bytes, bool RoundTripOk);
 
+/// <summary>The streamlined customization surface — which rules the filter includes.
+/// Defaults reproduce the full recommended filter; the WPF app binds toggles to these.</summary>
+public sealed record FilterOptions
+{
+    /// <summary>Gate the build-affix + greater-affix tiers to Ancestral (top item-power) gear —
+    /// great for T6+ farming, hides everything while leveling.</summary>
+    public bool StrictEndgame { get; init; }
+    /// <summary>The build's own uniques → purple.</summary>
+    public bool BuildUniques { get; init; } = true;
+    /// <summary>Rare/legendary with ≥2 build affixes → silver (the "one reroll away" tier).</summary>
+    public bool SilverTier { get; init; } = true;
+    /// <summary>Item-power tiers: 900+ → orange, 850+ → cyan.</summary>
+    public bool ItemPowerTiers { get; init; } = true;
+    /// <summary>Any rare/legendary with a Greater Affix → blue.</summary>
+    public bool GreaterAffixes { get; init; } = true;
+    /// <summary>Charms &amp; Seals → green.</summary>
+    public bool CharmsSeals { get; init; } = true;
+    /// <summary>Codex-of-Power upgrades → white.</summary>
+    public bool Codex { get; init; } = true;
+    /// <summary>Hide everything else (Common/Magic/Rare/Legendary the rules above didn't match).
+    /// Never touches Unique or Mythic.</summary>
+    public bool HideRest { get; init; } = true;
+}
+
 /// <summary>
 /// Turns a resolved maxroll build into a Diablo 4 loot-filter import code. This is the
 /// shared core both the Tester console and the WPF app call, so they produce identical,
@@ -93,56 +117,63 @@ public static class FilterCompiler
     /// <summary>
     /// Assemble the filter and produce its import code. D4 applies rules TOP-DOWN, first match
     /// wins, so rules are emitted MOST-SPECIFIC first and a scoped hide-all sits last.
-    /// <paramref name="strictEndgame"/> gates the build-affix + greater-affix rules on Ancestral
-    /// tier so only top item-power gear highlights (great for T6+ farming, hides everything while
-    /// leveling). Pass one <see cref="CompiledBuild"/> today; the list is structured for many
-    /// (each its own color), up to the 25-rule cap.
+    /// <paramref name="opts"/> selects which rules to include (the user's toggles); the gold
+    /// build-affix tier is always on. Pass one <see cref="CompiledBuild"/> today; the list is
+    /// structured for many (each its own color), up to the 25-rule cap.
     /// </summary>
-    public static FilterOutput Compile(IReadOnlyList<CompiledBuild> builds, bool strictEndgame,
+    public static FilterOutput Compile(IReadOnlyList<CompiledBuild> builds, FilterOptions opts,
         string label, string filterName = "D4BuildFilter")
     {
         const uint RareLeg = Rarity.Rare | Rarity.Legendary;
 
         byte[][] Tier(params byte[][] conds) =>
-            strictEndgame ? conds.Append(Conditions.Ancestral()).ToArray() : conds;
+            opts.StrictEndgame ? conds.Append(Conditions.Ancestral()).ToArray() : conds;
 
         var rules = new List<byte[]>();
         // 1. The build's OWN uniques -> purple (per-unique type-8). Dormant until we have ids.
-        foreach (var b in builds)
-            if (b.UniqueIds.Count > 0)
-                rules.Add(FilterBuilder.MakeRule($"{b.Name} build uniques", Visibility.Recolor,
-                    new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(b.UniqueIds) }, FilterColors.Purple));
-        // 2. Rare/leg with >=3 build affixes -> gold (keepers).
+        if (opts.BuildUniques)
+            foreach (var b in builds)
+                if (b.UniqueIds.Count > 0)
+                    rules.Add(FilterBuilder.MakeRule($"{b.Name} build uniques", Visibility.Recolor,
+                        new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(b.UniqueIds) }, FilterColors.Purple));
+        // 2. Rare/leg with >=3 build affixes -> gold (keepers). Always on — the core of the filter.
         foreach (var b in builds)
             rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Strict}+]", Visibility.Recolor,
                 Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Strict)), b.Color));
         // 3. Rare/leg with >=2 build affixes -> silver (one reroll from great).
-        foreach (var b in builds)
-            rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Loose}+]", Visibility.Recolor,
-                Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
-        // 4. Item-power tiers (the numeric "Item Power Range" condition is now decoded: type 0,
-        //    field4=min, field5=max). Top band -> orange, high band -> cyan. "Affixes conquer all":
-        //    these sit BELOW the build-affix tiers, so a real build match always wins the color.
-        //    Orange must precede cyan (top-down, first match wins) or 900+ items would read as cyan.
-        rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerOrange}+", Visibility.Recolor,
-            new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerOrange, ItemPowerCap) }, FilterColors.Orange));
-        rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerCyan}+", Visibility.Recolor,
-            new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerCyan, ItemPowerCap) }, FilterColors.Cyan));
+        if (opts.SilverTier)
+            foreach (var b in builds)
+                rules.Add(FilterBuilder.MakeRule($"{b.Name} rare/leg [{Loose}+]", Visibility.Recolor,
+                    Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(b.Pool, Loose)), b.Dim));
+        // 4. Item-power tiers (the numeric "Item Power Range" condition: type 0, field4=min, field5=max).
+        //    Top band -> orange, high band -> cyan. "Affixes conquer all": these sit BELOW the build
+        //    tiers so a real build match wins. Orange precedes cyan (first match wins).
+        if (opts.ItemPowerTiers)
+        {
+            rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerOrange}+", Visibility.Recolor,
+                new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerOrange, ItemPowerCap) }, FilterColors.Orange));
+            rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerCyan}+", Visibility.Recolor,
+                new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerCyan, ItemPowerCap) }, FilterColors.Cyan));
+        }
         // 5. Greater Affixes -> blue: any rare/leg with >=1 GA not already matched above.
-        rules.Add(FilterBuilder.MakeRule("Greater Affixes", Visibility.Recolor,
-            Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));
-        // 6. Charms & Seals -> green (rootsxo idea): surface them by item type, any rarity,
-        //    so the hide rule doesn't eat them. Not tier-gated.
-        rules.Add(FilterBuilder.MakeRule("Charms & Seals", Visibility.Recolor,
-            new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }, FilterColors.Green));
+        if (opts.GreaterAffixes)
+            rules.Add(FilterBuilder.MakeRule("Greater Affixes", Visibility.Recolor,
+                Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));
+        // 6. Charms & Seals -> green: surface them by item type, any rarity, so the hide rule
+        //    doesn't eat them. Not tier-gated.
+        if (opts.CharmsSeals)
+            rules.Add(FilterBuilder.MakeRule("Charms & Seals", Visibility.Recolor,
+                new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }, FilterColors.Green));
         // 7. Any remaining Codex-of-Power upgrade -> white (pick up for the aspect, then salvage).
-        rules.Add(FilterBuilder.MakeRule("Codex Upgrades", Visibility.Recolor,
-            new[] { Conditions.Codex() }, FilterColors.White));
+        if (opts.Codex)
+            rules.Add(FilterBuilder.MakeRule("Codex Upgrades", Visibility.Recolor,
+                new[] { Conditions.Codex() }, FilterColors.White));
         // 8. Hide the clutter: Common / Magic / Rare / Legendary that nothing above matched.
         //    NOT Unique (build ones purple above; rest fall through to default) and NOT Mythic —
         //    mythics drop untouched with their natural beam + "tink".
-        rules.Add(FilterBuilder.MakeRule("Hide the rest", Visibility.HideAll,
-            new[] { Conditions.RarityMask(Rarity.Common | Rarity.Magic | Rarity.Rare | Rarity.Legendary) }));
+        if (opts.HideRest)
+            rules.Add(FilterBuilder.MakeRule("Hide the rest", Visibility.HideAll,
+                new[] { Conditions.RarityMask(Rarity.Common | Rarity.Magic | Rarity.Rare | Rarity.Legendary) }));
 
         var filterBytes = FilterBuilder.MakeFilter(filterName, rules);
         var code = FilterBuilder.ToImportCode(filterBytes);

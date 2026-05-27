@@ -108,14 +108,14 @@ if (build.UniquesPending.Count > 0)
     Console.WriteLine($"  build uniques without an id yet ({build.UniquesPending.Count}) — export to capture: {string.Join(", ", build.UniquesPending)}");
 Console.WriteLine($"  GOLD = >={FilterCompiler.Strict} of pool   SECONDARY = >={FilterCompiler.Loose} of pool\n");
 
-void Emit(bool strictEndgame, string label, string outPath)
+void Emit(FilterOptions opts, string label, string outPath)
 {
-    var output = FilterCompiler.Compile(new[] { build }, strictEndgame, label);
+    var output = FilterCompiler.Compile(new[] { build }, opts, label);
     Console.WriteLine($"=== {output.Label}: {output.RuleCount} rules (cap 25), {output.Bytes} bytes, "
         + $"round-trip {(output.RoundTripOk ? "OK" : "MISMATCH")} ===");
     Console.WriteLine(output.ImportCode + "\n");
     File.WriteAllText(outPath, output.ImportCode);
 }
 
-Emit(false, "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
-Emit(true, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");
+Emit(new FilterOptions(), "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
+Emit(new FilterOptions { StrictEndgame = true }, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");

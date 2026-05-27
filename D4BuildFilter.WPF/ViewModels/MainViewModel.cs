@@ -70,31 +70,40 @@ public partial class MainViewModel : ObservableObject
     public bool HasPurple => UniquePurpleLines.Count > 0;
     public bool HasPending => UniquePendingLines.Count > 0;
 
-    // ── Result: the two compiled codes + the Normal/Strict toggle ──
-    private string normalCode = "";
-    private string strictCode = "";
+    // ── Result: the compiled filter + the user's option toggles ──
+    [ObservableProperty] private string importCode = "";
+    [ObservableProperty] private string filterInfo = "";
 
-    [ObservableProperty]
-    private string normalInfo = "";
+    // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
+    [ObservableProperty] private bool strictEndgame;
+    [ObservableProperty] private bool optBuildUniques = true;
+    [ObservableProperty] private bool optSilverTier = true;
+    [ObservableProperty] private bool optItemPowerTiers = true;
+    [ObservableProperty] private bool optGreaterAffixes = true;
+    [ObservableProperty] private bool optCharmsSeals = true;
+    [ObservableProperty] private bool optCodex = true;
+    [ObservableProperty] private bool optHideRest = true;
 
-    [ObservableProperty]
-    private string strictInfo = "";
+    partial void OnStrictEndgameChanged(bool value) => Recompile();
+    partial void OnOptBuildUniquesChanged(bool value) => Recompile();
+    partial void OnOptSilverTierChanged(bool value) => Recompile();
+    partial void OnOptItemPowerTiersChanged(bool value) => Recompile();
+    partial void OnOptGreaterAffixesChanged(bool value) => Recompile();
+    partial void OnOptCharmsSealsChanged(bool value) => Recompile();
+    partial void OnOptCodexChanged(bool value) => Recompile();
+    partial void OnOptHideRestChanged(bool value) => Recompile();
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CurrentCode))]
-    [NotifyPropertyChangedFor(nameof(CurrentInfo))]
-    [NotifyPropertyChangedFor(nameof(ActiveModeLabel))]
-    [NotifyPropertyChangedFor(nameof(NormalSelected))]
-    [NotifyPropertyChangedFor(nameof(StrictSelected))]
-    private bool showStrict;
-
-    public string CurrentCode => ShowStrict ? strictCode : normalCode;
-    public string CurrentInfo => ShowStrict ? StrictInfo : NormalInfo;
-    public string ActiveModeLabel => ShowStrict
-        ? "STRICT ENDGAME — only Ancestral (top item-power) gear highlights. Built for T6+ farming; hides everything while leveling."
-        : "NORMAL — highlights build gear at any item power. Good all-round / leveling filter.";
-    public bool NormalSelected => !ShowStrict;
-    public bool StrictSelected => ShowStrict;
+    private FilterOptions CurrentOptions => new()
+    {
+        StrictEndgame = StrictEndgame,
+        BuildUniques = OptBuildUniques,
+        SilverTier = OptSilverTier,
+        ItemPowerTiers = OptItemPowerTiers,
+        GreaterAffixes = OptGreaterAffixes,
+        CharmsSeals = OptCharmsSeals,
+        Codex = OptCodex,
+        HideRest = OptHideRest,
+    };
 
     // ── Commands ──
 
@@ -213,8 +222,7 @@ public partial class MainViewModel : ObservableObject
 
         var build = _resolved with { Variants = selected };
         var compiled = FilterCompiler.Analyze(build, FilterColors.Gold, FilterColors.Silver);
-        var normal = FilterCompiler.Compile(new[] { compiled }, strictEndgame: false, "NORMAL");
-        var strict = FilterCompiler.Compile(new[] { compiled }, strictEndgame: true, "STRICT ENDGAME");
+        var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter");
 
         BuildSubtitle = $"{_resolved.Class}   •   {selected.Count} of {_resolved.Variants.Count} variants   •   "
             + $"{compiled.Pool.Count} filterable affixes in the pool";
@@ -231,12 +239,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPurple));
         OnPropertyChanged(nameof(HasPending));
 
-        normalCode = normal.ImportCode;
-        strictCode = strict.ImportCode;
-        NormalInfo = $"{normal.RuleCount} rules · {normal.Bytes} bytes · round-trip {(normal.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
-        StrictInfo = $"{strict.RuleCount} rules · {strict.Bytes} bytes · round-trip {(strict.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
-        OnPropertyChanged(nameof(CurrentCode));
-        OnPropertyChanged(nameof(CurrentInfo));
+        ImportCode = output.ImportCode;
+        FilterInfo = $"{output.RuleCount} rules · {output.Bytes} bytes · round-trip {(output.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
 
         StatusMessage = "";
     }
@@ -244,24 +248,18 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void CopyCode()
     {
-        if (string.IsNullOrEmpty(CurrentCode)) return;
+        if (string.IsNullOrEmpty(ImportCode)) return;
         try
         {
-            Clipboard.SetText(CurrentCode);
-            StatusMessage = $"Copied the {(ShowStrict ? "STRICT" : "NORMAL")} import code "
-                + $"({CurrentCode.Length} chars) — paste it into D4's Loot Filter → Import.";
+            Clipboard.SetText(ImportCode);
+            StatusMessage = $"Copied the import code ({ImportCode.Length} chars) — "
+                + "paste it into D4's Loot Filter → Import.";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Clipboard error: {ex.Message}";
         }
     }
-
-    [RelayCommand]
-    private void UseNormal() => ShowStrict = false;
-
-    [RelayCommand]
-    private void UseStrict() => ShowStrict = true;
 
     [RelayCommand]
     private void OpenMaxroll() => OpenUrl("https://maxroll.gg/d4/build-guides");
