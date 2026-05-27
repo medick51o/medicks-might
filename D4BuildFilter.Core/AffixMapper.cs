@@ -95,6 +95,7 @@ public static class AffixMapper
     {
         ("critical strike damage", "Critical Strike Damage Multiplier"),
         ("critical strike chance", "Critical Strike Chance"),
+        ("overpower damage", "Overpower Damage"),       // d4builds weapon lines: "2h Mace: X% Overpower Damage"
         ("vulnerable damage", "Vulnerable Damage Multiplier"),
         ("damage over time", "Damage Over Time Multiplier"),
         ("attack speed", "Attack Speed"),
