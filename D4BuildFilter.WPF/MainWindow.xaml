@@ -309,8 +309,13 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Filter title — becomes the filter's name in-game when imported -->
+                    <TextBlock Text="Filter title (your branding — this is the name shown in Diablo 4 on import)"
+                               Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
+                    <TextBox Text="{Binding FilterTitle}" Height="32" FontSize="13" FontFamily="Segoe UI" />
+
                     <!-- Import code -->
-                    <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
+                    <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
                     <TextBox Text="{Binding ImportCode, Mode=OneWay}"
                              IsReadOnly="True" Height="120" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto" FontSize="11" />

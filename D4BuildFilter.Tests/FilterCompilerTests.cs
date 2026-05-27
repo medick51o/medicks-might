@@ -100,4 +100,13 @@ public class FilterCompilerTests
         var dec = FilterDecoder.Decode(o.ImportCode);
         Assert.Equal(o.RuleCount, dec.Rules.Count);
     }
+
+    [Fact]
+    public void Filter_title_is_embedded_as_the_in_game_name()
+    {
+        const string title = "Loot Filters By Medick -- Maxroll Ball Lightning";
+        var o = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "Filter", title);
+        var dec = FilterDecoder.Decode(o.ImportCode);
+        Assert.Equal(title, dec.Name);   // D4 shows this as the filter name on import
+    }
 }

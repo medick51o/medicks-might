@@ -76,6 +76,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string importCode = "";
     [ObservableProperty] private string filterInfo = "";
 
+    /// <summary>The branded in-game filter title (D4 shows this as the filter name on import).
+    /// Auto-seeded as "{TitlePrefix} -- {Source} {Build}"; editable, recompiles live.</summary>
+    [ObservableProperty] private string filterTitle = "";
+    partial void OnFilterTitleChanged(string value) { if (!_suppressRecompile) Recompile(); }
+
+    /// <summary>Default branding prefix put on every filter — your name rides along into the game.</summary>
+    public const string TitlePrefix = "Loot Filters By Medick";
+    private bool _suppressRecompile;
+
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
     [ObservableProperty] private bool optPerSlot = true;   // recommended default (falls back to combined w/o slot data)
@@ -141,7 +150,7 @@ public partial class MainViewModel : ObservableObject
         State = AppState.Loading;
         try
         {
-            var resolved = await Task.Run(async () =>
+            var (resolved, srcLabel) = await Task.Run(async () =>
             {
                 // Route by source: d4builds (Firestore) vs Mobalytics (__PRELOADED_STATE__) vs maxroll.
                 string? raw = File.Exists(source) ? await File.ReadAllTextAsync(source) : null;
@@ -154,17 +163,17 @@ public partial class MainViewModel : ObservableObject
                 if (isD4b)
                 {
                     raw ??= await D4BuildsFetcher.FetchRawAsync(source);
-                    return D4BuildsFetcher.Parse(raw);
+                    return (D4BuildsFetcher.Parse(raw), "D4Builds");
                 }
                 if (isMoba)
                 {
                     raw ??= await MobalyticsFetcher.FetchRawAsync(source);
-                    return MobalyticsFetcher.Parse(raw);
+                    return (MobalyticsFetcher.Parse(raw), "Mobalytics");
                 }
                 raw ??= await MaxrollFetcher.FetchRawAsync(source);
-                return MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default());
+                return (MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default()), "Maxroll");
             });
-            Ingest(resolved);
+            Ingest(resolved, srcLabel);
         }
         catch (Exception ex)
         {
@@ -187,7 +196,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var resolved = await Task.Run(() => PastedBuild.Parse(PastedText, "Pasted Build"));
-            Ingest(resolved);
+            Ingest(resolved, "Pasted");
         }
         catch (Exception ex)
         {
@@ -197,10 +206,15 @@ public partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Shared: take a resolved build, fill the variant checklist, compile, show results.</summary>
-    private void Ingest(ResolvedBuild resolved)
+    private void Ingest(ResolvedBuild resolved, string source)
     {
         _resolved = resolved;
         BuildName = resolved.Build;
+
+        // Auto-brand the in-game filter title (the embedded name D4 shows on import). Editable below.
+        _suppressRecompile = true;
+        FilterTitle = $"{TitlePrefix} -- {source} {resolved.Build}";
+        _suppressRecompile = false;
 
         // Populate the variant checklist (all on by default). The field initializer keeps
         // IsSelected=true without firing OnIsSelectedChanged, so Recompile runs just once below.
@@ -227,7 +241,8 @@ public partial class MainViewModel : ObservableObject
 
         var build = _resolved with { Variants = selected };
         var compiled = FilterCompiler.Analyze(build, FilterColors.Gold, FilterColors.Silver);
-        var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter");
+        var title = string.IsNullOrWhiteSpace(FilterTitle) ? "D4BuildFilter" : FilterTitle.Trim();
+        var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter", title);
 
         BuildSubtitle = $"{_resolved.Class}   •   {selected.Count} of {_resolved.Variants.Count} variants   •   "
             + $"{compiled.Pool.Count} filterable affixes in the pool";
