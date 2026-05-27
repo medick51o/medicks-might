@@ -78,7 +78,7 @@ public partial class MainViewModel : ObservableObject
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
-    [ObservableProperty] private bool optPerSlot;
+    [ObservableProperty] private bool optPerSlot = true;   // recommended default (falls back to combined w/o slot data)
     [ObservableProperty] private bool optBuildUniques = true;
     [ObservableProperty] private bool optSilverTier = true;
     [ObservableProperty] private bool optItemPowerTiers = true;
