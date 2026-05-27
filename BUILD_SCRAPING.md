@@ -8,7 +8,7 @@ How each build site delivers its data, and what that means for importing builds 
 |---|---|---|---|
 | **maxroll.gg** | public JSON endpoint `planners.maxroll.gg/profiles/d4/<id>` | plain HTTP GET → JSON | ✅ working (MaxrollFetcher) |
 | **mobalytics.gg** | server-rendered `window.__PRELOADED_STATE__` in the page HTML | HTTP GET (via curl, see below) → extract+parse JSON | ✅ working (MobalyticsFetcher) |
-| **d4builds.gg** | client-side **Firestore + App Check** (Gatsby SPA) | ❌ no plain-HTTP path; needs headless browser **or** paste | ⚠️ paste bridge today |
+| **d4builds.gg** | Cloud Firestore (Gatsby SPA); build doc world-readable **by id** | Firestore REST get-by-id (slug→`seoId`→GET) | ✅ working (D4BuildsFetcher) |
 | any guide | — | copy affix list → **Paste mode** | ✅ working (PastedBuild) |
 
 ## maxroll (done earlier)
@@ -41,15 +41,19 @@ specific build's selected gear. The actual build is fetched client-side from **C
 - The bundle carries the Firebase web config (apiKey `AIzaSy…NmjDc`, projectId `d4builds-a3254`,
   authDomain `auth.d4builds.gg`) but App Check + security rules gate the data.
 
-**=> No clean plain-HTTP path.** Realistic options:
-1. **Paste mode (works today):** open the d4builds build, copy the gear/affix priority text, paste it
-   into the app's "Paste affixes" input. Zero new code; pragmatic.
-2. **Headless browser (future, with the user):** drive headless Chrome (Playwright/.NET or a small
-   Python+Selenium helper), wait for the SPA to render, scrape the gear DOM (d4lf does exactly this:
-   classes `builder__stats__list`, `builder__gear__items`, `greater__affix__button--filled`, etc.).
-   Heavy dependency (bundled/installed browser) and brittle (breaks on CSS changes) — a deliberate
-   choice to make with the user, not added silently. d4lf's `src/gui/importer/d4builds.py` is the
-   reference implementation (GPL — reimplement clean-room from the factual DOM selectors).
+**=> UPDATE 2026-05-27: there IS a clean plain-HTTP path after all.** Firebase App Check only gates
+`list`; a **get-by-id** on a known build doc is world-readable. So `D4BuildsFetcher` does:
+1. **Resolve the build id.** `/builds/<uuid>` → the UUID directly. `/builds/<slug>` (named/featured
+   builds like Rob's) → GET `page-data/builds/<slug>/page-data.json` → `result.pageContext.seoId`.
+2. **GET the doc:** `firestore.googleapis.com/v1/projects/d4builds-a3254/databases/(default)/documents/builds/<id>?key=<webKey>`
+   (apiKey/projectId are the site's public web config from its JS bundle).
+3. **Decode** the Firestore typed JSON and read each `variants[].newStats` (per-slot affix-name
+   arrays) + `gear` (uniques = gear names that aren't "Aspect …"). `greaterAffixes` carries parallel
+   1/null GA flags (available for a future GA-required rule).
+Live-validated on Rob's "Singer Ancient Barb" (3 variants) and "Whirlwind Spin2Win Barb" (8 variants).
+
+**Fallbacks (no longer needed for normal use):** the headless-Chrome `tools/d4builds_scraper.py`
+(if Firestore rules ever tighten) and Paste mode (any guide).
 
 ## "Rona's d4 builds site"
 Medick named "Rona's d4 builds site" as the top priority but didn't have the URL. Couldn't pin a

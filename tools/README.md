@@ -2,10 +2,11 @@
 
 Helper scripts that sit beside the .NET app (not part of the build).
 
-## d4builds_scraper.py
-d4builds.gg can't be fetched over plain HTTP (Gatsby SPA → Firestore + App Check; see
-`../BUILD_SCRAPING.md`). This headless-Chrome scraper renders a build page and prints its desired
-affixes + unique item names, which you paste into the app's **Paste affixes** mode.
+## d4builds_scraper.py  (fallback — usually unnecessary)
+**The app now fetches d4builds builds directly over HTTP** (Firestore get-by-id; see
+`../BUILD_SCRAPING.md` and `D4BuildsFetcher`), so just paste a d4builds URL into the app. This
+headless-Chrome scraper is only a fallback in case Firestore rules ever tighten — it renders a
+build page and prints its affixes + unique names for the app's **Paste affixes** mode.
 
 ```bash
 pip install -r requirements.txt      # selenium (auto-manages chromedriver); needs Chrome installed
