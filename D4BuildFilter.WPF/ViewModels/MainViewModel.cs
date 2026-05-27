@@ -35,6 +35,21 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string statusMessage = "";
 
+    // Input mode: maxroll URL vs. pasted affix list (universal import).
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsUrlMode))]
+    [NotifyPropertyChangedFor(nameof(IsPasteMode))]
+    private bool pasteMode;
+
+    [ObservableProperty]
+    private string pastedText = "";
+
+    public bool IsUrlMode => !PasteMode;
+    public bool IsPasteMode => PasteMode;
+
+    [RelayCommand] private void UseUrlMode() => PasteMode = false;
+    [RelayCommand] private void UsePasteMode() => PasteMode = true;
+
     // ── Result: header ──
     [ObservableProperty]
     private string buildName = "";
@@ -119,24 +134,52 @@ public partial class MainViewModel : ObservableObject
                     : await MaxrollFetcher.FetchRawAsync(source);
                 return MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default());
             });
-
-            _resolved = resolved;
-            BuildName = resolved.Build;
-
-            // Populate the variant checklist (all on by default). The field initializer keeps
-            // IsSelected=true without firing OnIsSelectedChanged, so Recompile runs just once below.
-            Variants.Clear();
-            foreach (var v in resolved.Variants)
-                Variants.Add(new VariantOption(v, Recompile));
-
-            Recompile();
-            State = AppState.Result;
+            Ingest(resolved);
         }
         catch (Exception ex)
         {
             StatusMessage = $"Error: {ex.Message}";
             State = AppState.Input;
         }
+    }
+
+    /// <summary>Compile from a pasted affix/unique list (universal import — any build guide).</summary>
+    [RelayCommand]
+    private async Task CompilePasteAsync()
+    {
+        if (string.IsNullOrWhiteSpace(PastedText))
+        {
+            StatusMessage = "Paste an affix list (and any unique names) first.";
+            return;
+        }
+        StatusMessage = "Parsing pasted build…";
+        State = AppState.Loading;
+        try
+        {
+            var resolved = await Task.Run(() => PastedBuild.Parse(PastedText, "Pasted Build"));
+            Ingest(resolved);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error: {ex.Message}";
+            State = AppState.Input;
+        }
+    }
+
+    /// <summary>Shared: take a resolved build, fill the variant checklist, compile, show results.</summary>
+    private void Ingest(ResolvedBuild resolved)
+    {
+        _resolved = resolved;
+        BuildName = resolved.Build;
+
+        // Populate the variant checklist (all on by default). The field initializer keeps
+        // IsSelected=true without firing OnIsSelectedChanged, so Recompile runs just once below.
+        Variants.Clear();
+        foreach (var v in resolved.Variants)
+            Variants.Add(new VariantOption(v, Recompile));
+
+        Recompile();
+        State = AppState.Result;
     }
 
     /// <summary>Analyze + compile from the currently-selected variants. Re-runs whenever the

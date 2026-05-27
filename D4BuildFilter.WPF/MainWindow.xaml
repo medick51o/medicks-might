@@ -117,24 +117,73 @@
 
             <!-- ─── INPUT STATE ─── -->
             <Grid Visibility="{Binding IsInputState, Converter={StaticResource BoolToVis}}">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="640">
-                    <TextBlock Text="Paste a maxroll.gg build planner URL"
-                               FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,8" />
-                    <TextBlock Text="Example: https://maxroll.gg/d4/planner/abcd1234#2"
-                               FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,0,0,16" />
-                    <TextBox Text="{Binding MaxrollUrl, UpdateSourceTrigger=PropertyChanged}"
-                             Width="620" Height="34" FontSize="13" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                        <Button Content="Compile Filter"
-                                Command="{Binding CompileCommand}"
-                                Width="200" Height="44" FontSize="14" Margin="0,0,12,0" />
-                        <Button Content="Load sample build (offline)"
-                                Command="{Binding LoadSampleCommand}"
-                                Style="{StaticResource SecondaryButton}"
-                                Width="220" Height="44" FontSize="13" />
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="660">
+
+                    <!-- Source toggle: maxroll URL vs. paste from any guide -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,18">
+                        <Button Content="maxroll URL" Command="{Binding UseUrlModeCommand}" Width="150" Height="34">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsUrlMode}" Value="True">
+                                            <Setter Property="Background" Value="#9c2b25" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="Paste affixes" Command="{Binding UsePasteModeCommand}" Width="150" Height="34" Margin="8,0,0,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPasteMode}" Value="True">
+                                            <Setter Property="Background" Value="#9c2b25" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                     </StackPanel>
+
+                    <!-- URL mode -->
+                    <StackPanel Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Paste a maxroll.gg build planner URL"
+                                   FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                        <TextBlock Text="Example: https://maxroll.gg/d4/planner/abcd1234#2"
+                                   FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,0,0,16" />
+                        <TextBox Text="{Binding MaxrollUrl, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="620" Height="34" FontSize="13" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                            <Button Content="Compile Filter"
+                                    Command="{Binding CompileCommand}"
+                                    Width="200" Height="44" FontSize="14" Margin="0,0,12,0" />
+                            <Button Content="Load sample build (offline)"
+                                    Command="{Binding LoadSampleCommand}"
+                                    Style="{StaticResource SecondaryButton}"
+                                    Width="220" Height="44" FontSize="13" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Paste mode (universal: any build guide) -->
+                    <StackPanel Visibility="{Binding IsPasteMode, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Paste an affix list from any build guide"
+                                   FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                        <TextBlock Text="One affix per line (or comma-separated); include unique item names. Works with d4builds, Mobalytics, Icy Veins, Discord…"
+                                   FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center"
+                                   TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" Margin="0,0,0,12" />
+                        <TextBox Text="{Binding PastedText, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="620" Height="200" FontSize="12"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                        <Button Content="Compile from paste"
+                                Command="{Binding CompilePasteCommand}"
+                                Width="220" Height="44" FontSize="14"
+                                HorizontalAlignment="Center" Margin="0,16,0,0" />
+                    </StackPanel>
+
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#e0915a"
-                               HorizontalAlignment="Center" Margin="0,14,0,0" FontSize="12" />
+                               HorizontalAlignment="Center" Margin="0,14,0,0" FontSize="12"
+                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" />
                 </StackPanel>
             </Grid>
 
