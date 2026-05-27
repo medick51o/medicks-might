@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="D4BuildFilter.Core/D4BuildFilter.Core.csproj" />
   <Project Path="D4BuildFilter.Tester/D4BuildFilter.Tester.csproj" />
+  <Project Path="D4BuildFilter.WPF/D4BuildFilter.WPF.csproj" />
 </Solution>
