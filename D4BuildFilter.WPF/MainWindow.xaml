@@ -306,9 +306,9 @@
                 </StackPanel>
 
                 <!-- ══════ This season's top builds — live community tier lists ══════
-                     D4Builds on the LEFT, Maxroll on the RIGHT. Columns are narrow (440 each) and
-                     pushed to the edges with a wide middle gap so the warlord background bleeds
-                     through. Narrower columns also wrap chips ~3 per row instead of 4. -->
+                     Three columns: D4Builds (left), Maxroll (middle), Mobalytics (right).
+                     Every tier surfaced: S/A/B/C/D plus Mobalytics-only God Tier (top) and Support
+                     (utility). Cards + chips at 25% opacity so the warlord background bleeds through. -->
                 <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0">
                     <TextBlock Text="This season's top builds" FontSize="18" FontWeight="Bold"
                                Foreground="#d4af37" HorizontalAlignment="Center" />
@@ -319,35 +319,36 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- ── Maxroll (RIGHT column) ── -->
-                        <Border Grid.Column="1" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
-                                CornerRadius="6" Padding="16,12" Margin="7,0,0,0">
+                        <!-- ── D4Builds (col 0) ── -->
+                        <Border Grid.Column="0" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="14,12" Margin="0,0,5,0">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
                                             Content="view full list ↗" VerticalAlignment="Center"
-                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding MaxrollTierUrl}" />
-                                    <TextBlock Text="Maxroll" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
+                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding D4BuildsTierUrl}" />
+                                    <TextBlock Text="D4Builds" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
                                 <TextBlock Text="endgame tier list" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
-                                <TextBlock Text="{Binding MaxrollTierStatus}" Foreground="#b6a597" FontSize="12"
+                                <TextBlock Text="{Binding D4BuildsTierStatus}" Foreground="#b6a597" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
-                                           Visibility="{Binding MaxrollTierStatus, Converter={StaticResource StringToVis}}" />
-                                <ItemsControl ItemsSource="{Binding MaxrollTiers}">
+                                           Visibility="{Binding D4BuildsTierStatus, Converter={StaticResource StringToVis}}" />
+                                <ItemsControl ItemsSource="{Binding D4BuildsTiers}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Grid Margin="0,3,0,7">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="34" />
+                                                    <ColumnDefinition Width="48" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="4"
-                                                        Width="26" Height="26" VerticalAlignment="Top"
-                                                        HorizontalAlignment="Center" Margin="0,1,0,0">
-                                                    <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="14"
+                                                        MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
+                                                        HorizontalAlignment="Center" Margin="0,1,4,0">
+                                                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="13"
                                                                Foreground="#1a1410" HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
                                                 </Border>
@@ -369,33 +370,81 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ── D4Builds (LEFT column) ── -->
-                        <Border Grid.Column="0" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
-                                CornerRadius="6" Padding="16,12" Margin="0,0,7,0">
+                        <!-- ── Maxroll (col 1) ── -->
+                        <Border Grid.Column="1" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="14,12" Margin="5,0,5,0">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
                                             Content="view full list ↗" VerticalAlignment="Center"
-                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding D4BuildsTierUrl}" />
-                                    <TextBlock Text="D4Builds" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
+                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding MaxrollTierUrl}" />
+                                    <TextBlock Text="Maxroll" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
                                 <TextBlock Text="endgame tier list" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
-                                <TextBlock Text="{Binding D4BuildsTierStatus}" Foreground="#b6a597" FontSize="12"
+                                <TextBlock Text="{Binding MaxrollTierStatus}" Foreground="#b6a597" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
-                                           Visibility="{Binding D4BuildsTierStatus, Converter={StaticResource StringToVis}}" />
-                                <ItemsControl ItemsSource="{Binding D4BuildsTiers}">
+                                           Visibility="{Binding MaxrollTierStatus, Converter={StaticResource StringToVis}}" />
+                                <ItemsControl ItemsSource="{Binding MaxrollTiers}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Grid Margin="0,3,0,7">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="34" />
+                                                    <ColumnDefinition Width="48" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="4"
-                                                        Width="26" Height="26" VerticalAlignment="Top"
-                                                        HorizontalAlignment="Center" Margin="0,1,0,0">
-                                                    <TextBlock Text="{Binding Tier}" FontWeight="Bold" FontSize="14"
+                                                        MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
+                                                        HorizontalAlignment="Center" Margin="0,1,4,0">
+                                                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="13"
+                                                               Foreground="#1a1410" HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                </Border>
+                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                    Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── Mobalytics (col 2, NEW) ── God + S/A/B/C + Support -->
+                        <Border Grid.Column="2" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="14,12" Margin="5,0,0,0">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
+                                            Content="view full list ↗" VerticalAlignment="Center"
+                                            Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding MobalyticsTierUrl}" />
+                                    <TextBlock Text="Mobalytics" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
+                                               VerticalAlignment="Center" />
+                                </DockPanel>
+                                <TextBlock Text="tier list (incl. God + Support)" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
+                                <TextBlock Text="{Binding MobalyticsTierStatus}" Foreground="#b6a597" FontSize="12"
+                                           TextWrapping="Wrap" Margin="0,2,0,2"
+                                           Visibility="{Binding MobalyticsTierStatus, Converter={StaticResource StringToVis}}" />
+                                <ItemsControl ItemsSource="{Binding MobalyticsTiers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3,0,7">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="48" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="4"
+                                                        MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
+                                                        HorizontalAlignment="Center" Margin="0,1,4,0">
+                                                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="13"
                                                                Foreground="#1a1410" HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
                                                 </Border>
@@ -418,7 +467,7 @@
                         </Border>
                     </Grid>
 
-                    <TextBlock Text="Tier lists belong to Maxroll.gg and D4Builds.gg respectively — shown here with attribution."
+                    <TextBlock Text="Tier lists belong to Maxroll.gg, D4Builds.gg, and Mobalytics.gg respectively — shown here with attribution."
                                FontSize="10" Foreground="#6b625a" HorizontalAlignment="Center" Margin="0,12,0,0" />
                 </StackPanel>
                 </StackPanel>

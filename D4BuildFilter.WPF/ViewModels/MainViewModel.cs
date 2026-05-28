@@ -57,12 +57,15 @@ public partial class MainViewModel : ObservableObject
     // ── Landing page: live community tier lists (this season's top builds) ──
     public ObservableCollection<TierGroupVM> MaxrollTiers { get; } = new();
     public ObservableCollection<TierGroupVM> D4BuildsTiers { get; } = new();
+    public ObservableCollection<TierGroupVM> MobalyticsTiers { get; } = new();
 
     [ObservableProperty] private string maxrollTierStatus = "Loading…";
     [ObservableProperty] private string d4BuildsTierStatus = "Loading…";
+    [ObservableProperty] private string mobalyticsTierStatus = "Loading…";
 
     public string MaxrollTierUrl => TierListFetcher.MaxrollUrl;
     public string D4BuildsTierUrl => TierListFetcher.D4BuildsUrl;
+    public string MobalyticsTierUrl => TierListFetcher.MobalyticsUrl;
 
     [RelayCommand] private void OpenTierUrl(string url) => OpenUrl(url);
 
@@ -84,7 +87,8 @@ public partial class MainViewModel : ObservableObject
     {
         await Task.WhenAll(
             LoadOneAsync(TierListFetcher.FetchMaxrollAsync, MaxrollTiers, s => MaxrollTierStatus = s, "Maxroll"),
-            LoadOneAsync(TierListFetcher.FetchD4BuildsAsync, D4BuildsTiers, s => D4BuildsTierStatus = s, "D4Builds"));
+            LoadOneAsync(TierListFetcher.FetchD4BuildsAsync, D4BuildsTiers, s => D4BuildsTierStatus = s, "D4Builds"),
+            LoadOneAsync(TierListFetcher.FetchMobalyticsAsync, MobalyticsTiers, s => MobalyticsTierStatus = s, "Mobalytics"));
     }
 
     private async Task LoadOneAsync(Func<CancellationToken, Task<TierList>> fetch,
