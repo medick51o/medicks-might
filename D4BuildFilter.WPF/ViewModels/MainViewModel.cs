@@ -137,14 +137,15 @@ public partial class MainViewModel : ObservableObject
     public const int MaxRules = 25;
 
     /// <summary>The branded in-game filter title (D4 shows this as the filter name on import).
-    /// Auto-seeded as "{TitlePrefix} -- {Source} {Build}"; editable, recompiles live.</summary>
+    /// Auto-seeded to the brand (+ build when it still fits 24 chars); editable, recompiles live.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TitleLengthNote))]
     private string filterTitle = "";
     partial void OnFilterTitleChanged(string value) { if (!_suppressRecompile) Recompile(); }
 
-    /// <summary>Default branding prefix put on every filter — your name rides along into the game.</summary>
-    public const string TitlePrefix = "Medick's";
+    /// <summary>The brand stamped on every filter — "Medick's Might" rides along into the game, so
+    /// anyone who imports a shared code sees it (the NeverSink play). Tagline: "Loot filters made EZ".</summary>
+    public const string BrandName = "Medick's Might";
     /// <summary>D4 drops filter/rule names over 24 chars on import (verified in-game), so the title
     /// field is capped here and the encoder clamps too.</summary>
     public const int MaxTitleLength = 24;
@@ -283,10 +284,12 @@ public partial class MainViewModel : ObservableObject
         _resolved = resolved;
         BuildName = resolved.Build;
 
-        // Auto-brand the in-game filter title (the embedded name D4 shows on import). D4 caps names
-        // at 24 chars, so "Medick's {build}" truncated to fit. Editable below (field also capped at 24).
+        // Auto-brand the in-game filter title (the name D4 shows on import). Lead with the brand so it
+        // rides every shared code; tack on the build only when the whole thing still fits D4's 24-char
+        // cap, else just the brand. Editable below (field also capped at 24).
         _suppressRecompile = true;
-        FilterTitle = Truncate($"{TitlePrefix} {resolved.Build}", MaxTitleLength);
+        var titled = $"{BrandName} · {resolved.Build}";
+        FilterTitle = titled.Length <= MaxTitleLength ? titled : BrandName;
         _suppressRecompile = false;
 
         // Populate the variant checklist (all on by default). The field initializer keeps
@@ -314,7 +317,7 @@ public partial class MainViewModel : ObservableObject
 
         var build = _resolved with { Variants = selected };
         var compiled = FilterCompiler.Analyze(build, FilterColors.Gold, FilterColors.Silver);
-        var title = string.IsNullOrWhiteSpace(FilterTitle) ? "D4BuildFilter" : FilterTitle.Trim();
+        var title = string.IsNullOrWhiteSpace(FilterTitle) ? BrandName : FilterTitle.Trim();
         var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter", title);
 
         BuildSubtitle = $"{_resolved.Class}   •   {selected.Count} of {_resolved.Variants.Count} variants   •   "
