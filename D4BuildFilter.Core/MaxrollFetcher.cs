@@ -30,6 +30,36 @@ public static class MaxrollFetcher
     private static readonly Regex IdInUrl =
         new(@"d4/planner/([A-Za-z0-9]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    // A build-GUIDE page embeds its planner as a `maxroll/planner-page` Gutenberg block whose
+    // attributes carry the canonical planner URL: {"link":"https://maxroll.gg/d4/planner/<id>"}.
+    private static readonly Regex GuidePlannerLink =
+        new(@"""link"":""(https://maxroll\.gg/d4/planner/[A-Za-z0-9]+)""", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>True for a maxroll build-GUIDE article URL (the wrapper a casual user lands on),
+    /// as opposed to a /planner/ URL. Guide pages embed the real planner — see
+    /// <see cref="ResolvePlannerUrlAsync"/>.</summary>
+    public static bool IsBuildGuideUrl(string url) =>
+        url.Contains("maxroll.gg/d4/build-guides/", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Dig the real planner URL out of a build-guide page. The guide is just an article
+    /// wrapping one embedded planner (its variants are that planner's profiles), so we pull the
+    /// planner link out of the page and hand it back — letting a "guide" link resolve to the
+    /// actual build the compiler needs.</summary>
+    public static async Task<string> ResolvePlannerUrlAsync(string guideUrl, CancellationToken ct = default)
+    {
+        var html = await BrowserFetch.GetStringAsync(guideUrl, ct);
+        return ParseGuidePlannerLink(html) ?? throw new FormatException(
+            "Couldn't find a planner on that Maxroll guide page. Open the guide, click the planner, and paste its /d4/planner/ URL instead.");
+    }
+
+    /// <summary>Pull the embedded planner URL out of a build-guide page's HTML (the
+    /// `maxroll/planner-page` block's link). Pure/offline — returns null if the page has none.</summary>
+    public static string? ParseGuidePlannerLink(string html)
+    {
+        var m = GuidePlannerLink.Match(html);
+        return m.Success ? m.Groups[1].Value : null;
+    }
+
     /// <summary>Accepts a full maxroll planner URL or a bare planner id; returns the id.</summary>
     public static string ExtractPlannerId(string urlOrId)
     {
@@ -48,6 +78,9 @@ public static class MaxrollFetcher
     /// <summary>GET the raw planner JSON. A browser User-Agent is required to dodge the bot wall.</summary>
     public static async Task<string> FetchRawAsync(string urlOrId, HttpClient? http = null, CancellationToken ct = default)
     {
+        // A casual user pastes (or clicks) a build-GUIDE link; resolve it to the embedded planner first.
+        if (IsBuildGuideUrl(urlOrId))
+            urlOrId = await ResolvePlannerUrlAsync(urlOrId, ct);
         var id = ExtractPlannerId(urlOrId);
         var owned = http is null;
         http ??= new HttpClient();

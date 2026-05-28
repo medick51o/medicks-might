@@ -250,7 +250,7 @@
                 <StackPanel MaxWidth="1100" HorizontalAlignment="Center" Margin="0,30,0,0">
                     <TextBlock Text="This season's top builds" FontSize="18" FontWeight="Bold"
                                Foreground="#d4af37" HorizontalAlignment="Center" />
-                    <TextBlock Text="Pulled live from the community. Click any build to open it on the source site."
+                    <TextBlock Text="Pulled live from the community. Click any build to load it straight into the filter."
                                FontSize="11" Foreground="#9a8c80" HorizontalAlignment="Center" Margin="0,2,0,14" />
 
                     <Grid>
@@ -296,7 +296,7 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                    Command="{Binding OpenCommand}" ToolTip="{Binding Tip}" />
+                                                                    Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -344,7 +344,7 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                    Command="{Binding OpenCommand}" ToolTip="{Binding Tip}" />
+                                                                    Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>

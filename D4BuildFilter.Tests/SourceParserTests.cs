@@ -80,4 +80,28 @@ public class SourceParserTests
         Assert.True(output.RoundTripOk);
         Assert.Contains("Tyrael's Might", compiled.Mythics);   // a mythic → its own category, not purple
     }
+
+    // ── maxroll guide → planner resolution (tier-list one-click load) ──
+    [Theory]
+    [InlineData("https://maxroll.gg/d4/build-guides/ball-lightning-sorcerer-guide", true)]
+    [InlineData("https://maxroll.gg/d4/planner/5k34xn0u#3", false)]   // already a planner
+    [InlineData("https://d4builds.gg/builds/whirlwind-barbarian-endgame/", false)]
+    public void IsBuildGuideUrl_detects_guide_pages(string url, bool expected) =>
+        Assert.Equal(expected, MaxrollFetcher.IsBuildGuideUrl(url));
+
+    [Fact]
+    public void Guide_page_planner_link_is_extracted()
+    {
+        // Mirrors the maxroll/planner-page Gutenberg block embedded in a build-guide page.
+        const string guideHtml =
+            @"…""category"":""Build Guides"",""gutenbergBlock"":[{""attributes"":{""link"":" +
+            @"""https://maxroll.gg/d4/planner/5k34xn0u""},""blockName"":""maxroll/planner-page"",""innerHTML"":""<html…";
+        var link = MaxrollFetcher.ParseGuidePlannerLink(guideHtml);
+        Assert.Equal("https://maxroll.gg/d4/planner/5k34xn0u", link);
+        Assert.Equal("5k34xn0u", MaxrollFetcher.ExtractPlannerId(link!));   // feeds the planner fetch
+    }
+
+    [Fact]
+    public void Guide_page_with_no_planner_returns_null()
+        => Assert.Null(MaxrollFetcher.ParseGuidePlannerLink("<html>just an article, no embed</html>"));
 }

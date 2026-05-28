@@ -62,6 +62,16 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand] private void OpenTierUrl(string url) => OpenUrl(url);
 
+    /// <summary>Clicked a tier-list build chip: drop its URL into the URL box and compile it.
+    /// The fetchers resolve a maxroll guide page or a d4builds build URL to the real planner/build,
+    /// so a casual one-click "load the meta build" works without the user hunting for the planner.</summary>
+    private void LoadBuildFromUrl(string url)
+    {
+        PasteMode = false;       // make sure we're in URL mode so the box shows the link
+        MaxrollUrl = url;
+        _ = RunCompileAsync(url);
+    }
+
     public MainViewModel() => _ = LoadTierListsAsync();
 
     /// <summary>Pull both tier lists on startup (independently — one failing never blocks the other).
@@ -81,7 +91,7 @@ public partial class MainViewModel : ObservableObject
             var list = await fetch(default);
             target.Clear();
             foreach (var g in list.Builds.GroupBy(b => b.Tier))
-                target.Add(new TierGroupVM(g.Key, g.Select(b => new TierBuildVM(b, OpenUrl)).ToList()));
+                target.Add(new TierGroupVM(g.Key, g.Select(b => new TierBuildVM(b, LoadBuildFromUrl)).ToList()));
             setStatus(target.Count == 0 ? "No builds found — open the full list ↗" : "");
         }
         catch

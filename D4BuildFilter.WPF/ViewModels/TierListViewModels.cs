@@ -7,24 +7,25 @@ using D4BuildFilter.Core;
 
 namespace D4BuildFilter.WPF.ViewModels;
 
-/// <summary>One build on a tier list. Clicking opens its page on the source site.</summary>
+/// <summary>One build on a tier list. Clicking LOADS it into the compiler (the source URL — a
+/// maxroll guide page or a d4builds build — is resolved to the real build by the fetchers).</summary>
 public sealed partial class TierBuildVM : ObservableObject
 {
     public string Name { get; }
     public string ClassName { get; }
     public string Url { get; }
-    public string Tip => $"{ClassName} · click to open on the site";
-    private readonly Action<string> _open;
+    public string Tip => $"{ClassName} · click to load this build into the filter";
+    private readonly Action<string> _load;
 
-    public TierBuildVM(TierBuild b, Action<string> open)
+    public TierBuildVM(TierBuild b, Action<string> load)
     {
         Name = b.Name;
         ClassName = b.ClassName;
         Url = b.Url;
-        _open = open;
+        _load = load;
     }
 
-    [RelayCommand] private void Open() => _open(Url);
+    [RelayCommand] private void Load() => _load(Url);
 }
 
 /// <summary>A tier row (S / A / B) with its colored badge and the builds in it.</summary>
