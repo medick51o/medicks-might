@@ -359,6 +359,7 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                    Foreground="{Binding ClassColor}"
                                                                     Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -407,6 +408,7 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                    Foreground="{Binding ClassColor}"
                                                                     Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -455,6 +457,7 @@
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
                                                             <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                    Foreground="{Binding ClassColor}"
                                                                     Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
