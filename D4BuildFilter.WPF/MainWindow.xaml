@@ -126,6 +126,41 @@
             </Setter>
         </Style>
 
+        <!-- Tier-list source tab (Endgame / Bossing / Leveling / Push / Speedfarm etc).
+             Active state pulled from the TierTabVM.IsActive property — gold-on-dark when selected,
+             dim-cream-on-transparent otherwise. -->
+        <Style x:Key="TierTab" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#9a8c80" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="Margin" Value="0,0,4,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="tabBg" Background="{TemplateBinding Background}" CornerRadius="3"
+                                Padding="{TemplateBinding Padding}" BorderBrush="#3a312b" BorderThickness="1">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="tabBg" Property="Background" Value="#2A221C" />
+                                <Setter Property="Foreground" Value="#c8b59a" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter Property="Background" Value="#3a2a1c" />
+                    <Setter Property="Foreground" Value="#d4af37" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Small text link button ("view full list ↗") -->
         <Style x:Key="LinkButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
@@ -333,7 +368,18 @@
                                     <TextBlock Text="D4Builds" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
-                                <TextBlock Text="endgame tier list" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
+                                <ItemsControl ItemsSource="{Binding D4BuildsTabs}" Margin="0,0,0,6">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource TierTab}" Content="{Binding Label}"
+                                                    Command="{Binding DataContext.SelectD4BuildsTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding Key}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <TextBlock Text="{Binding D4BuildsTierStatus}" Foreground="#b6a597" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
                                            Visibility="{Binding D4BuildsTierStatus, Converter={StaticResource StringToVis}}" />
@@ -382,7 +428,18 @@
                                     <TextBlock Text="Maxroll" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
-                                <TextBlock Text="endgame tier list" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
+                                <ItemsControl ItemsSource="{Binding MaxrollTabs}" Margin="0,0,0,6">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource TierTab}" Content="{Binding Label}"
+                                                    Command="{Binding DataContext.SelectMaxrollTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding Key}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <TextBlock Text="{Binding MaxrollTierStatus}" Foreground="#b6a597" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
                                            Visibility="{Binding MaxrollTierStatus, Converter={StaticResource StringToVis}}" />
@@ -431,7 +488,18 @@
                                     <TextBlock Text="Mobalytics" FontSize="16" FontWeight="Bold" Foreground="#d4af37"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
-                                <TextBlock Text="tier list (incl. God + Support)" FontSize="11" Foreground="#9a8c80" Margin="0,0,0,8" />
+                                <ItemsControl ItemsSource="{Binding MobalyticsTabs}" Margin="0,0,0,6">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource TierTab}" Content="{Binding Label}"
+                                                    Command="{Binding DataContext.SelectMobalyticsTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding Key}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <TextBlock Text="{Binding MobalyticsTierStatus}" Foreground="#b6a597" FontSize="12"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
                                            Visibility="{Binding MobalyticsTierStatus, Converter={StaticResource StringToVis}}" />

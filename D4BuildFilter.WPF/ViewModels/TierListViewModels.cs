@@ -54,6 +54,20 @@ public sealed partial class TierBuildVM : ObservableObject
     }
 }
 
+/// <summary>One tab in a source's tab strip (e.g., "Endgame", "Bossing", "Leveling" under Maxroll).
+/// <see cref="Key"/> is the enum name (e.g. "Endgame") used as the command parameter; the active
+/// tab visually highlights via the IsActive trigger on the TierTab style.</summary>
+public sealed partial class TierTabVM : ObservableObject
+{
+    public string Label { get; }
+    public string Key { get; }
+    [ObservableProperty] private bool _isActive;
+    public TierTabVM(string label, string key, bool isActive)
+    {
+        Label = label; Key = key; IsActive = isActive;
+    }
+}
+
 /// <summary>A tier row (God / S / A / B / C / D / Support) with its colored badge and the builds
 /// in it.</summary>
 public sealed class TierGroupVM

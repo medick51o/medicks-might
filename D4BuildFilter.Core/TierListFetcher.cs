@@ -21,8 +21,45 @@ public sealed record TierList(string Source, string SourceUrl, IReadOnlyList<Tie
 /// pages are server-rendered, so one <see cref="BrowserFetch"/> GET each is enough — no JS needed.
 /// Parsing is intentionally tolerant; if a site changes shape the UI falls back to a plain link.
 /// </summary>
+/// <summary>Maxroll's published tier-list categories. Each one is a separate page with the same
+/// Remix JSON shape, so <see cref="TierListFetcher.ParseMaxroll"/> handles all of them.</summary>
+public enum MaxrollList { Endgame, Bossing, Leveling, Push, Speedfarm }
+
+/// <summary>D4Builds' published tier-list categories. Tower can be empty mid-season.</summary>
+public enum D4BuildsList { Endgame, Leveling, Tower }
+
+/// <summary>Mobalytics' published tier-list categories. Leveling skips God/Support; Pushing exposes
+/// D-tier in addition to the usual sections.</summary>
+public enum MobalyticsList { Endgame, Leveling, Pushing }
+
 public static class TierListFetcher
 {
+    // Per-source URL lookup so the UI can also drive the "view full list ↗" link per active tab.
+    public static string MaxrollUrlFor(MaxrollList k) => k switch
+    {
+        MaxrollList.Endgame   => "https://maxroll.gg/d4/tierlists/endgame-tier-list",
+        MaxrollList.Bossing   => "https://maxroll.gg/d4/tierlists/bossing-builds-tier-list",
+        MaxrollList.Leveling  => "https://maxroll.gg/d4/tierlists/leveling-tier-list",
+        MaxrollList.Push      => "https://maxroll.gg/d4/tierlists/push-tier-list",
+        MaxrollList.Speedfarm => "https://maxroll.gg/d4/tierlists/speedfarming-tier-list",
+        _ => throw new ArgumentOutOfRangeException(nameof(k)),
+    };
+    public static string D4BuildsUrlFor(D4BuildsList k) => k switch
+    {
+        D4BuildsList.Endgame  => "https://d4builds.gg/tierlist/",
+        D4BuildsList.Leveling => "https://d4builds.gg/tierlist/leveling/",
+        D4BuildsList.Tower    => "https://d4builds.gg/tierlist/tower/",
+        _ => throw new ArgumentOutOfRangeException(nameof(k)),
+    };
+    public static string MobalyticsUrlFor(MobalyticsList k) => k switch
+    {
+        MobalyticsList.Endgame  => "https://mobalytics.gg/diablo-4/tier-list",
+        MobalyticsList.Leveling => "https://mobalytics.gg/diablo-4/tier-list/leveling",
+        MobalyticsList.Pushing  => "https://mobalytics.gg/diablo-4/tier-list/pushing",
+        _ => throw new ArgumentOutOfRangeException(nameof(k)),
+    };
+
+    /// <summary>Default URLs (the Endgame list per source) — kept as constants for existing consumers.</summary>
     public const string MaxrollUrl = "https://maxroll.gg/d4/tierlists/endgame-tier-list";
     public const string D4BuildsUrl = "https://d4builds.gg/tierlist/";
     public const string MobalyticsUrl = "https://mobalytics.gg/diablo-4/tier-list";
@@ -73,14 +110,25 @@ public static class TierListFetcher
         ["God"] = 0, ["S"] = 1, ["A"] = 2, ["B"] = 3, ["C"] = 4, ["D"] = 5, ["Support"] = 6,
     };
 
-    public static async Task<TierList> FetchMaxrollAsync(CancellationToken ct = default) =>
-        ParseMaxroll(await BrowserFetch.GetStringAsync(MaxrollUrl, ct));
+    public static Task<TierList> FetchMaxrollAsync(CancellationToken ct = default) =>
+        FetchMaxrollAsync(MaxrollList.Endgame, ct);
+    public static async Task<TierList> FetchMaxrollAsync(MaxrollList kind, CancellationToken ct = default) =>
+        WithUrl(ParseMaxroll(await BrowserFetch.GetStringAsync(MaxrollUrlFor(kind), ct)), MaxrollUrlFor(kind));
 
-    public static async Task<TierList> FetchD4BuildsAsync(CancellationToken ct = default) =>
-        ParseD4Builds(await BrowserFetch.GetStringAsync(D4BuildsUrl, ct));
+    public static Task<TierList> FetchD4BuildsAsync(CancellationToken ct = default) =>
+        FetchD4BuildsAsync(D4BuildsList.Endgame, ct);
+    public static async Task<TierList> FetchD4BuildsAsync(D4BuildsList kind, CancellationToken ct = default) =>
+        WithUrl(ParseD4Builds(await BrowserFetch.GetStringAsync(D4BuildsUrlFor(kind), ct)), D4BuildsUrlFor(kind));
 
-    public static async Task<TierList> FetchMobalyticsAsync(CancellationToken ct = default) =>
-        ParseMobalytics(await BrowserFetch.GetStringAsync(MobalyticsUrl, ct));
+    public static Task<TierList> FetchMobalyticsAsync(CancellationToken ct = default) =>
+        FetchMobalyticsAsync(MobalyticsList.Endgame, ct);
+    public static async Task<TierList> FetchMobalyticsAsync(MobalyticsList kind, CancellationToken ct = default) =>
+        WithUrl(ParseMobalytics(await BrowserFetch.GetStringAsync(MobalyticsUrlFor(kind), ct)), MobalyticsUrlFor(kind));
+
+    /// <summary>Override the SourceUrl on a parsed list so the "view full list ↗" link points at
+    /// the specific tab's URL (not just the source's default endgame page).</summary>
+    private static TierList WithUrl(TierList tl, string sourceUrl) =>
+        new(tl.Source, sourceUrl, tl.Builds);
 
     public static TierList ParseMaxroll(string html)
     {

@@ -55,6 +55,8 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] private void UsePasteMode() => PasteMode = true;
 
     // ── Landing page: live community tier lists (this season's top builds) ──
+    // Each source has its own tab strip; per-tab results are cached in-memory so re-clicks are
+    // instant. Default Endgame is fetched eagerly on app launch; other tabs lazy-fetch on first click.
     public ObservableCollection<TierGroupVM> MaxrollTiers { get; } = new();
     public ObservableCollection<TierGroupVM> D4BuildsTiers { get; } = new();
     public ObservableCollection<TierGroupVM> MobalyticsTiers { get; } = new();
@@ -63,9 +65,52 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string d4BuildsTierStatus = "Loading…";
     [ObservableProperty] private string mobalyticsTierStatus = "Loading…";
 
-    public string MaxrollTierUrl => TierListFetcher.MaxrollUrl;
-    public string D4BuildsTierUrl => TierListFetcher.D4BuildsUrl;
-    public string MobalyticsTierUrl => TierListFetcher.MobalyticsUrl;
+    public IReadOnlyList<TierTabVM> MaxrollTabs { get; }
+    public IReadOnlyList<TierTabVM> D4BuildsTabs { get; }
+    public IReadOnlyList<TierTabVM> MobalyticsTabs { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MaxrollTierUrl))]
+    private MaxrollList activeMaxrollList = MaxrollList.Endgame;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(D4BuildsTierUrl))]
+    private D4BuildsList activeD4BuildsList = D4BuildsList.Endgame;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MobalyticsTierUrl))]
+    private MobalyticsList activeMobalyticsList = MobalyticsList.Endgame;
+
+    public string MaxrollTierUrl    => TierListFetcher.MaxrollUrlFor(ActiveMaxrollList);
+    public string D4BuildsTierUrl   => TierListFetcher.D4BuildsUrlFor(ActiveD4BuildsList);
+    public string MobalyticsTierUrl => TierListFetcher.MobalyticsUrlFor(ActiveMobalyticsList);
+
+    private readonly Dictionary<MaxrollList, List<TierGroupVM>> _maxrollCache = new();
+    private readonly Dictionary<D4BuildsList, List<TierGroupVM>> _d4buildsCache = new();
+    private readonly Dictionary<MobalyticsList, List<TierGroupVM>> _mobalyticsCache = new();
+
+    partial void OnActiveMaxrollListChanged(MaxrollList value) { SyncTabs(MaxrollTabs, value.ToString()); _ = ActivateMaxrollAsync(value); }
+    partial void OnActiveD4BuildsListChanged(D4BuildsList value) { SyncTabs(D4BuildsTabs, value.ToString()); _ = ActivateD4BuildsAsync(value); }
+    partial void OnActiveMobalyticsListChanged(MobalyticsList value) { SyncTabs(MobalyticsTabs, value.ToString()); _ = ActivateMobalyticsAsync(value); }
+
+    private static void SyncTabs(IReadOnlyList<TierTabVM> tabs, string activeKey)
+    {
+        foreach (var t in tabs) t.IsActive = t.Key == activeKey;
+    }
+
+    [RelayCommand]
+    private void SelectMaxrollTab(string key)
+    {
+        if (Enum.TryParse<MaxrollList>(key, out var k)) ActiveMaxrollList = k;
+    }
+    [RelayCommand]
+    private void SelectD4BuildsTab(string key)
+    {
+        if (Enum.TryParse<D4BuildsList>(key, out var k)) ActiveD4BuildsList = k;
+    }
+    [RelayCommand]
+    private void SelectMobalyticsTab(string key)
+    {
+        if (Enum.TryParse<MobalyticsList>(key, out var k)) ActiveMobalyticsList = k;
+    }
 
     [RelayCommand] private void OpenTierUrl(string url) => OpenUrl(url);
 
@@ -79,28 +124,76 @@ public partial class MainViewModel : ObservableObject
         _ = RunCompileAsync(url);
     }
 
-    public MainViewModel() => _ = LoadTierListsAsync();
-
-    /// <summary>Pull both tier lists on startup (independently — one failing never blocks the other).
-    /// Awaits resume on the UI context so the ObservableCollections are touched on the dispatcher.</summary>
-    private async Task LoadTierListsAsync()
+    public MainViewModel()
     {
-        await Task.WhenAll(
-            LoadOneAsync(TierListFetcher.FetchMaxrollAsync, MaxrollTiers, s => MaxrollTierStatus = s, "Maxroll"),
-            LoadOneAsync(TierListFetcher.FetchD4BuildsAsync, D4BuildsTiers, s => D4BuildsTierStatus = s, "D4Builds"),
-            LoadOneAsync(TierListFetcher.FetchMobalyticsAsync, MobalyticsTiers, s => MobalyticsTierStatus = s, "Mobalytics"));
+        // Build the tab strips. Default Endgame is active; other tabs come up dim and fetch on click.
+        MaxrollTabs = new[]
+        {
+            new TierTabVM("Endgame",    nameof(MaxrollList.Endgame),   true),
+            new TierTabVM("Bossing",    nameof(MaxrollList.Bossing),   false),
+            new TierTabVM("Leveling",   nameof(MaxrollList.Leveling),  false),
+            new TierTabVM("Push",       nameof(MaxrollList.Push),      false),
+            new TierTabVM("Speedfarm",  nameof(MaxrollList.Speedfarm), false),
+        };
+        D4BuildsTabs = new[]
+        {
+            new TierTabVM("Endgame",  nameof(D4BuildsList.Endgame),  true),
+            new TierTabVM("Leveling", nameof(D4BuildsList.Leveling), false),
+            new TierTabVM("Tower",    nameof(D4BuildsList.Tower),    false),
+        };
+        MobalyticsTabs = new[]
+        {
+            new TierTabVM("Endgame",  nameof(MobalyticsList.Endgame),  true),
+            new TierTabVM("Leveling", nameof(MobalyticsList.Leveling), false),
+            new TierTabVM("Pushing",  nameof(MobalyticsList.Pushing),  false),
+        };
+        // Kick off the three default-tab fetches in parallel — independent, one failing doesn't
+        // block the others. Awaits resume on the UI context so ObservableCollections are touched on
+        // the dispatcher.
+        _ = Task.WhenAll(
+            ActivateMaxrollAsync(MaxrollList.Endgame),
+            ActivateD4BuildsAsync(D4BuildsList.Endgame),
+            ActivateMobalyticsAsync(MobalyticsList.Endgame));
     }
 
-    private async Task LoadOneAsync(Func<CancellationToken, Task<TierList>> fetch,
-        ObservableCollection<TierGroupVM> target, Action<string> setStatus, string source)
+    private Task ActivateMaxrollAsync(MaxrollList kind) =>
+        ActivateAsync(kind, _maxrollCache, MaxrollTiers, s => MaxrollTierStatus = s,
+            ct => TierListFetcher.FetchMaxrollAsync(kind, ct));
+
+    private Task ActivateD4BuildsAsync(D4BuildsList kind) =>
+        ActivateAsync(kind, _d4buildsCache, D4BuildsTiers, s => D4BuildsTierStatus = s,
+            ct => TierListFetcher.FetchD4BuildsAsync(kind, ct));
+
+    private Task ActivateMobalyticsAsync(MobalyticsList kind) =>
+        ActivateAsync(kind, _mobalyticsCache, MobalyticsTiers, s => MobalyticsTierStatus = s,
+            ct => TierListFetcher.FetchMobalyticsAsync(kind, ct));
+
+    /// <summary>Cache-aware tab activation: serve from cache if hit, else fetch + populate + cache.
+    /// Generic over the per-source enum + per-source fetcher so all three sources share one flow.</summary>
+    private async Task ActivateAsync<TKind>(TKind kind,
+        Dictionary<TKind, List<TierGroupVM>> cache,
+        ObservableCollection<TierGroupVM> target,
+        Action<string> setStatus,
+        Func<CancellationToken, Task<TierList>> fetch) where TKind : notnull
     {
+        if (cache.TryGetValue(kind, out var hit))
+        {
+            target.Clear();
+            foreach (var g in hit) target.Add(g);
+            setStatus(hit.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
+            return;
+        }
+        setStatus("Loading…");
+        target.Clear();
         try
         {
             var list = await fetch(default);
-            target.Clear();
-            foreach (var g in list.Builds.GroupBy(b => b.Tier))
-                target.Add(new TierGroupVM(g.Key, g.Select(b => new TierBuildVM(b, LoadBuildFromUrl)).ToList()));
-            setStatus(target.Count == 0 ? "No builds found — open the full list ↗" : "");
+            var groups = list.Builds.GroupBy(b => b.Tier)
+                .Select(g => new TierGroupVM(g.Key, g.Select(b => new TierBuildVM(b, LoadBuildFromUrl)).ToList()))
+                .ToList();
+            cache[kind] = groups;
+            foreach (var g in groups) target.Add(g);
+            setStatus(groups.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
         }
         catch
         {
