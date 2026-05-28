@@ -87,6 +87,25 @@ public partial class MainViewModel : ObservableObject
     private readonly Dictionary<D4BuildsList, List<TierGroupVM>> _d4buildsCache = new();
     private readonly Dictionary<MobalyticsList, List<TierGroupVM>> _mobalyticsCache = new();
 
+    // ── Favorites (persisted to %LOCALAPPDATA%\MedicKsMight\favorites.json) ──
+    // The chips on the landing page's "Your Favorites" row + the star indicator on every tier chip
+    // are both driven from this store. Favorites are LIVE REFERENCES: when the user re-opens one we
+    // re-fetch from the source, so meta drift over the season is reflected automatically.
+    private readonly FavoritesStore _favorites = new();
+    public ObservableCollection<FavoriteChipVM> Favorites { get; } = new();
+    public bool HasFavorites => Favorites.Count > 0;
+
+    /// <summary>Provenance of the currently-loaded build — set when a build is loaded so the result
+    /// page's ★ Favorite button knows what to persist. <see cref="_currentTierKind"/>/<see cref="_currentTier"/>
+    /// are only known when the user clicked a tier chip (not when they pasted a URL).</summary>
+    private string _currentSource = "";
+    private string _currentSourceUrl = "";
+    private string? _currentTierKind;
+    private string? _currentTier;
+
+    [ObservableProperty] private bool isCurrentFavorited;
+    public bool CanFavoriteCurrent => !string.IsNullOrEmpty(_currentSourceUrl);
+
     partial void OnActiveMaxrollListChanged(MaxrollList value) { SyncTabs(MaxrollTabs, value.ToString()); _ = ActivateMaxrollAsync(value); }
     partial void OnActiveD4BuildsListChanged(D4BuildsList value) { SyncTabs(D4BuildsTabs, value.ToString()); _ = ActivateD4BuildsAsync(value); }
     partial void OnActiveMobalyticsListChanged(MobalyticsList value) { SyncTabs(MobalyticsTabs, value.ToString()); _ = ActivateMobalyticsAsync(value); }
@@ -124,6 +143,77 @@ public partial class MainViewModel : ObservableObject
         _ = RunCompileAsync(url);
     }
 
+    /// <summary>Star/unstar a tier-chip build. Toggle is by URL; the new entry captures the chip's
+    /// source/tier/tier-kind so the favorite knows where it came from. After toggling, sync IsFavorited
+    /// across every cached chip (the same build might appear under multiple tabs).</summary>
+    private void ToggleFavorite(TierBuildVM vm)
+    {
+        var candidate = new FavoriteEntry(
+            Id: Guid.NewGuid().ToString("N"),
+            Url: vm.Url,
+            Source: vm.Source,
+            TierKind: vm.TierKind,
+            Tier: vm.Tier,
+            Name: vm.Name,
+            ClassName: vm.ClassName,
+            DateAdded: DateTime.UtcNow,
+            DateLastOpened: DateTime.UtcNow);
+        _favorites.Toggle(candidate);
+        RefreshFavoritesUi();
+    }
+
+    /// <summary>Star/unstar the currently-loaded build (result-page ★ button). Used when the build
+    /// came from a paste or a raw URL paste — i.e. no tier chip involved — so TierKind/Tier are null.</summary>
+    [RelayCommand]
+    private void ToggleFavoriteCurrent()
+    {
+        if (string.IsNullOrEmpty(_currentSourceUrl)) return;
+        var candidate = new FavoriteEntry(
+            Id: Guid.NewGuid().ToString("N"),
+            Url: _currentSourceUrl,
+            Source: _currentSource,
+            TierKind: _currentTierKind,
+            Tier: _currentTier,
+            Name: string.IsNullOrEmpty(BuildName) ? "(unnamed build)" : BuildName,
+            ClassName: _resolved?.Class ?? "",
+            DateAdded: DateTime.UtcNow,
+            DateLastOpened: DateTime.UtcNow);
+        _favorites.Toggle(candidate);
+        RefreshFavoritesUi();
+    }
+
+    private void RemoveFavorite(FavoriteChipVM chip)
+    {
+        _favorites.Remove(chip.Url);
+        RefreshFavoritesUi();
+    }
+
+    /// <summary>Reconcile the Favorites collection + every cached tier chip's IsFavorited flag with
+    /// the current store contents. Cheap: tier-list caches are at most ~50 chips per source.</summary>
+    private void RefreshFavoritesUi()
+    {
+        Favorites.Clear();
+        foreach (var f in _favorites.All.OrderByDescending(f => f.DateAdded))
+            Favorites.Add(new FavoriteChipVM(f, LoadBuildFromUrl, RemoveFavorite));
+        OnPropertyChanged(nameof(HasFavorites));
+
+        var favUrls = new HashSet<string>(_favorites.All.Select(f => f.Url),
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var b in AllCachedChips()) b.IsFavorited = favUrls.Contains(b.Url);
+        IsCurrentFavorited = !string.IsNullOrEmpty(_currentSourceUrl)
+            && favUrls.Contains(_currentSourceUrl);
+    }
+
+    private IEnumerable<TierBuildVM> AllCachedChips()
+    {
+        foreach (var g in _maxrollCache.Values.SelectMany(v => v))
+            foreach (var b in g.Builds) yield return b;
+        foreach (var g in _d4buildsCache.Values.SelectMany(v => v))
+            foreach (var b in g.Builds) yield return b;
+        foreach (var g in _mobalyticsCache.Values.SelectMany(v => v))
+            foreach (var b in g.Builds) yield return b;
+    }
+
     public MainViewModel()
     {
         // Build the tab strips. Default Endgame is active; other tabs come up dim and fetch on click.
@@ -147,6 +237,10 @@ public partial class MainViewModel : ObservableObject
             new TierTabVM("Leveling", nameof(MobalyticsList.Leveling), false),
             new TierTabVM("Pushing",  nameof(MobalyticsList.Pushing),  false),
         };
+        // Hydrate the Favorites chip strip from the persisted store BEFORE the tier-list fetches —
+        // favorites should be there on first paint, no network required.
+        RefreshFavoritesUi();
+
         // Kick off the three default-tab fetches in parallel — independent, one failing doesn't
         // block the others. Awaits resume on the UI context so ObservableCollections are touched on
         // the dispatcher.
@@ -158,23 +252,29 @@ public partial class MainViewModel : ObservableObject
 
     private Task ActivateMaxrollAsync(MaxrollList kind) =>
         ActivateAsync(kind, _maxrollCache, MaxrollTiers, s => MaxrollTierStatus = s,
-            ct => TierListFetcher.FetchMaxrollAsync(kind, ct));
+            ct => TierListFetcher.FetchMaxrollAsync(kind, ct),
+            "Maxroll", kind.ToString());
 
     private Task ActivateD4BuildsAsync(D4BuildsList kind) =>
         ActivateAsync(kind, _d4buildsCache, D4BuildsTiers, s => D4BuildsTierStatus = s,
-            ct => TierListFetcher.FetchD4BuildsAsync(kind, ct));
+            ct => TierListFetcher.FetchD4BuildsAsync(kind, ct),
+            "D4Builds", kind.ToString());
 
     private Task ActivateMobalyticsAsync(MobalyticsList kind) =>
         ActivateAsync(kind, _mobalyticsCache, MobalyticsTiers, s => MobalyticsTierStatus = s,
-            ct => TierListFetcher.FetchMobalyticsAsync(kind, ct));
+            ct => TierListFetcher.FetchMobalyticsAsync(kind, ct),
+            "Mobalytics", kind.ToString());
 
     /// <summary>Cache-aware tab activation: serve from cache if hit, else fetch + populate + cache.
-    /// Generic over the per-source enum + per-source fetcher so all three sources share one flow.</summary>
+    /// Generic over the per-source enum + per-source fetcher so all three sources share one flow.
+    /// <paramref name="source"/> + <paramref name="tierKind"/> stamp each chip with its provenance
+    /// so a subsequent ★ favorite remembers where the build came from.</summary>
     private async Task ActivateAsync<TKind>(TKind kind,
         Dictionary<TKind, List<TierGroupVM>> cache,
         ObservableCollection<TierGroupVM> target,
         Action<string> setStatus,
-        Func<CancellationToken, Task<TierList>> fetch) where TKind : notnull
+        Func<CancellationToken, Task<TierList>> fetch,
+        string source, string tierKind) where TKind : notnull
     {
         if (cache.TryGetValue(kind, out var hit))
         {
@@ -188,8 +288,14 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var list = await fetch(default);
+            var favUrls = new HashSet<string>(_favorites.All.Select(f => f.Url),
+                StringComparer.OrdinalIgnoreCase);
             var groups = list.Builds.GroupBy(b => b.Tier)
-                .Select(g => new TierGroupVM(g.Key, g.Select(b => new TierBuildVM(b, LoadBuildFromUrl)).ToList()))
+                .Select(g => new TierGroupVM(g.Key, g.Select(b =>
+                    new TierBuildVM(b, source, tierKind, g.Key,
+                        url => LoadBuildFromChipUrl(b, source, tierKind, g.Key),
+                        ToggleFavorite,
+                        favUrls.Contains(b.Url))).ToList()))
                 .ToList();
             cache[kind] = groups;
             foreach (var g in groups) target.Add(g);
@@ -199,6 +305,18 @@ public partial class MainViewModel : ObservableObject
         {
             setStatus("Couldn't load right now — open the full list ↗");
         }
+    }
+
+    /// <summary>Tier chip click handler: capture chip provenance (so the result-page ★ knows where
+    /// the build came from) and stamp the favorite as re-opened if it's one of the user's.</summary>
+    private void LoadBuildFromChipUrl(TierBuild b, string source, string tierKind, string tier)
+    {
+        _currentSource = source;
+        _currentSourceUrl = b.Url;
+        _currentTierKind = tierKind;
+        _currentTier = tier;
+        if (_favorites.Contains(b.Url)) _favorites.StampOpened(b.Url);
+        LoadBuildFromUrl(b.Url);
     }
 
     // ── Result: header ──
@@ -351,6 +469,11 @@ public partial class MainViewModel : ObservableObject
                 raw ??= await MaxrollFetcher.FetchRawAsync(source);
                 return (MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default()), "Maxroll");
             });
+            // URL-loaded builds: capture provenance for the result-page ★ button. If the build
+            // came from a tier chip, LoadBuildFromChip already pre-seeded TierKind/Tier; here we
+            // refine Source to whatever the fetcher actually resolved.
+            _currentSource = srcLabel;
+            _currentSourceUrl = source;
             Ingest(resolved, srcLabel);
         }
         catch (Exception ex)
@@ -374,6 +497,12 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var resolved = await Task.Run(() => PastedBuild.Parse(PastedText, "Pasted Build"));
+            // Pastes have no source URL — favoriting them isn't meaningful (nothing to re-fetch).
+            // Clear provenance so the result-page ★ button hides itself via CanFavoriteCurrent.
+            _currentSource = "Paste";
+            _currentSourceUrl = "";
+            _currentTierKind = null;
+            _currentTier = null;
             Ingest(resolved, "Pasted");
         }
         catch (Exception ex)
@@ -405,6 +534,10 @@ public partial class MainViewModel : ObservableObject
 
         Recompile();
         State = AppState.Result;
+        // Result-page ★ button: refresh state + visibility for whichever URL we just loaded (paste
+        // mode clears _currentSourceUrl so the button hides).
+        IsCurrentFavorited = !string.IsNullOrEmpty(_currentSourceUrl) && _favorites.Contains(_currentSourceUrl);
+        OnPropertyChanged(nameof(CanFavoriteCurrent));
     }
 
     /// <summary>Analyze + compile from the currently-selected variants. Re-runs whenever the

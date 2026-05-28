@@ -35,6 +35,30 @@ public sealed class ActiveColorConverter : IValueConverter
         => Binding.DoNothing;
 }
 
+/// <summary>★ when the build is favorited, ☆ when not — used as the chip's star indicator glyph.</summary>
+public sealed class FavoriteStarConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? "★" : "☆";
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Star glyph color: gold when favorited, dim cream when not (still visible enough to
+/// invite a click, but quiet enough that an un-starred chip doesn't shout for attention).</summary>
+public sealed class FavoriteStarBrushConverter : IValueConverter
+{
+    private static readonly SolidColorBrush On = new(Color.FromRgb(0xFF, 0xD7, 0x00)); // classic D4 gold
+    private static readonly SolidColorBrush Off = new(Color.FromRgb(0x6b, 0x62, 0x5a));
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? On : Off;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
 /// <summary>Options-panel label text: bright when the toggle is ON, grayed when OFF — so the
 /// whole row (swatch + words) visibly goes inactive together.</summary>
 public sealed class ActiveTextConverter : IValueConverter

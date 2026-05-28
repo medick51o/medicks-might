@@ -10,26 +10,45 @@ namespace D4BuildFilter.WPF.ViewModels;
 /// <summary>One build on a tier list. Clicking LOADS it into the compiler (the source URL — a
 /// maxroll guide page, d4builds build, or mobalytics build — is resolved by the fetchers).
 /// The chip is rendered in the build's CLASS COLOR so the class is visible at a glance — important
-/// now that d4builds and mobalytics chips often show only the skill name without the class suffix.</summary>
+/// now that d4builds and mobalytics chips often show only the skill name without the class suffix.
+/// <para>Knows its own provenance (Source / TierKind / Tier) so that when the user stars the chip
+/// the favorite captures where it came from. <see cref="IsFavorited"/> mirrors the store so the
+/// star indicator stays in sync if the same build is favorited/unfavorited elsewhere in the UI.</para></summary>
 public sealed partial class TierBuildVM : ObservableObject
 {
     public string Name { get; }
     public string ClassName { get; }
     public string Url { get; }
+    public string Source { get; }        // "Maxroll" | "D4Builds" | "Mobalytics"
+    public string? TierKind { get; }     // "Endgame" | "Bossing" | ... — null for non-tier chips
+    public string? Tier { get; }         // "S" | "A" | ... | "God" | "Support" — null for non-tier chips
     public string Tip => $"{ClassName} · click to load this build into the filter";
     public Brush ClassColor { get; }
     private readonly Action<string> _load;
+    private readonly Action<TierBuildVM>? _toggleFav;
 
-    public TierBuildVM(TierBuild b, Action<string> load)
+    [ObservableProperty] private bool _isFavorited;
+
+    public TierBuildVM(TierBuild b, string source, string? tierKind, string? tier,
+        Action<string> load, Action<TierBuildVM>? toggleFav = null, bool isFavorited = false)
     {
         Name = b.Name;
         ClassName = b.ClassName;
         Url = b.Url;
+        Source = source;
+        TierKind = tierKind;
+        Tier = tier;
         _load = load;
+        _toggleFav = toggleFav;
+        IsFavorited = isFavorited;
         ClassColor = ColorFor(b.ClassName);
     }
 
     [RelayCommand] private void Load() => _load(Url);
+    [RelayCommand] private void ToggleFavorite() => _toggleFav?.Invoke(this);
+
+    /// <summary>Public so FavoriteChipVM can render with the same class palette.</summary>
+    public static Brush ClassBrush(string cls) => ColorFor(cls);
 
     /// <summary>Recognizable per-class color, tuned for legibility on the dimmed warlord background.
     /// Roughly tracks each class's in-game identity.</summary>

@@ -19,6 +19,8 @@
         <local:ActiveColorConverter x:Key="ActiveColor" />
         <local:ActiveTextConverter x:Key="ActiveText" />
         <local:StringToVisibilityConverter x:Key="StringToVis" />
+        <local:FavoriteStarConverter x:Key="FavStar" />
+        <local:FavoriteStarBrushConverter x:Key="FavStarBrush" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#e3d8cc" />
@@ -108,12 +110,18 @@
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="10"
                                 Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center" />
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       TextWrapping="Wrap" TextAlignment="Center"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -121,6 +129,33 @@
                                 <Setter Property="Foreground" Value="#f0d6a8" />
                             </Trigger>
                         </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Tiny star button overlaid on a chip's top-right corner. Click toggles favorited state
+             on the chip's VM; rest of the chip area stays clickable for Load (the star Button only
+             captures clicks within its small footprint, the chip Button beneath gets the rest). -->
+        <Style x:Key="FavStarBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="18" />
+            <Setter Property="MinHeight" Value="18" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -340,6 +375,85 @@
                                TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" />
                 </StackPanel>
 
+                <!-- ══════ Your Favorites ══════
+                     Persisted starred builds from %LOCALAPPDATA%\MedicKsMight\favorites.json.
+                     Each chip is a LIVE REFERENCE — clicking re-fetches the build from its source so
+                     the player gets THIS month's meta, not what was current when they starred it.
+                     Provenance subtitle ("Maxroll · Endgame · S · added 3d ago") + tooltip with
+                     exact dates so a stale pick is recognizable at a glance.
+                     Section is hidden when there are no favorites yet (HasFavorites). -->
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0"
+                            Visibility="{Binding HasFavorites, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="★ Your Favorites" FontSize="14" FontWeight="SemiBold"
+                               Foreground="#d4af37" HorizontalAlignment="Center" />
+                    <TextBlock Text="Live picks — clicking re-fetches the build from its source"
+                               FontSize="10" Foreground="#9a8c80" HorizontalAlignment="Center"
+                               Margin="0,2,0,8" />
+                    <Border Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                            CornerRadius="6" Padding="14,12">
+                        <ItemsControl ItemsSource="{Binding Favorites}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <!-- Two-line favorite chip: name on top in class color, provenance
+                                         subtitle below ("Maxroll · Endgame · S · added 3d ago"). Whole
+                                         chip clicks = re-fetch + load; the ✕ in the corner removes the
+                                         favorite without loading it. -->
+                                    <Grid Margin="0,0,8,8" Width="220">
+                                        <Button Command="{Binding LoadCommand}" ToolTip="{Binding Tip}"
+                                                Background="#402A221C" BorderThickness="0"
+                                                HorizontalContentAlignment="Stretch"
+                                                Padding="10,7" Cursor="Hand">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="fb" Background="{TemplateBinding Background}"
+                                                            CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="fb" Property="Background" Value="#803C2F25" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" Foreground="{Binding ClassColor}"
+                                                           FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Provenance}" Foreground="#9a8c80"
+                                                           FontSize="10" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding RemoveCommand}"
+                                                Content="✕" FontSize="11"
+                                                Background="Transparent" BorderThickness="0" Padding="0"
+                                                Foreground="#8a7e74" Cursor="Hand"
+                                                MinWidth="18" MinHeight="18"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                Margin="0,4,6,0"
+                                                ToolTip="Remove from favorites">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <TextBlock Text="{TemplateBinding Content}"
+                                                                   Foreground="{TemplateBinding Foreground}"
+                                                                   FontSize="{TemplateBinding FontSize}"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Border>
+                </StackPanel>
+
                 <!-- ══════ This season's top builds — live community tier lists ══════
                      Three columns: D4Builds (left), Maxroll (middle), Mobalytics (right).
                      Every tier surfaced: S/A/B/C/D plus Mobalytics-only God Tier (top) and Support
@@ -400,13 +514,24 @@
                                                 </Border>
                                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
                                                     <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                    Foreground="{Binding ClassColor}"
-                                                                    Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                            <!-- Star sits ABOVE the chip in z-order so it captures clicks
+                                                                 in its tiny corner footprint; the rest of the chip area
+                                                                 stays clickable for Load (chip Button beneath). -->
+                                                            <Grid>
+                                                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                        Foreground="{Binding ClassColor}"
+                                                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                                <Button Style="{StaticResource FavStarBtn}"
+                                                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
+                                                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
+                                                                        Command="{Binding ToggleFavoriteCommand}"
+                                                                        Margin="0,3,9,0"
+                                                                        ToolTip="Star to save under Your Favorites" />
+                                                            </Grid>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -460,13 +585,24 @@
                                                 </Border>
                                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
                                                     <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                    Foreground="{Binding ClassColor}"
-                                                                    Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                            <!-- Star sits ABOVE the chip in z-order so it captures clicks
+                                                                 in its tiny corner footprint; the rest of the chip area
+                                                                 stays clickable for Load (chip Button beneath). -->
+                                                            <Grid>
+                                                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                        Foreground="{Binding ClassColor}"
+                                                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                                <Button Style="{StaticResource FavStarBtn}"
+                                                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
+                                                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
+                                                                        Command="{Binding ToggleFavoriteCommand}"
+                                                                        Margin="0,3,9,0"
+                                                                        ToolTip="Star to save under Your Favorites" />
+                                                            </Grid>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -520,13 +656,24 @@
                                                 </Border>
                                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
                                                     <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                    Foreground="{Binding ClassColor}"
-                                                                    Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                            <!-- Star sits ABOVE the chip in z-order so it captures clicks
+                                                                 in its tiny corner footprint; the rest of the chip area
+                                                                 stays clickable for Load (chip Button beneath). -->
+                                                            <Grid>
+                                                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                                                        Foreground="{Binding ClassColor}"
+                                                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                                                <Button Style="{StaticResource FavStarBtn}"
+                                                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
+                                                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
+                                                                        Command="{Binding ToggleFavoriteCommand}"
+                                                                        Margin="0,3,9,0"
+                                                                        ToolTip="Star to save under Your Favorites" />
+                                                            </Grid>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -558,8 +705,40 @@
             <ScrollViewer Visibility="{Binding IsResultState, Converter={StaticResource BoolToVis}}"
                           VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="8">
-                    <TextBlock Text="{Binding BuildName}"
-                               FontSize="22" FontWeight="Bold" Foreground="#d4af37" />
+                    <!-- Result-page header: title on the left, ★ Favorite toggle on the right.
+                         The star button only shows when the current build has a URL we can re-fetch
+                         (CanFavoriteCurrent — false for pasted builds, true for any URL-based build).
+                         Label flips between "★ Favorite this build" and "★ Favorited (click to remove)". -->
+                    <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right"
+                                Command="{Binding ToggleFavoriteCurrentCommand}"
+                                Visibility="{Binding CanFavoriteCurrent, Converter={StaticResource BoolToVis}}"
+                                Background="Transparent" BorderBrush="#d4af37" BorderThickness="1"
+                                Foreground="{Binding IsCurrentFavorited, Converter={StaticResource FavStarBrush}}"
+                                Padding="10,4" FontSize="12" FontWeight="SemiBold"
+                                Cursor="Hand" VerticalAlignment="Center"
+                                ToolTip="Save this build to Your Favorites on the landing page">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter VerticalAlignment="Center"
+                                                          HorizontalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <TextBlock>
+                                <Run Text="{Binding IsCurrentFavorited, Converter={StaticResource FavStar}, Mode=OneWay}" />
+                                <Run Text=" " />
+                                <Run Text="Favorite" />
+                            </TextBlock>
+                        </Button>
+                        <TextBlock Text="{Binding BuildName}"
+                                   FontSize="22" FontWeight="Bold" Foreground="#d4af37"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
                     <TextBlock Text="{Binding BuildSubtitle}"
                                FontSize="12" Foreground="#b6a597" Margin="0,4,0,12" />
 
