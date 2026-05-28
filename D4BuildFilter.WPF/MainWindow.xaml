@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:D4BuildFilter.WPF"
         xmlns:vm="clr-namespace:D4BuildFilter.WPF.ViewModels"
         mc:Ignorable="d"
-        Title="Medick's Might — Filters Made EZ"
+        Title="MedicK's Might — Filters Made EZ"
+        Icon="Assets/mk_logo.png"
         Height="920" Width="1160"
         MinHeight="640" MinWidth="860"
         Background="#17120f">
@@ -156,15 +157,22 @@
 
         <!-- ════════════════════════ HEADER ════════════════════════ -->
         <Border Grid.Row="0" Background="#231a14" Padding="16,12" CornerRadius="4" Margin="0,0,0,12">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Medick's Might"
-                               FontSize="24" FontWeight="Bold" Foreground="#d4af37" />
-                    <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="12,0,0,3"
-                               FontSize="13" FontStyle="Italic" FontWeight="SemiBold" Foreground="#c8843c" />
+            <StackPanel Orientation="Horizontal">
+                <!-- MK monogram (Medick's Madhouse) -->
+                <Image Source="Assets/mk_logo.png" Width="46" Height="46" VerticalAlignment="Center"
+                       Margin="0,0,14,0" RenderOptions.BitmapScalingMode="HighQuality" />
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- "MedicK's Might" — the M and K glow red to spell the clan tag MK -->
+                        <TextBlock FontSize="24" FontWeight="Bold">
+                            <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
+                        </TextBlock>
+                        <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="12,0,0,3"
+                                   FontSize="13" FontStyle="Italic" FontWeight="SemiBold" Foreground="#c8843c" />
+                    </StackPanel>
+                    <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
+                               FontSize="12" Foreground="#9a8c80" Margin="0,2,0,0" />
                 </StackPanel>
-                <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
-                           FontSize="12" Foreground="#9a8c80" Margin="0,2,0,0" />
             </StackPanel>
         </Border>
 

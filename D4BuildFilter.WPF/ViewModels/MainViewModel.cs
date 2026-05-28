@@ -143,9 +143,10 @@ public partial class MainViewModel : ObservableObject
     private string filterTitle = "";
     partial void OnFilterTitleChanged(string value) { if (!_suppressRecompile) Recompile(); }
 
-    /// <summary>The brand stamped on every filter — "Medick's Might" rides along into the game, so
-    /// anyone who imports a shared code sees it (the NeverSink play). Tagline: "Loot filters made EZ".</summary>
-    public const string BrandName = "Medick's Might";
+    /// <summary>The brand stamped on every filter — "MedicK's Might" rides along into the game, so
+    /// anyone who imports a shared code sees it (the NeverSink play). The capital K nods to the clan
+    /// tag MK (Medick's Madhouse); in the app header the M and K glow red. Tagline: "Filters Made EZ".</summary>
+    public const string BrandName = "MedicK's Might";
     /// <summary>D4 drops filter/rule names over 24 chars on import (verified in-game), so the title
     /// field is capped here and the encoder clamps too.</summary>
     public const int MaxTitleLength = 24;

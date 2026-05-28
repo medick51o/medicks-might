@@ -22,6 +22,8 @@
     <Content Include="Assets\sample_barb.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- MK monogram logo (Medick's Madhouse) — app icon + header badge. -->
+    <Resource Include="Assets\mk_logo.png" />
   </ItemGroup>
 
 </Project>
