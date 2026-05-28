@@ -56,12 +56,35 @@ public static class ItemTypeDatabase
     };
     private static readonly HashSet<uint> WeaponSet = new(AllWeapons);
 
-    /// <summary>True when every id is a weapon type. Used to merge ALL weapon slots into one
-    /// "Weapons" rule: a build wants the same stats on every weapon, and the Barbarian arsenal's
-    /// 4 weapon slots as 4 separate rules (× gold+silver) would blow the 25-rule cap. Off-hands
-    /// (Focus/Totem/Shield) are NOT weapons here, so they keep their own rule (different affixes).</summary>
+    /// <summary>True when every id is a weapon type. Used to merge weapon slots so the Barbarian
+    /// arsenal's 4 weapon slots don't each get their own gold+silver rule and blow the 25-rule cap.
+    /// Off-hands (Focus/Totem/Shield) are NOT weapons here, so they keep their own rule.</summary>
     public static bool IsWeaponSlot(IReadOnlyList<uint> typeIds) =>
         typeIds.Count > 0 && typeIds.All(WeaponSet.Contains);
+
+    private static readonly HashSet<uint> TwoHandedSet = new(new uint[]
+    {
+        0x0006d152, // Two-Handed Axe
+        0x0006d144, // Two-Handed Mace
+        0x0006d14f, // Two-Handed Sword
+        0x0006d15d, // Polearm
+        0x0006d155, // Two-Handed Scythe
+        0x0006d153, // Staff
+        0x0006d167, // Bow
+        0x0006d169, // Two-Handed Crossbow
+    });
+
+    /// <summary>Bucket a weapon slot by handedness so a Barb gets a "1H Weapons" rule (dual-wield)
+    /// separate from "2H Weapons" — they want different stats. Returns "2h" (all types 2-handed),
+    /// "1h" (none 2-handed), or "" when the slot's types span both (an ambiguous label like
+    /// d4builds' "Bludgeoning Weapon"; the caller pools those generically as "Weapons").
+    /// maxroll gives exact types ("1HMace"/"2HSword") so its barbs split cleanly.</summary>
+    public static string WeaponHandedness(IReadOnlyList<uint> typeIds)
+    {
+        bool any2h = typeIds.Any(TwoHandedSet.Contains);
+        bool all2h = typeIds.All(TwoHandedSet.Contains);
+        return all2h ? "2h" : (any2h ? "" : "1h");
+    }
     private static readonly uint[] Bludgeoning = { 0x0006d13a, 0x0006d144 };                          // maces
     private static readonly uint[] Slashing = { 0x0006d151, 0x0006d152, 0x0006d14c, 0x0006d14f };       // axes + swords
     private static readonly uint[] OneHanded = { 0x0006d151, 0x0006d13a, 0x0006d14c, 0x0006d159, 0x0006d163, 0x0006d167, 0x0006d168 };

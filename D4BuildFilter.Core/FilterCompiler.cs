@@ -134,11 +134,12 @@ public static class FilterCompiler
 
         // Per-slot pools (for the precise per-slot rule mode). Group each variant's slots by the
         // item-type id SET they resolve to (so Ring 1 + Ring 2 merge), unioning the build's desired
-        // affix ids per group. ALL weapon slots collapse into a single "Weapons" group (a build wants
-        // the same stats on every weapon, and the Barb arsenal's 4 weapon slots × gold+silver would
-        // blow the 25-rule cap) — off-hands stay separate. Slots whose label can't resolve are skipped
-        // (their affixes still live in the combined pool above). Each group accumulates its type ids
-        // (so the merged Weapons rule scopes to exactly the weapon types the build uses).
+        // affix ids per group. Weapon slots merge BY HANDEDNESS into "1H Weapons" / "2H Weapons" (a
+        // build wants the same stats across its 1-handers and across its 2-handers, and the Barb
+        // arsenal's 4 weapon slots as 4 rules × gold+silver would blow the 25-rule cap); ambiguous
+        // weapon labels pool generically as "Weapons", and off-hands stay separate. Slots whose label
+        // can't resolve are skipped (their affixes still live in the combined pool above). Each group
+        // accumulates its type ids so a merged weapon rule scopes to exactly the types the build uses.
         var groups = new Dictionary<string, (string Label, HashSet<uint> TypeSeen, List<uint> TypeIds, HashSet<uint> AffixSeen, List<uint> AffixIds)>();
         foreach (var v in build.Variants)
             if (v.Slots is { } vslots)
@@ -146,11 +147,18 @@ public static class FilterCompiler
                 {
                     var typeIds = ItemTypeDatabase.ResolveSlot(rs.Slot);
                     if (typeIds is null || typeIds.Count == 0) continue;
-                    bool weapon = ItemTypeDatabase.IsWeaponSlot(typeIds);
-                    var key = weapon ? "__weapons__" : string.Join(",", typeIds);
+                    string key, label;
+                    if (ItemTypeDatabase.IsWeaponSlot(typeIds))
+                        (key, label) = ItemTypeDatabase.WeaponHandedness(typeIds) switch
+                        {
+                            "2h" => ("__weapons_2h__", "2H Weapons"),
+                            "1h" => ("__weapons_1h__", "1H Weapons"),
+                            _    => ("__weapons__",    "Weapons"),
+                        };
+                    else { key = string.Join(",", typeIds); label = rs.Slot; }
                     if (!groups.TryGetValue(key, out var g))
                     {
-                        g = (weapon ? "Weapons" : rs.Slot, new HashSet<uint>(), new List<uint>(), new HashSet<uint>(), new List<uint>());
+                        g = (label, new HashSet<uint>(), new List<uint>(), new HashSet<uint>(), new List<uint>());
                         groups[key] = g;
                     }
                     foreach (var t in typeIds) if (g.TypeSeen.Add(t)) g.TypeIds.Add(t);

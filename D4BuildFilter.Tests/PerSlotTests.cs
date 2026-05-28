@@ -28,10 +28,10 @@ public class PerSlotTests
         Assert.Null(ItemTypeDatabase.ResolveSlot("Mercenary Slot"));
 
     [Fact]
-    public void Weapon_slots_merge_into_one_pool_armor_stays_separate()
+    public void Weapon_slots_merge_by_handedness_armor_stays_separate()
     {
-        // A Barb-style build with 3 distinct weapon slots + 2 armor slots. The weapons must collapse
-        // into ONE "Weapons" pool (scoped to all 3 weapon types); armor stays one pool each.
+        // Barb arsenal: 1 one-hander + 2 two-handers + 2 armor slots. Weapons merge BY HANDEDNESS —
+        // one "1H Weapons" pool and one "2H Weapons" pool (not per weapon type); armor stays separate.
         var rb = new ResolvedBuild("t", "Barbarian", new[]
         {
             new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(), new[]
@@ -45,10 +45,11 @@ public class PerSlotTests
         });
         var b = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
 
-        var weapons = b.SlotPools.Where(sp => sp.Label == "Weapons").ToList();
-        Assert.Single(weapons);                                  // 3 weapon slots -> ONE pool
-        Assert.Equal(3, weapons[0].ItemTypeIds.Count);           // scoped to all 3 weapon types it uses
-        Assert.Equal(2, b.SlotPools.Count(sp => sp.Label != "Weapons"));  // Boots + Helm stay separate
+        var oneH = b.SlotPools.Single(sp => sp.Label == "1H Weapons");
+        var twoH = b.SlotPools.Single(sp => sp.Label == "2H Weapons");
+        Assert.Single(oneH.ItemTypeIds);                         // 1HMace only
+        Assert.Equal(2, twoH.ItemTypeIds.Count);                 // 2HSword + 2HAxe merged
+        Assert.Equal(2, b.SlotPools.Count(sp => !sp.Label.EndsWith("Weapons")));  // Boots + Helm
         Assert.DoesNotContain(b.SlotPools, sp => sp.Label is "1HMace" or "2HSword" or "2HAxe");
     }
 
