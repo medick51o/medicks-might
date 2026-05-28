@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:D4BuildFilter.WPF"
         xmlns:vm="clr-namespace:D4BuildFilter.WPF.ViewModels"
         mc:Ignorable="d"
-        Title="MedicK's Might — Filters Made EZ"
+        Title="MedicK's Might (BETA) — Filters Made EZ"
         Icon="Assets/mk_logo.png"
         Height="920" Width="1160"
         MinHeight="640" MinWidth="860"
@@ -98,9 +98,10 @@
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
 
-        <!-- Clickable build "chip" used in the tier lists -->
+        <!-- Clickable build "chip" used in the tier lists. Semi-transparent so the landing-page
+             hero background bleeds through (the chip still reads clearly against the dimmed art). -->
         <Style x:Key="BuildChip" TargetType="Button">
-            <Setter Property="Background" Value="#2a221c" />
+            <Setter Property="Background" Value="#402A221C" />
             <Setter Property="Foreground" Value="#d8cabb" />
             <Setter Property="Padding" Value="9,4" />
             <Setter Property="FontSize" Value="12" />
@@ -116,7 +117,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="#3c2f25" />
+                                <Setter TargetName="b" Property="Background" Value="#803C2F25" />
                                 <Setter Property="Foreground" Value="#f0d6a8" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -155,29 +156,53 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- ════════════════════════ HEADER ════════════════════════ -->
-        <Border Grid.Row="0" Background="#231a14" Padding="16,12" CornerRadius="4" Margin="0,0,0,12">
-            <StackPanel Orientation="Horizontal">
-                <!-- MK monogram (Medick's Madhouse) -->
-                <Image Source="Assets/mk_logo.png" Width="46" Height="46" VerticalAlignment="Center"
-                       Margin="0,0,14,0" RenderOptions.BitmapScalingMode="HighQuality" />
-                <StackPanel VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <!-- "MedicK's Might" — the M and K glow red to spell the clan tag MK -->
-                        <TextBlock FontSize="24" FontWeight="Bold">
-                            <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
-                        </TextBlock>
-                        <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="12,0,0,3"
-                                   FontSize="13" FontStyle="Italic" FontWeight="SemiBold" Foreground="#c8843c" />
+        <!-- ════════════════════════ HEADER (banner shown ONCE WORKING; landing has the art as
+             a full-bleed BACKGROUND behind translucent tier cards instead — see Grid.Row="1") ═══ -->
+
+        <!-- WORKING BANNER: slim 260px crop (UniformToFill) shown during loading + result. The same
+             art, but trimmed so the build screen has room to drive. -->
+        <Border Grid.Row="0" Height="260" CornerRadius="4" Margin="0,0,0,12"
+                ClipToBounds="True" Background="#17120f"
+                Visibility="{Binding IsNotInputState, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Image Source="Assets/hero.jpg" Stretch="UniformToFill"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Offset="0.00" Color="#00000000" />
+                            <GradientStop Offset="0.55" Color="#80000000" />
+                            <GradientStop Offset="1.00" Color="#FF17120F" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="22,0,22,16">
+                    <Image Source="Assets/mk_logo.png" Width="56" Height="56" VerticalAlignment="Center"
+                           Margin="0,0,16,0" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontSize="30" FontWeight="Bold">
+                                <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
+                            </TextBlock>
+                            <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="14,0,0,5"
+                                       FontSize="14" FontStyle="Italic" FontWeight="SemiBold" Foreground="#f5b86b" />
+                        </StackPanel>
+                        <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
+                                   FontSize="13" Foreground="#e3d8cc" Margin="0,3,0,0" />
                     </StackPanel>
-                    <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
-                               FontSize="12" Foreground="#9a8c80" Margin="0,2,0,0" />
                 </StackPanel>
-            </StackPanel>
+            </Grid>
         </Border>
 
         <!-- ════════════════════════ BODY ════════════════════════ -->
         <Grid Grid.Row="1">
+
+            <!-- LANDING BACKGROUND: the warlord art behind the input + tier-list content, dimmed so
+                 the gold/red UI reads cleanly. Tier cards on top are semi-transparent so the art
+                 bleeds through. Only on the input state — the build screen stays clean. -->
+            <Image Source="Assets/hero.jpg" Stretch="UniformToFill" Opacity="0.55"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Visibility="{Binding IsInputState, Converter={StaticResource BoolToVis}}" />
 
             <!-- ─── INPUT STATE ─── -->
             <ScrollViewer x:Name="InputScroll"
@@ -188,6 +213,28 @@
                    ScrollViewer otherwise sizes its content to the widest tier row). -->
               <Grid>
                 <StackPanel x:Name="InputColumn" HorizontalAlignment="Left" Margin="0,4,0,16">
+
+                <!-- ══════ Landing brand header — MK + title + manifesto slogan ══════ -->
+                <StackPanel HorizontalAlignment="Center" Margin="0,20,0,8">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Image Source="Assets/mk_logo.png" Width="68" Height="68" VerticalAlignment="Center"
+                               Margin="0,0,18,0" RenderOptions.BitmapScalingMode="HighQuality" />
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontSize="34" FontWeight="Bold">
+                                    <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
+                                </TextBlock>
+                                <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="14,0,0,6"
+                                           FontSize="15" FontStyle="Italic" FontWeight="SemiBold" Foreground="#f5b86b" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="THE GOLD STANDARD IN LOOT FILTER STANDARDIZATION FOR DIABLO 4"
+                               HorizontalAlignment="Center" Margin="0,10,0,0"
+                               FontSize="13" FontWeight="Bold" Foreground="#d4af37"
+                               TextAlignment="Center" />
+                </StackPanel>
+
                 <StackPanel HorizontalAlignment="Center" MaxWidth="660" Margin="0,16,0,0">
 
                     <!-- Source toggle: maxroll URL vs. paste from any guide -->
@@ -258,8 +305,11 @@
                                TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" />
                 </StackPanel>
 
-                <!-- ══════ This season's top builds — live community tier lists ══════ -->
-                <StackPanel MaxWidth="1100" HorizontalAlignment="Center" Margin="0,30,0,0">
+                <!-- ══════ This season's top builds — live community tier lists ══════
+                     D4Builds on the LEFT, Maxroll on the RIGHT. Columns are narrow (440 each) and
+                     pushed to the edges with a wide middle gap so the warlord background bleeds
+                     through. Narrower columns also wrap chips ~3 per row instead of 4. -->
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0">
                     <TextBlock Text="This season's top builds" FontSize="18" FontWeight="Bold"
                                Foreground="#d4af37" HorizontalAlignment="Center" />
                     <TextBlock Text="Pulled live from the community. Click any build to load it straight into the filter."
@@ -271,9 +321,9 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- ── Maxroll ── -->
-                        <Border Grid.Column="0" Background="#1d1611" BorderBrush="#4a3c30" BorderThickness="1"
-                                CornerRadius="6" Padding="16,12" Margin="0,0,7,0">
+                        <!-- ── Maxroll (RIGHT column) ── -->
+                        <Border Grid.Column="1" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="16,12" Margin="7,0,0,0">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
@@ -319,9 +369,9 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ── D4Builds ── -->
-                        <Border Grid.Column="1" Background="#1d1611" BorderBrush="#4a3c30" BorderThickness="1"
-                                CornerRadius="6" Padding="16,12" Margin="7,0,0,0">
+                        <!-- ── D4Builds (LEFT column) ── -->
+                        <Border Grid.Column="0" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="16,12" Margin="0,0,7,0">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"

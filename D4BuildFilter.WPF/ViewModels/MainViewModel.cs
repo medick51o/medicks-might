@@ -22,11 +22,15 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsInputState))]
     [NotifyPropertyChangedFor(nameof(IsLoadingState))]
     [NotifyPropertyChangedFor(nameof(IsResultState))]
+    [NotifyPropertyChangedFor(nameof(IsNotInputState))]
     private AppState state = AppState.Input;
 
     public bool IsInputState => State == AppState.Input;
     public bool IsLoadingState => State == AppState.Loading;
     public bool IsResultState => State == AppState.Result;
+    /// <summary>Header swaps between a big "wtf Immortan Joe" splash (landing) and a slim banner
+    /// (loading + result). Once business starts, the art shrinks down so the build screen drives.</summary>
+    public bool IsNotInputState => State != AppState.Input;
 
     // ── Input ──
     [ObservableProperty]

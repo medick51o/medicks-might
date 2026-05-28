@@ -7,6 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>D4BuildFilter</AssemblyName>
+    <!-- Embeds the MK monogram into the exe's PE resources so the taskbar / Explorer / Alt-Tab
+         use it (the Window.Icon=Assets/mk_logo.png only sets the running window's title-bar icon). -->
+    <ApplicationIcon>Assets\mk.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,6 +27,8 @@
     </Content>
     <!-- MK monogram logo (Medick's Madhouse) — app icon + header badge. -->
     <Resource Include="Assets\mk_logo.png" />
+    <!-- Hero banner artwork (D4 warlord) for the landing page header. -->
+    <Resource Include="Assets\hero.jpg" />
   </ItemGroup>
 
 </Project>
