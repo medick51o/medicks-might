@@ -32,8 +32,10 @@ public static class MaxrollFetcher
 
     // A build-GUIDE page embeds its planner as a `maxroll/planner-page` Gutenberg block whose
     // attributes carry the canonical planner URL: {"link":"https://maxroll.gg/d4/planner/<id>"}.
+    // The link often has a "#<profileIndex>" suffix (e.g. .../w62gqj0v#4) — most guides do, Ball
+    // Lightning happened not to — so we capture just the id and tolerate any trailing #/query.
     private static readonly Regex GuidePlannerLink =
-        new(@"""link"":""(https://maxroll\.gg/d4/planner/[A-Za-z0-9]+)""", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        new(@"""link"":""(https://maxroll\.gg/d4/planner/[A-Za-z0-9]+)[^""]*""", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>True for a maxroll build-GUIDE article URL (the wrapper a casual user lands on),
     /// as opposed to a /planner/ URL. Guide pages embed the real planner — see

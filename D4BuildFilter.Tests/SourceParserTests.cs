@@ -89,16 +89,20 @@ public class SourceParserTests
     public void IsBuildGuideUrl_detects_guide_pages(string url, bool expected) =>
         Assert.Equal(expected, MaxrollFetcher.IsBuildGuideUrl(url));
 
-    [Fact]
-    public void Guide_page_planner_link_is_extracted()
+    [Theory]
+    // No suffix (Ball Lightning) AND the common "#<profileIndex>" suffix (Whirlwind etc.) — the
+    // suffix used to break extraction, so only BL loaded. Both must yield the bare planner URL.
+    [InlineData("https://maxroll.gg/d4/planner/5k34xn0u", "https://maxroll.gg/d4/planner/5k34xn0u")]
+    [InlineData("https://maxroll.gg/d4/planner/w62gqj0v#4", "https://maxroll.gg/d4/planner/w62gqj0v")]
+    public void Guide_page_planner_link_is_extracted(string linkInPage, string expected)
     {
         // Mirrors the maxroll/planner-page Gutenberg block embedded in a build-guide page.
-        const string guideHtml =
-            @"…""category"":""Build Guides"",""gutenbergBlock"":[{""attributes"":{""link"":" +
-            @"""https://maxroll.gg/d4/planner/5k34xn0u""},""blockName"":""maxroll/planner-page"",""innerHTML"":""<html…";
+        var guideHtml =
+            @"…""category"":""Build Guides"",""gutenbergBlock"":[{""attributes"":{""link"":""" +
+            linkInPage + @"""},""blockName"":""maxroll/planner-page"",""innerHTML"":""<html…";
         var link = MaxrollFetcher.ParseGuidePlannerLink(guideHtml);
-        Assert.Equal("https://maxroll.gg/d4/planner/5k34xn0u", link);
-        Assert.Equal("5k34xn0u", MaxrollFetcher.ExtractPlannerId(link!));   // feeds the planner fetch
+        Assert.Equal(expected, link);
+        Assert.Equal(expected.Split('/')[^1], MaxrollFetcher.ExtractPlannerId(link!));   // feeds the planner fetch
     }
 
     [Fact]
