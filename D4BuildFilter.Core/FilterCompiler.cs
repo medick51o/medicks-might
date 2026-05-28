@@ -133,31 +133,36 @@ public static class FilterCompiler
             else uniquesPending.Add(un);
 
         // Per-slot pools (for the precise per-slot rule mode). Group each variant's slots by the
-        // item-type id SET they resolve to (so Ring 1 + Ring 2 merge, weapon categories merge),
-        // unioning the build's desired affix ids per group. Slots whose label can't resolve to an
-        // item type are skipped here (their affixes still live in the combined pool above).
-        var groups = new Dictionary<string, (uint[] TypeIds, string Label, HashSet<uint> Seen, List<uint> Ids)>();
+        // item-type id SET they resolve to (so Ring 1 + Ring 2 merge), unioning the build's desired
+        // affix ids per group. ALL weapon slots collapse into a single "Weapons" group (a build wants
+        // the same stats on every weapon, and the Barb arsenal's 4 weapon slots × gold+silver would
+        // blow the 25-rule cap) — off-hands stay separate. Slots whose label can't resolve are skipped
+        // (their affixes still live in the combined pool above). Each group accumulates its type ids
+        // (so the merged Weapons rule scopes to exactly the weapon types the build uses).
+        var groups = new Dictionary<string, (string Label, HashSet<uint> TypeSeen, List<uint> TypeIds, HashSet<uint> AffixSeen, List<uint> AffixIds)>();
         foreach (var v in build.Variants)
             if (v.Slots is { } vslots)
                 foreach (var rs in vslots)
                 {
                     var typeIds = ItemTypeDatabase.ResolveSlot(rs.Slot);
                     if (typeIds is null || typeIds.Count == 0) continue;
-                    var key = string.Join(",", typeIds);
+                    bool weapon = ItemTypeDatabase.IsWeaponSlot(typeIds);
+                    var key = weapon ? "__weapons__" : string.Join(",", typeIds);
                     if (!groups.TryGetValue(key, out var g))
                     {
-                        g = (typeIds.ToArray(), rs.Slot, new HashSet<uint>(), new List<uint>());
+                        g = (weapon ? "Weapons" : rs.Slot, new HashSet<uint>(), new List<uint>(), new HashSet<uint>(), new List<uint>());
                         groups[key] = g;
                     }
+                    foreach (var t in typeIds) if (g.TypeSeen.Add(t)) g.TypeIds.Add(t);
                     foreach (var src in rs.Affixes)
                     {
                         var m = AffixMapper.Map(src);
-                        if (m.Mapped && g.Seen.Add(m.CoarseId!.Value)) g.Ids.Add(m.CoarseId.Value);
+                        if (m.Mapped && g.AffixSeen.Add(m.CoarseId!.Value)) g.AffixIds.Add(m.CoarseId.Value);
                     }
                 }
         var slotPools = groups.Values
-            .Where(g => g.Ids.Count > 0)
-            .Select(g => new SlotPool(g.Label, g.TypeIds, g.Ids))
+            .Where(g => g.AffixIds.Count > 0)
+            .Select(g => new SlotPool(g.Label, g.TypeIds, g.AffixIds))
             .ToList();
 
         return new CompiledBuild(build.Build, color, dim, pool, names,

@@ -54,6 +54,14 @@ public static class ItemTypeDatabase
         0x0006d151, 0x0006d152, 0x0006d13a, 0x0006d144, 0x0006d14c, 0x0006d14f, 0x0006d159,
         0x0006d15d, 0x0006d154, 0x0006d155, 0x0006d153, 0x0006d163, 0x0006d167, 0x0006d168, 0x0006d169,
     };
+    private static readonly HashSet<uint> WeaponSet = new(AllWeapons);
+
+    /// <summary>True when every id is a weapon type. Used to merge ALL weapon slots into one
+    /// "Weapons" rule: a build wants the same stats on every weapon, and the Barbarian arsenal's
+    /// 4 weapon slots as 4 separate rules (× gold+silver) would blow the 25-rule cap. Off-hands
+    /// (Focus/Totem/Shield) are NOT weapons here, so they keep their own rule (different affixes).</summary>
+    public static bool IsWeaponSlot(IReadOnlyList<uint> typeIds) =>
+        typeIds.Count > 0 && typeIds.All(WeaponSet.Contains);
     private static readonly uint[] Bludgeoning = { 0x0006d13a, 0x0006d144 };                          // maces
     private static readonly uint[] Slashing = { 0x0006d151, 0x0006d152, 0x0006d14c, 0x0006d14f };       // axes + swords
     private static readonly uint[] OneHanded = { 0x0006d151, 0x0006d13a, 0x0006d14c, 0x0006d159, 0x0006d163, 0x0006d167, 0x0006d168 };

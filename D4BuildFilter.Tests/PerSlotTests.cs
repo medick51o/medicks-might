@@ -28,6 +28,31 @@ public class PerSlotTests
         Assert.Null(ItemTypeDatabase.ResolveSlot("Mercenary Slot"));
 
     [Fact]
+    public void Weapon_slots_merge_into_one_pool_armor_stays_separate()
+    {
+        // A Barb-style build with 3 distinct weapon slots + 2 armor slots. The weapons must collapse
+        // into ONE "Weapons" pool (scoped to all 3 weapon types); armor stays one pool each.
+        var rb = new ResolvedBuild("t", "Barbarian", new[]
+        {
+            new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(), new[]
+            {
+                new ResolvedSlot("1HMace",  new[] { "Strength", "Critical Strike Damage Multiplier", "Vulnerable Damage Multiplier" }),
+                new ResolvedSlot("2HSword", new[] { "Strength", "Critical Strike Damage Multiplier", "Weapon Damage" }),
+                new ResolvedSlot("2HAxe",   new[] { "Strength", "Vulnerable Damage Multiplier", "Weapon Damage" }),
+                new ResolvedSlot("Boots",   new[] { "Strength", "Maximum Life", "Armor", "Movement Speed" }),
+                new ResolvedSlot("Helm",    new[] { "Strength", "Maximum Life", "Cooldown Reduction" }),
+            }),
+        });
+        var b = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
+
+        var weapons = b.SlotPools.Where(sp => sp.Label == "Weapons").ToList();
+        Assert.Single(weapons);                                  // 3 weapon slots -> ONE pool
+        Assert.Equal(3, weapons[0].ItemTypeIds.Count);           // scoped to all 3 weapon types it uses
+        Assert.Equal(2, b.SlotPools.Count(sp => sp.Label != "Weapons"));  // Boots + Helm stay separate
+        Assert.DoesNotContain(b.SlotPools, sp => sp.Label is "1HMace" or "2HSword" or "2HAxe");
+    }
+
+    [Fact]
     public void Per_slot_rules_scope_each_rule_to_its_item_type()
     {
         var rb = new ResolvedBuild("t", "Barbarian", new[]
