@@ -525,7 +525,7 @@
                                             Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#FF8C00}" />
                                     <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
                                             Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#00FFFF}" />
-                                    <CheckBox Content="Item power → Orange / Cyan (900 / 850)" IsChecked="{Binding OptItemPowerTiers}"
+                                    <CheckBox Content="Item power 900/850 → Orange/Cyan (gearing aid — noisy at endgame)" IsChecked="{Binding OptItemPowerTiers}"
                                               Foreground="{Binding OptItemPowerTiers, Converter={StaticResource ActiveText}}" />
                                 </StackPanel>
                                 <!-- Charms &amp; Seals → green -->

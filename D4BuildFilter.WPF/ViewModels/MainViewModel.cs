@@ -162,7 +162,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool optGoldTier = true;  // 3+ affixes per slot → gold ("best items")
     [ObservableProperty] private bool optSilverTier = true; // 2+ affixes per slot → silver ("one roll away")
     [ObservableProperty] private bool optBuildUniques = true;
-    [ObservableProperty] private bool optItemPowerTiers = true;
+    // OFF by default: at endgame nearly every drop is max item power, so 900/850 highlights are pure
+    // clutter and aren't build-scoped. We want OUR build's items (the Gold/Silver match). Leaving it
+    // off also frees 2 rules — a 10-slot Barb with both tiers fits 25 instead of 27. A gearing aid only.
+    [ObservableProperty] private bool optItemPowerTiers;
     [ObservableProperty] private bool optGreaterAffixes = true;
     [ObservableProperty] private bool optCharmsSeals = true;
     [ObservableProperty] private bool optCodex = true;
