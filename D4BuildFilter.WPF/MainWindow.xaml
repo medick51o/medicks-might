@@ -846,43 +846,101 @@
                                      Visibility="{Binding HasDropped, Converter={StaticResource BoolToVis}}" />
                         </StackPanel>
 
-                        <!-- Right: uniques + color legend -->
-                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                            <TextBlock Text="Build uniques → purple"
-                                       Style="{StaticResource SectionLabel}"
-                                       Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
-                            <ListBox ItemsSource="{Binding UniquePurpleLines}" Height="80"
-                                     Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
+                        <!-- Right: uniques / mythics / pending / color legend in a TabControl.
+                             beta.8 polish: was 4 stacked sections + 4 fixed-height ListBoxes burning
+                             ~360px of vertical with lots of dead air when only 1-2 categories were
+                             populated. Tabs let each view use the full panel height + only one is
+                             ever rendered, so the right column matches the left column's density. -->
+                        <Border Grid.Column="1" Margin="8,0,0,0" Background="#80231a14"
+                                BorderBrush="#4a3c30" BorderThickness="1" CornerRadius="4">
+                            <TabControl Background="Transparent" BorderThickness="0" Padding="10">
+                                <TabControl.Resources>
+                                    <Style TargetType="TabItem">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Foreground" Value="#a89372" />
+                                        <Setter Property="Padding" Value="10,5" />
+                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                        <Setter Property="FontSize" Value="12" />
+                                        <Setter Property="Cursor" Value="Hand" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TabItem">
+                                                    <Border x:Name="b" Background="{TemplateBinding Background}"
+                                                            BorderBrush="#4a3c30" BorderThickness="0,0,0,2"
+                                                            Padding="{TemplateBinding Padding}" Margin="0,0,8,0">
+                                                        <ContentPresenter ContentSource="Header"
+                                                                          HorizontalAlignment="Center"
+                                                                          VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="b" Property="BorderBrush" Value="#d4af37" />
+                                                            <Setter Property="Foreground" Value="#d4af37" />
+                                                        </Trigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="#e3d8cc" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </TabControl.Resources>
 
-                            <TextBlock Text="Uniques pending capture (resolved by name, no filter ID yet)"
-                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4"
-                                       Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
-                            <ListBox ItemsSource="{Binding UniquePendingLines}" Height="80"
-                                     Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
+                                <TabItem Header="Uniques">
+                                    <StackPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Build uniques → purple"
+                                                   Style="{StaticResource SectionLabel}"
+                                                   Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
+                                        <ListBox ItemsSource="{Binding UniquePurpleLines}" MinHeight="120" MaxHeight="240"
+                                                 Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
 
-                            <TextBlock Text="Mythics — own category, left untouched (natural beam)"
-                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4"
-                                       Foreground="#ff6ec7"
-                                       Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
-                            <ListBox ItemsSource="{Binding MythicLines}" Height="80"
-                                     Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock Text="Pending capture (resolved by name, no filter ID yet)"
+                                                   Style="{StaticResource SectionLabel}" Margin="0,14,0,4"
+                                                   Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
+                                        <ListBox ItemsSource="{Binding UniquePendingLines}" MinHeight="60" MaxHeight="120"
+                                                 Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
 
-                            <TextBlock Text="What the colors mean (top rule wins)"
-                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
-                            <Border Background="#241d18" BorderBrush="#4a3c30" BorderThickness="1"
-                                    CornerRadius="4" Padding="12,10">
-                                <StackPanel>
-                                    <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — your build's uniques" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — rare/legendary with 3+ build affixes" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — rare/legendary with 2+ build affixes" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text=" / Cyan" /><Run Text="  — high item power (900 / 850)" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
-                                    <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex of Power upgrades" /></TextBlock>
-                                    <TextBlock Margin="0,1" Foreground="#9a8c80"><Run Text="◌ Hidden" /><Run Text="  — everything else (mythics still drop untouched)" /></TextBlock>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                                        <TextBlock Text="No uniques in this build."
+                                                   Foreground="#9a8c80" FontSize="11" FontStyle="Italic" Margin="0,10,0,0"
+                                                   Visibility="{Binding HasNoUniques, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+                                </TabItem>
+
+                                <TabItem Header="Mythics">
+                                    <StackPanel Margin="0,8,0,0">
+                                        <TextBlock Text="Mythics — own category, left untouched (natural beam)"
+                                                   Style="{StaticResource SectionLabel}"
+                                                   Foreground="#ff6ec7"
+                                                   Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
+                                        <ListBox ItemsSource="{Binding MythicLines}" MinHeight="120" MaxHeight="240"
+                                                 Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
+
+                                        <TextBlock Text="No mythics in this build."
+                                                   Foreground="#9a8c80" FontSize="11" FontStyle="Italic"
+                                                   Visibility="{Binding HasNoMythics, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+                                </TabItem>
+
+                                <TabItem Header="Legend">
+                                    <Border Background="#241d18" BorderBrush="#4a3c30" BorderThickness="1"
+                                            CornerRadius="4" Padding="12,10" Margin="0,8,0,0">
+                                        <StackPanel>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#d4af37" Margin="0,0,0,6"
+                                                       Text="What the colors mean (top rule wins)" />
+                                            <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — your build's uniques" /></TextBlock>
+                                            <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — rare/legendary with 3+ build affixes" /></TextBlock>
+                                            <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — rare/legendary with 2+ build affixes" /></TextBlock>
+                                            <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text=" / Cyan" /><Run Text="  — high item power (900 / 850)" /></TextBlock>
+                                            <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
+                                            <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
+                                            <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex of Power upgrades" /></TextBlock>
+                                            <TextBlock Margin="0,1" Foreground="#9a8c80"><Run Text="◌ Hidden" /><Run Text="  — everything else (mythics still drop untouched)" /></TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </TabItem>
+                            </TabControl>
+                        </Border>
                     </Grid>
 
                     <!-- Filter options — toggles recompile the code live -->

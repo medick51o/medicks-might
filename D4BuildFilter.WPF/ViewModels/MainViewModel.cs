@@ -412,6 +412,10 @@ public partial class MainViewModel : ObservableObject
     public bool HasPurple => UniquePurpleLines.Count > 0;
     public bool HasPending => UniquePendingLines.Count > 0;
     public bool HasMythics => MythicLines.Count > 0;
+    /// <summary>Inverse of HasPurple || HasPending. Drives the empty-state hint in the Uniques tab
+    /// (BooleanToVisibilityConverter doesn't support inversion or compound conditions).</summary>
+    public bool HasNoUniques => !HasPurple && !HasPending;
+    public bool HasNoMythics => !HasMythics;
 
     // ── Result: the compiled filter + the user's option toggles ──
     [ObservableProperty] private string importCode = "";
@@ -681,6 +685,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPurple));
         OnPropertyChanged(nameof(HasPending));
         OnPropertyChanged(nameof(HasMythics));
+        OnPropertyChanged(nameof(HasNoUniques));
+        OnPropertyChanged(nameof(HasNoMythics));
 
         ImportCode = output.ImportCode;
         FilterInfo = $"{output.RuleCount} rules · {output.Bytes} bytes · round-trip {(output.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
