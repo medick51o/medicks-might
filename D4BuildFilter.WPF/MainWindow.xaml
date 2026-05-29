@@ -525,9 +525,12 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- ── D4Builds (col 0) ── -->
-                        <Border Grid.Column="0" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
-                                CornerRadius="6" Padding="14,12" Margin="0,0,5,0">
+                        <!-- ── D4Builds (col 1, MIDDLE) ──
+                             Moved to middle column 2026-05-28: D4Builds publishes the shortest tier list
+                             of the three sources, so its empty bottom band in the middle column lines
+                             up with the warlord watermark and lets him surface through naturally. -->
+                        <Border Grid.Column="1" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="14,12" Margin="5,0,5,0">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
@@ -599,9 +602,9 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ── Maxroll (col 1) ── -->
-                        <Border Grid.Column="1" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
-                                CornerRadius="6" Padding="14,12" Margin="5,0,5,0">
+                        <!-- ── Maxroll (col 0, LEFT) ── moved from middle to left 2026-05-28 -->
+                        <Border Grid.Column="0" Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
+                                CornerRadius="6" Padding="14,12" Margin="0,0,5,0">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,6">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
