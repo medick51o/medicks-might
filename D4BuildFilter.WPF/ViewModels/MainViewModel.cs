@@ -725,7 +725,7 @@ public partial class MainViewModel : ObservableObject
         var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter", title);
 
         BuildSubtitle = $"{_resolved.Class}   •   {selected.Count} of {_resolved.Variants.Count} variants   •   "
-            + $"{compiled.Pool.Count} affixes tracked";
+            + $"{compiled.Pool.Count} filterable affixes in the pool";
 
         PoolLines.Clear();
         foreach (var name in compiled.PoolNames) PoolLines.Add(name);
