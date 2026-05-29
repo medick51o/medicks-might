@@ -320,9 +320,9 @@
                                  theme swap (so a Default→Discord switch keeps the translucency). -->
                             <Border Background="{DynamicResource Border.Subtle}" Height="1" Margin="0,10,0,8" />
                             <CheckBox IsChecked="{Binding TranslucentPanels}"
-                                      Content="Warlord bleed"
+                                      Content="Translucent panels"
                                       Foreground="{DynamicResource Text.Primary}"
-                                      ToolTip="Lets the hero artwork show through cards. Works in any theme." />
+                                      ToolTip="Adds transparency to the panel backgrounds." />
                             <TextBlock Text="Persists across launches"
                                        FontSize="10" Foreground="{DynamicResource Text.Muted}"
                                        Margin="0,10,0,0" />
