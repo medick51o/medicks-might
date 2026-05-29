@@ -1039,6 +1039,7 @@
                                         <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — 2+ build affixes" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text="  — IP 900/850" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
+                                        <TextBlock Margin="0,1"><Run Foreground="#dc0000" Text="● Red" /><Run Text="  — Ancestral Charms &amp; Seals" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex upgrades" /></TextBlock>
                                         <TextBlock Margin="0,1" Foreground="{DynamicResource Text.Muted}"><Run Text="◌ Hidden" /><Run Text="  — everything else" /></TextBlock>
