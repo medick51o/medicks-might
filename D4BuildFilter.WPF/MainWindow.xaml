@@ -1010,8 +1010,11 @@
 
                             <Border Height="1" Background="#3a312b" Margin="0,10,0,10" />
 
-                            <!-- ── Secondary tiers (each marker shows its in-game highlight color, grays when off) ── -->
-                            <UniformGrid Columns="2">
+                            <!-- ── Secondary tiers (each marker shows its in-game highlight color, grays when off) ──
+                                 beta.8.4: 2-col → 4-col. 8 toggles → 2 rows × 4 cols instead of 4 rows × 2.
+                                 Saves ~65px vertical. Each cell at 1600px window = ~290px — fits the longest
+                                 label "Item power 900/850 → Orange/Cyan" (chip slot + checkbox + label ≈ 210px). -->
+                            <UniformGrid Columns="4">
                                 <!-- Build uniques → purple -->
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -1107,8 +1110,13 @@
                     </Border>
 
                     <!-- Filter title (beta.8.3: inline row to save vertical — was stacked
-                         label+box+note, now a single row "Filter title:  [box]  X/24 chars"). -->
-                    <DockPanel LastChildFill="True" Margin="0,10,0,0">
+                         label+box+note, now a single row "Filter title:  [box]  X/24 chars").
+                         beta.8.4: bumped Margin top 10 → 40 + a 25-tall trailing gap below this row
+                         (via Margin on the next section). That 65px gutter is intentional dead space
+                         that lets the full-bleed warlord watermark surface — the design agent's read
+                         is that consolidating the secondary toggles to 4-col exposes the warlord's
+                         helm + shoulders through this band naturally, without staging. -->
+                    <DockPanel LastChildFill="True" Margin="0,40,0,25">
                         <TextBlock DockPanel.Dock="Left" Text="Filter title" VerticalAlignment="Center"
                                    Style="{StaticResource SectionLabel}" Margin="0,0,8,0"
                                    ToolTip="Becomes the filter's name in Diablo 4 when imported. D4 drops names longer than 24 chars." />
