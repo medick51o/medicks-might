@@ -1123,7 +1123,19 @@
                                               Foreground="{Binding OptItemPowerTiers, Converter={StaticResource ActiveText}}"
                                               ToolTip="Gearing aid — noisy at endgame (nearly every drop is max item power, so the highlight loses signal)." />
                                 </Grid>
-                                <!-- Charms &amp; Seals → green -->
+                                <!-- Charms &amp; Seals (Ancestral) → red — emitted ABOVE the green rule
+                                     so ancestral charms/seals win priority. Lets players turn off the
+                                     basic green noise while keeping rare ancestrals visible. -->
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Background="{Binding OptCharmsSealsAncestral, Converter={StaticResource ActiveColor}, ConverterParameter=#DC0000}" />
+                                    <CheckBox Grid.Column="1" Content="Charms &amp; Seals (Ancestral) → Red" IsChecked="{Binding OptCharmsSealsAncestral}"
+                                              Foreground="{Binding OptCharmsSealsAncestral, Converter={StaticResource ActiveText}}"
+                                              ToolTip="Highlight ancestral-tier charms and seals in red, above the basic green rule. Lets you turn off the basic-charm green flood without losing rare ancestrals." />
+                                </Grid>
+                                <!-- Charms &amp; Seals → green (basic; sits below the ancestral red rule) -->
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"

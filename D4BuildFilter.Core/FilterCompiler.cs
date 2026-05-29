@@ -60,6 +60,10 @@ public sealed record FilterOptions
     public bool GreaterAffixes { get; init; } = true;
     /// <summary>Charms &amp; Seals → green.</summary>
     public bool CharmsSeals { get; init; } = true;
+    /// <summary>Ancestral charms &amp; seals → red. Emitted ABOVE the green rule so ancestral
+    /// versions win priority — same Types(Charm, Seal) condition plus an Ancestral gate. Default
+    /// on so the rare ancestrals don't drown in the green noise; turn off if you don't want red.</summary>
+    public bool CharmsSealsAncestral { get; init; } = true;
     /// <summary>Codex-of-Power upgrades → white.</summary>
     public bool Codex { get; init; } = true;
     /// <summary>Hide everything else (Common/Magic/Rare/Legendary the rules above didn't match).
@@ -247,8 +251,15 @@ public static class FilterCompiler
         if (opts.GreaterAffixes)
             rules.Add(FilterBuilder.MakeRule("Greater Affixes", Visibility.Recolor,
                 Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));
-        // 6. Charms & Seals -> green: surface them by item type, any rarity, so the hide rule
-        //    doesn't eat them. Not tier-gated.
+        // 6a. Ancestral charms/seals -> red (FIRST so they win over the green catch-all below).
+        //     Same Types(Charm, Seal) condition + Ancestral gate. Default on — the rare ancestrals
+        //     get visually distinct treatment instead of drowning in the basic-charm green noise.
+        if (opts.CharmsSealsAncestral)
+            rules.Add(FilterBuilder.MakeRule("Charms & Seals (Anc)", Visibility.Recolor,
+                new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }), Conditions.Ancestral() }, FilterColors.Red));
+        // 6b. Charms & Seals -> green: surface them by item type, any rarity, so the hide rule
+        //     doesn't eat them. Not tier-gated. Sits below the ancestral rule so non-ancestrals
+        //     fall through to green; ancestrals already matched red above (first-match wins).
         if (opts.CharmsSeals)
             rules.Add(FilterBuilder.MakeRule("Charms & Seals", Visibility.Recolor,
                 new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }, FilterColors.Green));

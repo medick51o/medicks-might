@@ -526,6 +526,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool optItemPowerTiers;
     [ObservableProperty] private bool optGreaterAffixes = true;
     [ObservableProperty] private bool optCharmsSeals = true;
+    [ObservableProperty] private bool optCharmsSealsAncestral = true;
     [ObservableProperty] private bool optCodex = true;
     [ObservableProperty] private bool optHideRest = true;
 
@@ -542,6 +543,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnOptItemPowerTiersChanged(bool value) => Recompile();
     partial void OnOptGreaterAffixesChanged(bool value) => Recompile();
     partial void OnOptCharmsSealsChanged(bool value) => Recompile();
+    partial void OnOptCharmsSealsAncestralChanged(bool value) => Recompile();
     partial void OnOptCodexChanged(bool value) => Recompile();
     partial void OnOptHideRestChanged(bool value) => Recompile();
 
