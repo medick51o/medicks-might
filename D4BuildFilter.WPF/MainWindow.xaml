@@ -834,14 +834,23 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: affix pool. beta.8.2: fixed Height 240 so the column is exactly
-                             symmetric with the right tab column (which is fixed 264 to fit the
-                             Legend tab). "Not yet filterable" sits behind the ShowPendingAffixes
-                             toggle (off by default) — dev info, not user info. -->
+                        <!-- Left: affix pool. beta.8.3: 3-column grid layout instead of a tall single
+                             column — 27 affixes / 3 cols = 9 rows tall instead of 27. Pairs with the
+                             right Legend tab going 2-col below. Result: both boxes ~200px tall, the
+                             entire result page fits without scroll at 1080p so users don't scroll to
+                             reach the Copy button. -->
                         <StackPanel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top">
                             <TextBlock Text="Filterable affixes — these drive the gold / silver match"
                                        Style="{StaticResource SectionLabel}" />
-                            <ListBox ItemsSource="{Binding PoolLines}" Height="240" />
+                            <ListBox ItemsSource="{Binding PoolLines}" Height="200"
+                                     HorizontalContentAlignment="Stretch"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3" />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                            </ListBox>
 
                             <TextBlock Text="Not yet filterable (dev — affixes the mapper hasn't resolved)"
                                        Style="{StaticResource SectionLabel}" Margin="0,12,0,4">
@@ -871,7 +880,7 @@
                              = 264). Filter Options below snaps up since no asymmetric row stretch. -->
                         <Border Grid.Column="1" Margin="8,0,0,0" Background="#80231a14"
                                 BorderBrush="#4a3c30" BorderThickness="1" CornerRadius="4"
-                                VerticalAlignment="Top" Height="264">
+                                VerticalAlignment="Top" Height="224">
                             <TabControl Background="Transparent" BorderThickness="0" Padding="10">
                                 <TabControl.Resources>
                                     <Style TargetType="TabItem">
@@ -947,14 +956,17 @@
                                         <StackPanel>
                                             <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#d4af37" Margin="0,0,0,6"
                                                        Text="What the colors mean (top rule wins)" />
-                                            <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — your build's uniques" /></TextBlock>
-                                            <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — rare/legendary with 3+ build affixes" /></TextBlock>
-                                            <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — rare/legendary with 2+ build affixes" /></TextBlock>
-                                            <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text=" / Cyan" /><Run Text="  — high item power (900 / 850)" /></TextBlock>
-                                            <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
-                                            <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
-                                            <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex of Power upgrades" /></TextBlock>
-                                            <TextBlock Margin="0,1" Foreground="#9a8c80"><Run Text="◌ Hidden" /><Run Text="  — everything else (mythics still drop untouched)" /></TextBlock>
+                                            <!-- 2-col layout: 8 items / 2 = 4 rows, halves the vertical the legend used. -->
+                                            <UniformGrid Columns="2">
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — build uniques" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — 3+ build affixes" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — 2+ build affixes" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex upgrades" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text="  — IP 900/850" /></TextBlock>
+                                                <TextBlock Margin="0,2,8,2" Foreground="#9a8c80"><Run Text="◌ Hidden" /><Run Text="  — everything else" /></TextBlock>
+                                            </UniformGrid>
                                         </StackPanel>
                                     </Border>
                                 </TabItem>
