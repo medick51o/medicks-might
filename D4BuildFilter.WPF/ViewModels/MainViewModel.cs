@@ -110,6 +110,17 @@ public partial class MainViewModel : ObservableObject
     private readonly PasteStore _pasteStore = new();
     public ObservableCollection<FavoriteChipVM> Favorites { get; } = new();
     public bool HasFavorites => Favorites.Count > 0;
+    /// <summary>Inverse of <see cref="HasFavorites"/>, for XAML visibility (BooleanToVisibilityConverter
+    /// doesn't support inversion). Drives the "Star any build below…" empty-state hint on the landing.</summary>
+    public bool HasNoFavorites => Favorites.Count == 0;
+    /// <summary>"3 saved" / "1 saved" / empty string — shown right of the section header so users
+    /// see the running count without scanning the chip rail.</summary>
+    public string FavoritesCountLabel => Favorites.Count switch
+    {
+        0 => "",
+        1 => "1 saved",
+        var n => $"{n} saved",
+    };
 
     /// <summary>Provenance of the currently-loaded build — set when a build is loaded so the result
     /// page's ★ Favorite button knows what to persist. <see cref="_currentTierKind"/>/<see cref="_currentTier"/>
@@ -216,6 +227,8 @@ public partial class MainViewModel : ObservableObject
         foreach (var f in _favorites.All.OrderByDescending(f => f.DateAdded))
             Favorites.Add(new FavoriteChipVM(f, LoadBuildFromUrl, RemoveFavorite));
         OnPropertyChanged(nameof(HasFavorites));
+        OnPropertyChanged(nameof(HasNoFavorites));
+        OnPropertyChanged(nameof(FavoritesCountLabel));
 
         var favUrls = new HashSet<string>(_favorites.All.Select(f => f.Url),
             StringComparer.OrdinalIgnoreCase);

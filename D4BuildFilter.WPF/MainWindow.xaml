@@ -242,53 +242,43 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- ════════════════════════ HEADER (banner shown ONCE WORKING; landing has the art as
-             a full-bleed BACKGROUND behind translucent tier cards instead — see Grid.Row="1") ═══ -->
-
-        <!-- WORKING BANNER: slim 260px crop (UniformToFill) shown during loading + result. The same
-             art, but trimmed so the build screen has room to drive. -->
-        <Border Grid.Row="0" Height="260" CornerRadius="4" Margin="0,0,0,12"
-                ClipToBounds="True" Background="#17120f"
-                Visibility="{Binding IsNotInputState, Converter={StaticResource BoolToVis}}">
-            <Grid>
-                <Image Source="Assets/hero.jpg" Stretch="UniformToFill"
-                       RenderOptions.BitmapScalingMode="HighQuality" />
-                <Rectangle>
-                    <Rectangle.Fill>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                            <GradientStop Offset="0.00" Color="#00000000" />
-                            <GradientStop Offset="0.55" Color="#80000000" />
-                            <GradientStop Offset="1.00" Color="#FF17120F" />
-                        </LinearGradientBrush>
-                    </Rectangle.Fill>
-                </Rectangle>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="22,0,22,16">
-                    <Image Source="Assets/mk_logo.png" Width="56" Height="56" VerticalAlignment="Center"
-                           Margin="0,0,16,0" RenderOptions.BitmapScalingMode="HighQuality" />
-                    <StackPanel VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock FontSize="30" FontWeight="Bold">
-                                <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
-                            </TextBlock>
-                            <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="14,0,0,5"
-                                       FontSize="14" FontStyle="Italic" FontWeight="SemiBold" Foreground="#f5b86b" />
-                        </StackPanel>
-                        <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
-                                   FontSize="13" Foreground="#e3d8cc" Margin="0,3,0,0" />
-                    </StackPanel>
+        <!-- ════════════════════════ HEADER: slim 56px chrome, always visible across all states.
+             Replaced the old 260px working banner with a slim wordmark + state indicator so the
+             working screens (Result/Options/Loading) recover ~200px of vertical real estate. The
+             landing's centered brand callout still sits inside the input column for hero treatment;
+             this slim bar is the persistent chrome that anchors every state. ════════════════════ -->
+        <Border Grid.Row="0" Height="56" Background="#cc1d1612" Margin="0,0,0,10"
+                BorderBrush="#3a312b" BorderThickness="0,0,0,1" CornerRadius="0">
+            <DockPanel LastChildFill="True" Margin="18,0">
+                <!-- Right: current build name (only when in Result state) -->
+                <TextBlock DockPanel.Dock="Right" Text="{Binding BuildName}"
+                           VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold"
+                           Foreground="#d4af37" TextTrimming="CharacterEllipsis"
+                           Visibility="{Binding IsResultState, Converter={StaticResource BoolToVis}}" />
+                <!-- Left: MK monogram + wordmark + slogan -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="Assets/mk_logo.png" Width="36" Height="36"
+                           Margin="0,0,12,0" RenderOptions.BitmapScalingMode="HighQuality"
+                           VerticalAlignment="Center" />
+                    <TextBlock FontSize="18" FontWeight="Bold" VerticalAlignment="Center">
+                        <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
+                    </TextBlock>
+                    <TextBlock Text="Filters Made EZ" VerticalAlignment="Center" Margin="10,0,0,0"
+                               FontSize="12" FontStyle="Italic" FontWeight="SemiBold" Foreground="#a89372" />
                 </StackPanel>
-            </Grid>
+            </DockPanel>
         </Border>
 
         <!-- ════════════════════════ BODY ════════════════════════ -->
         <Grid Grid.Row="1">
 
-            <!-- LANDING BACKGROUND: the warlord art behind the input + tier-list content, dimmed so
-                 the gold/red UI reads cleanly. Tier cards on top are semi-transparent so the art
-                 bleeds through. Only on the input state — the build screen stays clean. -->
-            <Image Source="Assets/hero.jpg" Stretch="UniformToFill" Opacity="0.55"
+            <!-- FULL-PAGE WATERMARK: warlord art behind all content across every state, dimmed to
+                 22% so the gold/crimson UI reads cleanly on Result/Options too. IsHitTestVisible=
+                 False so it never intercepts clicks. Was landing-only at 55%; promoted in beta.8 to
+                 unify the brand presence across screens (per design review). -->
+            <Image Source="Assets/hero.jpg" Stretch="UniformToFill" Opacity="0.22"
                    RenderOptions.BitmapScalingMode="HighQuality"
-                   Visibility="{Binding IsInputState, Converter={StaticResource BoolToVis}}" />
+                   IsHitTestVisible="False" />
 
             <!-- ─── INPUT STATE ─── -->
             <ScrollViewer x:Name="InputScroll"
@@ -300,24 +290,17 @@
               <Grid>
                 <StackPanel x:Name="InputColumn" HorizontalAlignment="Left" Margin="0,4,0,16">
 
-                <!-- ══════ Landing brand header — MK + title + manifesto slogan ══════ -->
-                <StackPanel HorizontalAlignment="Center" Margin="0,20,0,8">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Image Source="Assets/mk_logo.png" Width="68" Height="68" VerticalAlignment="Center"
-                               Margin="0,0,18,0" RenderOptions.BitmapScalingMode="HighQuality" />
-                        <StackPanel VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontSize="34" FontWeight="Bold">
-                                    <Run Text="M" Foreground="#e22d24" /><Run Text="edic" Foreground="#d4af37" /><Run Text="K" Foreground="#e22d24" /><Run Text="'s Might" Foreground="#d4af37" />
-                                </TextBlock>
-                                <TextBlock Text="Filters Made EZ" VerticalAlignment="Bottom" Margin="14,0,0,6"
-                                           FontSize="15" FontStyle="Italic" FontWeight="SemiBold" Foreground="#f5b86b" />
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
+                <!-- ══════ Landing manifesto + tagline ══════
+                     The MK monogram + wordmark already sits in the slim 56px chrome above; this
+                     callout is just the value-prop tagline + manifesto, so the landing keeps its
+                     hero feeling without burning 220px of vertical on a redundant logo lockup. -->
+                <StackPanel HorizontalAlignment="Center" Margin="0,8,0,4">
+                    <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
+                               HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold"
+                               Foreground="#e8d8c4" />
                     <TextBlock Text="THE GOLD STANDARD IN LOOT FILTER STANDARDIZATION FOR DIABLO 4"
-                               HorizontalAlignment="Center" Margin="0,10,0,0"
-                               FontSize="13" FontWeight="Bold" Foreground="#d4af37"
+                               HorizontalAlignment="Center" Margin="0,4,0,0"
+                               FontSize="11" FontWeight="Bold" Foreground="#d4af37"
                                TextAlignment="Center" />
                 </StackPanel>
 
@@ -391,22 +374,31 @@
                                TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" />
                 </StackPanel>
 
-                <!-- ══════ Your Favorites ══════
+                <!-- ══════ Your Saved Builds ══════
                      Persisted starred builds from %LOCALAPPDATA%\MedicKsMight\favorites.json.
                      Each chip is a LIVE REFERENCE — clicking re-fetches the build from its source so
                      the player gets THIS month's meta, not what was current when they starred it.
-                     Provenance subtitle ("Maxroll · Endgame · S · added 3d ago") + tooltip with
-                     exact dates so a stale pick is recognizable at a glance.
-                     Section is hidden when there are no favorites yet (HasFavorites). -->
-                <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0"
-                            Visibility="{Binding HasFavorites, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="★ Your Favorites" FontSize="14" FontWeight="SemiBold"
-                               Foreground="#d4af37" HorizontalAlignment="Center" />
-                    <TextBlock Text="Live picks — clicking re-fetches the build from its source"
-                               FontSize="10" Foreground="#9a8c80" HorizontalAlignment="Center"
-                               Margin="0,2,0,8" />
+                     beta.8: header now shows count + empty state, so first-run users see the affordance
+                     instead of an invisible feature (was hidden behind HasFavorites). -->
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0">
+                    <DockPanel LastChildFill="True" Margin="0,0,0,6">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding FavoritesCountLabel}"
+                                   FontSize="11" Foreground="#9a8c80" VerticalAlignment="Center" />
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#d4af37"
+                                   VerticalAlignment="Center">
+                            <Run Text="★ Your saved builds" />
+                        </TextBlock>
+                    </DockPanel>
+                    <!-- Empty state — visible when zero favorites; replaces the (previously hidden) chip rail. -->
+                    <Border Background="#301D1611" BorderBrush="#3a312b" BorderThickness="1"
+                            CornerRadius="6" Padding="14,10"
+                            Visibility="{Binding HasNoFavorites, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Star any build below to pin it here. Picks are live — clicking re-fetches the latest version from its source."
+                                   FontSize="11" Foreground="#9a8c80" TextWrapping="Wrap" />
+                    </Border>
                     <Border Background="#401D1611" BorderBrush="#4a3c30" BorderThickness="1"
-                            CornerRadius="6" Padding="14,12">
+                            CornerRadius="6" Padding="14,12"
+                            Visibility="{Binding HasFavorites, Converter={StaticResource BoolToVis}}">
                         <ItemsControl ItemsSource="{Binding Favorites}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -990,18 +982,30 @@
                              MaxLength="24" Height="32" FontSize="13" FontFamily="Segoe UI" />
                     <TextBlock Text="{Binding TitleLengthNote}" FontSize="11" Margin="0,3,0,0" Foreground="#9a8c80" />
 
-                    <!-- Import code -->
+                    <!-- Import code (beta.8): single-line monospace + Copy button welded right.
+                         Was a 120px multiline wall of base64 dominating the page. The full code lives
+                         in the Expander below for the curious; the primary affordance is just Copy. -->
                     <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
-                    <TextBox Text="{Binding ImportCode, Mode=OneWay}"
-                             IsReadOnly="True" Height="120" TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto" FontSize="11" />
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Content="📋 Copy import code"
+                    <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Content="📋 Copy"
                                 Command="{Binding CopyCodeCommand}"
-                                Width="200" Height="40" />
-                        <TextBlock Text="{Binding FilterInfo}" Foreground="#b6a597"
-                                   VerticalAlignment="Center" Margin="16,0,0,0" FontSize="12" FontFamily="Consolas" />
-                    </StackPanel>
+                                Width="110" Height="38" Margin="8,0,0,0" />
+                        <TextBox Text="{Binding ImportCode, Mode=OneWay}"
+                                 IsReadOnly="True" Height="38" FontSize="11"
+                                 TextWrapping="NoWrap"
+                                 HorizontalScrollBarVisibility="Hidden"
+                                 VerticalContentAlignment="Center" />
+                    </DockPanel>
+                    <DockPanel LastChildFill="True" Margin="0,6,0,0">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding FilterInfo}" Foreground="#b6a597"
+                                   VerticalAlignment="Center" FontSize="12" FontFamily="Consolas" />
+                        <Expander Header="▾ Show full code" Foreground="#9a8c80" FontSize="11"
+                                  HorizontalAlignment="Left">
+                            <TextBox Text="{Binding ImportCode, Mode=OneWay}"
+                                     IsReadOnly="True" MinHeight="100" MaxHeight="200" TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto" FontSize="11" Margin="0,6,0,0" />
+                        </Expander>
+                    </DockPanel>
 
                     <!-- Rule-cap warning: D4 rejects filters over 25 rules on import -->
                     <Border Background="#3a1414" BorderBrush="#d0524a" BorderThickness="1"
@@ -1020,20 +1024,20 @@
                         </TextBlock>
                     </Border>
 
-                    <!-- How to import -->
-                    <Border Background="#231a14" BorderBrush="#5a4a3e" BorderThickness="1"
-                            CornerRadius="4" Padding="14,12" Margin="0,16,0,0">
-                        <StackPanel>
-                            <TextBlock Text="How to import into Diablo 4" FontWeight="Bold" FontSize="13"
-                                       Foreground="#d4af37" Margin="0,0,0,8" />
+                    <!-- How to import (beta.8: collapsed into an Expander since this is read-once
+                         reference content — recovers ~140px of viewport from the read-only banner). -->
+                    <Expander Header="? How to import into Diablo 4" Foreground="#d4af37" FontSize="12"
+                              FontWeight="SemiBold" Margin="0,14,0,0">
+                        <Border Background="#231a14" BorderBrush="#5a4a3e" BorderThickness="1"
+                                CornerRadius="4" Padding="14,12" Margin="0,6,0,0">
                             <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#cdbfb2" LineHeight="20">
                                 <Run Text="1. In Diablo 4, open the Character menu and go to the Loot Filter tab." /><LineBreak />
                                 <Run Text="2. Click Import / Export, then Import." /><LineBreak />
                                 <Run Text="3. Paste the code above and confirm. The filter applies immediately." /><LineBreak />
                                 <Run Text="Filters sync across platforms through your Battle.net account (25-rule cap; rules apply top-down, first match wins)." />
                             </TextBlock>
-                        </StackPanel>
-                    </Border>
+                        </Border>
+                    </Expander>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
                         <Button Content="← Compile another build"
