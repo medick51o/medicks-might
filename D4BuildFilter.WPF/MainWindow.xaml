@@ -1030,9 +1030,10 @@
                                         <Border Width="13" Height="14" CornerRadius="3" Margin="2,0,0,0"
                                                 Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#00FFFF}" />
                                     </StackPanel>
-                                    <CheckBox Grid.Column="1" Content="Item power 900/850 → Orange/Cyan (gearing aid — noisy at endgame)"
-                                              IsChecked="{Binding OptItemPowerTiers}" TextElement.FontSize="12"
-                                              Foreground="{Binding OptItemPowerTiers, Converter={StaticResource ActiveText}}" />
+                                    <CheckBox Grid.Column="1" Content="Item power 900/850 → Orange/Cyan"
+                                              IsChecked="{Binding OptItemPowerTiers}"
+                                              Foreground="{Binding OptItemPowerTiers, Converter={StaticResource ActiveText}}"
+                                              ToolTip="Gearing aid — noisy at endgame (nearly every drop is max item power, so the highlight loses signal)." />
                                 </Grid>
                                 <!-- Charms &amp; Seals → green -->
                                 <Grid Margin="0,3,14,3">
@@ -1052,21 +1053,28 @@
                                     <CheckBox Grid.Column="1" Content="Codex upgrades → White" IsChecked="{Binding OptCodex}"
                                               Foreground="{Binding OptCodex, Converter={StaticResource ActiveText}}" />
                                 </Grid>
-                                <!-- Hide everything else → hollow marker (no highlight color) -->
+                                <!-- ── Behavioral toggles: no color emitted, so each gets the same hollow
+                                     outline chip (#6b625a). Visually consistent — "this row has no chip
+                                     color of its own; it changes filter behavior" reads the same for all 3. -->
+                                <!-- Hide everything else -->
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
                                             HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="Transparent" BorderBrush="#6b625a" BorderThickness="1" />
                                     <CheckBox Grid.Column="1" Content="Hide everything else" IsChecked="{Binding OptHideRest}"
-                                              Foreground="{Binding OptHideRest, Converter={StaticResource ActiveText}}" />
+                                              Foreground="{Binding OptHideRest, Converter={StaticResource ActiveText}}"
+                                              ToolTip="Hide commons/magics/rares/legendaries the rules above didn't match. Uniques and mythics always drop." />
                                 </Grid>
-                                <!-- Strict endgame → behavioral, no chip -->
+                                <!-- Strict endgame (Ancestral only) -->
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <!-- empty chip slot for alignment -->
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Background="Transparent" BorderBrush="#6b625a" BorderThickness="1" />
                                     <CheckBox Grid.Column="1" Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}"
-                                              Foreground="{Binding StrictEndgame, Converter={StaticResource ActiveText}}" />
+                                              Foreground="{Binding StrictEndgame, Converter={StaticResource ActiveText}}"
+                                              ToolTip="Gate the build-affix tiers to Ancestral (top item-power) gear — great for T6+, hides everything else while leveling." />
                                 </Grid>
                                 <!-- Show pending affixes (dev): off by default; surfaces the "Not yet
                                      filterable" diagnostic on the result page. Medick's mark — most users
@@ -1075,7 +1083,7 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
                                             HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="Transparent" BorderBrush="#5a4a3e" BorderThickness="1" />
+                                            Background="Transparent" BorderBrush="#6b625a" BorderThickness="1" />
                                     <CheckBox Grid.Column="1" Content="Show pending affixes (dev)" IsChecked="{Binding ShowPendingAffixes}"
                                               Foreground="{Binding ShowPendingAffixes, Converter={StaticResource ActiveText}}"
                                               ToolTip="Surface the 'Not yet filterable' list on the result page — affixes the mapper couldn't resolve to a filter ID. Off by default since it's dev diagnostic info, not user info." />
