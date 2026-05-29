@@ -842,7 +842,7 @@
                         <StackPanel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top">
                             <TextBlock Text="Filterable affixes — these drive the gold / silver match"
                                        Style="{StaticResource SectionLabel}" />
-                            <ListBox ItemsSource="{Binding PoolLines}" Height="200"
+                            <ListBox ItemsSource="{Binding PoolLines}" Height="172"
                                      HorizontalContentAlignment="Stretch"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ListBox.ItemsPanel>
@@ -880,7 +880,7 @@
                              = 264). Filter Options below snaps up since no asymmetric row stretch. -->
                         <Border Grid.Column="1" Margin="8,0,0,0" Background="#80231a14"
                                 BorderBrush="#4a3c30" BorderThickness="1" CornerRadius="4"
-                                VerticalAlignment="Top" Height="224">
+                                VerticalAlignment="Top" Height="196">
                             <TabControl Background="Transparent" BorderThickness="0" Padding="10">
                                 <TabControl.Resources>
                                     <Style TargetType="TabItem">
@@ -975,15 +975,15 @@
                     </Grid>
 
                     <!-- Filter options — toggles recompile the code live -->
-                    <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
+                    <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,10,0,4"
+                               ToolTip="Each toggle is a rule the filter emits. Gold = 3+ build affixes per slot, Silver = 2+ (one roll away). Mythics are never touched." />
                     <Border Background="#231a14" BorderBrush="#4a3c30" BorderThickness="1"
-                            CornerRadius="4" Padding="14,12">
+                            CornerRadius="4" Padding="14,10">
                         <StackPanel>
                             <!-- ── Primary matching choice: per-slot mode + the two color-coded build-affix tiers ── -->
                             <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}"
-                                      Foreground="{Binding OptPerSlot, Converter={StaticResource ActiveText}}" Margin="0,0,0,8" />
-                            <TextBlock Text="Build-affix tiers — how many of a slot's affixes an item needs, and the color it gets:"
-                                       FontSize="11" Foreground="#9a8c80" Margin="0,0,0,6" />
+                                      Foreground="{Binding OptPerSlot, Converter={StaticResource ActiveText}}" Margin="0,0,0,6"
+                                      ToolTip="ON: each gear slot gets its own rule, scoped to that item type (a boots rule only matches boots). OFF: matches by affix COUNT across ALL slots, which can show false 'keeps' (e.g. boots that rolled chest/ring stats)." />
                             <!-- beta.8.1: every row uses a 2-col Grid (32px chip slot | checkbox+label)
                                  so every checkbox locks to x=32 regardless of how many chips a row
                                  carries. Fixes the Item Power row pushing right because it has 2 chips. -->
@@ -1100,20 +1100,23 @@
                                               ToolTip="Surface the 'Not yet filterable' list on the result page — affixes the mapper couldn't resolve to a filter ID. Off by default since it's dev diagnostic info, not user info." />
                                 </Grid>
                             </UniformGrid>
-
-                            <TextBlock TextWrapping="Wrap" Foreground="#9a8c80" FontSize="11" Margin="0,10,0,0">
-                                <Run Text="Each gear slot gets its own rule, scoped to that item type — so a boots rule only ever matches boots. Gold = great keepers, Silver = one roll away (it sits below Gold, so a 3+ item still goes Gold). Mythics are never touched." /><LineBreak />
-                                <Run Text="⚠ Turning OFF " /><Run FontStyle="Italic" Text="Precise per-slot rules" /><Run Text=" falls back to matching by affix COUNT across ALL slots, which can show false 'keeps' (e.g. boots that rolled chest/ring stats)." />
-                            </TextBlock>
+                            <!-- beta.8.3: the 2-paragraph explainer here moved into tooltips on
+                                 "Filter options" header + "Precise per-slot rules" checkbox above —
+                                 frees ~50px of vertical so the Copy button fits above the fold. -->
                         </StackPanel>
                     </Border>
 
-                    <!-- Filter title — becomes the filter's name in-game when imported -->
-                    <TextBlock Text="Filter title (your branding — the name Diablo 4 shows on import)"
-                               Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
-                    <TextBox Text="{Binding FilterTitle, UpdateSourceTrigger=PropertyChanged}"
-                             MaxLength="24" Height="32" FontSize="13" FontFamily="Segoe UI" />
-                    <TextBlock Text="{Binding TitleLengthNote}" FontSize="11" Margin="0,3,0,0" Foreground="#9a8c80" />
+                    <!-- Filter title (beta.8.3: inline row to save vertical — was stacked
+                         label+box+note, now a single row "Filter title:  [box]  X/24 chars"). -->
+                    <DockPanel LastChildFill="True" Margin="0,10,0,0">
+                        <TextBlock DockPanel.Dock="Left" Text="Filter title" VerticalAlignment="Center"
+                                   Style="{StaticResource SectionLabel}" Margin="0,0,8,0"
+                                   ToolTip="Becomes the filter's name in Diablo 4 when imported. D4 drops names longer than 24 chars." />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding TitleLengthNote}"
+                                   FontSize="11" Foreground="#9a8c80" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <TextBox Text="{Binding FilterTitle, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="24" Height="30" FontSize="13" FontFamily="Segoe UI" />
+                    </DockPanel>
 
                     <!-- Import code (beta.8): single-line monospace + Copy button welded right.
                          Was a 120px multiline wall of base64 dominating the page. The full code lives
