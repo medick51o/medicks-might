@@ -745,7 +745,12 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNoMythics));
 
         ImportCode = output.ImportCode;
-        FilterInfo = $"{output.RuleCount} rules · {output.Bytes} bytes · round-trip {(output.RoundTripOk ? "OK ✓" : "FAILED ✗")}";
+        // User-facing metadata: just the rule count (D4 caps at 25 — CapWarning below kicks in
+        // over the limit). Byte count + round-trip status were dev-validation noise per Medick.
+        // If round-trip ever fails, surface it loud — but the encoder's been stable for sessions.
+        FilterInfo = output.RoundTripOk
+            ? $"{output.RuleCount} / {MaxRules} rules"
+            : $"⚠ {output.RuleCount} rules — encoder round-trip FAILED, do not import";
         CapWarning = output.RuleCount > MaxRules
             ? $"⚠ {output.RuleCount} rules — Diablo 4 rejects filters over {MaxRules} on import. "
               + "Turn off a tier (Gold 3+ or Silver 2+), or deselect some variants, to get back under the limit."
