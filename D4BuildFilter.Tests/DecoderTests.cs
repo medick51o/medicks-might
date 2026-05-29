@@ -43,4 +43,27 @@ public class DecoderTests
         Assert.Equal(900u, (uint)cond.MaskOrCount!.Value);   // field4 = min
         Assert.Equal(900u, (uint)cond.Max!.Value);            // field5 = max
     }
+
+    [Fact] // Type-9 talisman set bonus: encoder + decoder round-trip
+    public void TalismanSetBonus_round_trips_through_filter()
+    {
+        var ids = new[] { 0x22fb15u, 0x230326u };  // Barb Set 01, Druid Set 01
+        var rule = FilterBuilder.MakeRule("My Talismans", Visibility.Recolor,
+            new[] { Conditions.RarityMask(Rarity.Talisman), Conditions.TalismanSetBonus(ids) },
+            FilterColors.Blue);
+        var bytes = FilterBuilder.MakeFilter("TalismanTest", new[] { rule });
+        var f = FilterDecoder.Decode(bytes);
+        var cond = f.Rules.Single().Conditions.Single(c => c.Type == 9);
+        Assert.Equal(ids, cond.Ids.ToArray());
+    }
+
+    [Fact] // Decoder labels type-9 ids with friendly SetItemBonusDatabase names
+    public void Describe_emits_friendly_talisman_set_names()
+    {
+        var rule = FilterBuilder.MakeRule("Barb Talisman", Visibility.Recolor,
+            new[] { Conditions.TalismanSetBonus(new[] { 0x22fb15u }) });
+        var bytes = FilterBuilder.MakeFilter("X", new[] { rule });
+        var desc = FilterDecoder.Describe(FilterDecoder.Decode(bytes));
+        Assert.Contains("Talisman: Barbarian Set 01", desc);
+    }
 }

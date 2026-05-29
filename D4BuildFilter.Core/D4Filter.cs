@@ -94,6 +94,17 @@ public static class Conditions
         return Wire.Efb(4, inner);
     }
 
+    /// <summary>Match a specific Talisman / set-bonus by snoID (the type-9 "Talisman Set Bonus"
+    /// condition). Same shape as <see cref="Uniques"/>: type id + repeated fixed32 snoIDs from
+    /// <see cref="SetItemBonusDatabase"/>. The "blue talisman" rule we decoded in Raxx's filter
+    /// uses this form.</summary>
+    public static byte[] TalismanSetBonus(IEnumerable<uint> ids)
+    {
+        var inner = Wire.Efv(1, 9);
+        foreach (var id in ids) inner = Wire.Concat(inner, Wire.Ef32(2, id));
+        return Wire.Efb(4, inner);
+    }
+
     /// <summary>Match items carrying at least <paramref name="minCount"/> of the given affix IDs.</summary>
     public static byte[] Affixes(IEnumerable<uint> ids, int minCount)
     {

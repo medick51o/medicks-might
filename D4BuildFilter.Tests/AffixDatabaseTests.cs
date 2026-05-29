@@ -38,4 +38,17 @@ public class AffixDatabaseTests
         Assert.True(AffixDatabase.Affixes.Count >= 70, $"affixes={AffixDatabase.Affixes.Count}");
         Assert.True(AffixDatabase.Skills.Count >= 200, $"skills={AffixDatabase.Skills.Count}");
     }
+
+    [Fact] // 3.0.3 ingest: the one new "to X Skills" label that has a real filter ID
+    public void Mobility_Skills_present_in_skills_table() =>
+        Assert.Equal(0x20f6f8u, AffixDatabase.Skills["Mobility Skills"]);
+
+    [Theory] // engine-unfilterable labels — d4 displays them on items but the filter has no ID
+    [InlineData("bonus kill experience")]
+    [InlineData("martial skills")]
+    [InlineData("combat skills")]
+    [InlineData("ultimate skills")]
+    [InlineData("sigil skills")]
+    public void Unfilterable_labels_recognized(string label) =>
+        Assert.Contains(label, AffixDatabase.UnfilterableLabels);
 }

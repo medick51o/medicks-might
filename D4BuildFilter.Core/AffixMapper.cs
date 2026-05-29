@@ -15,6 +15,11 @@ public enum MapStrategy
     Keyword,
     /// <summary>Resolved to a skill-rank affix.</summary>
     Skill,
+    /// <summary>Recognized as an affix the D4 filter engine cannot gate on (e.g. "to Martial
+    /// Skills", "Bonus Kill Experience"). Not the same as Dropped: Dropped = "we have no mapping,
+    /// might be DB gap"; Unfilterable = "confirmed engine has no filter ID for this label."
+    /// FilterCompiler suppresses these from the UI's "not yet filterable" report.</summary>
+    Unfilterable,
     /// <summary>No coarse equivalent — not filterable in-game (or missing from the DB).</summary>
     Dropped,
 }
@@ -161,7 +166,13 @@ public static class AffixMapper
             if (key.Contains(kw))
                 return new AffixMapping { Source = source, CoarseName = name, CoarseId = id, Strategy = MapStrategy.Keyword, Note = $"matched \"{kw}\"" };
 
-        // 5. No coarse equivalent
+        // 5. Engine-unfilterable: d4 displays the label but the filter has no ID for it
+        //    (verified by cross-checking d4lf's OCR labels against d4data's filter Affix folder).
+        //    Suppressed from the UI's "not yet filterable" list because there's nothing to do.
+        if (AffixDatabase.UnfilterableLabels.Contains(key))
+            return new AffixMapping { Source = source, Strategy = MapStrategy.Unfilterable, Note = "D4 filter engine has no ID for this affix label" };
+
+        // 6. No coarse equivalent
         return new AffixMapping { Source = source, Strategy = MapStrategy.Dropped, Note = "no coarse category (not filterable, or missing from AffixDatabase)" };
     }
 

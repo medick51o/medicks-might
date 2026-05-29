@@ -57,4 +57,25 @@ public class AffixMapperTests
         Assert.False(m.Mapped);
         Assert.Equal(MapStrategy.Dropped, m.Strategy);
     }
+
+    [Theory] // 3.0.3: labels d4 shows on items but the engine has no filter ID for —
+    [InlineData("to Martial Skills")]    // Medick's UI screenshot pending entry
+    [InlineData("Bonus Kill Experience")] // also from the screenshot
+    [InlineData("to Ultimate Skills")]
+    [InlineData("to Combat Skills")]
+    public void Engine_unfilterable_label_returns_Unfilterable_not_Dropped(string label)
+    {
+        var m = AffixMapper.Map(label);
+        Assert.False(m.Mapped);
+        Assert.Equal(MapStrategy.Unfilterable, m.Strategy);
+    }
+
+    [Fact] // 3.0.3 ingest: the one genuinely new skill-category that we added
+    public void Mobility_Skills_resolves_via_skill_tier()
+    {
+        var m = AffixMapper.Map("to Mobility Skills");
+        Assert.True(m.Mapped);
+        Assert.Equal(MapStrategy.Skill, m.Strategy);
+        Assert.Equal(0x20f6f8u, m.CoarseId);
+    }
 }

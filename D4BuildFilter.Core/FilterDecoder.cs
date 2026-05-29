@@ -104,7 +104,7 @@ public static class FilterDecoder
     {
         [0] = "ItemPowerRange", [1] = "Rarity", [2] = "ItemProperties", [3] = "Codex",
         [4] = "GreaterAffix", [5] = "ItemTypes", [6] = "Affixes(required)",
-        [7] = "Affixes(optional)", [8] = "Unique(byId)", [9] = "CharmSet(byId)",
+        [7] = "Affixes(optional)", [8] = "Unique(byId)", [9] = "TalismanSetBonus(byId)",
     };
 
     public static string Describe(DecodedFilter f)
@@ -122,7 +122,15 @@ public static class FilterDecoder
             {
                 string tn = TypeNames.GetValueOrDefault(c.Type, $"UNKNOWN({c.Type})");
                 var parts = new List<string> { $"type={c.Type}({tn})" };
-                if (c.Ids.Count > 0) parts.Add($"ids=[{string.Join(",", c.Ids.Select(id => "0x" + id.ToString("x6")))}]");
+                if (c.Ids.Count > 0)
+                {
+                    // For type 9 (TalismanSetBonus), resolve IDs to human-readable names via
+                    // SetItemBonusDatabase so the decoder spells out e.g. "Talisman: Barbarian
+                    // Set 01" instead of just 0x22fb15. Same idea as our type-8 unique decode.
+                    parts.Add(c.Type == 9
+                        ? $"sets=[{string.Join(",", c.Ids.Select(id => SetItemBonusDatabase.TryGetName(id, out var n) ? $"{n} (0x{id:x6})" : $"0x{id:x6}"))}]"
+                        : $"ids=[{string.Join(",", c.Ids.Select(id => "0x" + id.ToString("x6")))}]");
+                }
                 if (c.GreaterAffixOf.Count > 0) parts.Add($"gaRequired=[{string.Join(",", c.GreaterAffixOf.Select(id => "0x" + id.ToString("x6")))}]");
                 if (c.Type == 0)
                 {

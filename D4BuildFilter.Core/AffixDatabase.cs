@@ -2,7 +2,7 @@ namespace D4BuildFilter.Core;
 
 /// <summary>
 /// Verified Diablo 4 loot-filter affix and skill-rank IDs (Season 13 / Lord of Hatred),
-/// cross-validated against DiabloTools/d4data CoreTOC (build 3.0.2.71886, via ThunderEagle/D4LootBench, MIT)
+/// cross-validated against DiabloTools/d4data CoreTOC (build 3.0.3.72031, via ThunderEagle/D4LootBench, MIT)
 /// AND real in-game filter exports. Five affix IDs in the 0x1beab4-0x1bead4 cluster were corrected 2026-05-26
 /// after the in-game "crit filter" proved our earlier values were mislabeled (e.g. Crit Chance = 0x1beace).
 ///
@@ -137,6 +137,9 @@ public static class AffixDatabase
         ["Bludgeoning Skills"] = 0x280b83,
         ["Dual Wield Skills"] = 0x280b85,
         ["Slashing Skills"] = 0x280b87,
+        // Generic Mobility Skills category (d4data 3.0.3, 2026-05-28 ingest). The only
+        // "to X Skills" label in d4lf that has a real filterable snoID and wasn't already covered.
+        ["Mobility Skills"] = 0x20f6f8,
         ["Earthspike"] = 0x1cc052,
         ["Claw"] = 0x1cc054,
         ["Storm Strike"] = 0x1cc056,
@@ -350,4 +353,30 @@ public static class AffixDatabase
     public static uint Affix(string name) => Affixes[name];
 
     public static uint Skill(string name) => Skills[name];
+
+    /// <summary>Affix labels D4 displays on items but the in-game loot-filter engine
+    /// cannot gate on (no type-6 affix ID exists for them). Empirically derived 2026-05-28
+    /// by cross-checking d4lf's enUS/affixes.json (OCR labels the game actually renders) against
+    /// the d4data Affix folder (every filter-addressable affix). Labels here exist in d4lf but
+    /// NOT in d4data — they're display-only flavor text, not filterable categories.
+    ///
+    /// Comparison is on the AffixMapper-normalized form (lowercase, "to " prefix stripped, etc).
+    /// AffixMapper short-circuits to <c>MapStrategy.Unfilterable</c> when a build affix matches one
+    /// of these, and FilterCompiler suppresses them from the UI's "Not yet filterable" report so
+    /// users don't chase a coverage bug that doesn't exist.</summary>
+    public static readonly IReadOnlySet<string> UnfilterableLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "bonus kill experience",
+        "bonus kill experience at level",
+        "martial skills",
+        "combat skills",
+        "ultimate skills",
+        "soul shard skills",
+        "archfiend skills",
+        "sigil skills",
+        "shade skills",
+        "human skills",
+        "versatile skills",
+        "ancient skills",
+    };
 }

@@ -113,7 +113,10 @@ public static class FilterCompiler
                         names[m.CoarseId.Value] = m.CoarseName!;
                     }
                 }
-                else dropped.Add(src.Trim());
+                // Engine-unfilterable affixes are intentionally NOT reported as dropped — D4's
+                // filter has no ID for them, so there's nothing the user can do, nothing for us
+                // to fix in the DB, and nothing they should chase as a coverage gap.
+                else if (m.Strategy != MapStrategy.Unfilterable) dropped.Add(src.Trim());
             }
 
         // Build-specific unique targeting (type-8): map each equipped gear unique's name to its
