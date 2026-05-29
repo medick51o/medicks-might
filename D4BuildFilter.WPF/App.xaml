@@ -4,5 +4,12 @@
              xmlns:local="clr-namespace:D4BuildFilter.WPF"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Default theme. ThemeManager swaps this for Discord/Dark at runtime
+                     based on %LOCALAPPDATA%\MedicKsMight\theme.json. -->
+                <ResourceDictionary Source="/Themes/Default.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

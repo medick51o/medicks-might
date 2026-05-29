@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -5,6 +6,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using D4BuildFilter.Core;
+using D4BuildFilter.WPF.Services;
 
 namespace D4BuildFilter.WPF.ViewModels;
 
@@ -121,6 +123,16 @@ public partial class MainViewModel : ObservableObject
         1 => "1 saved",
         var n => $"{n} saved",
     };
+
+    // ── Theme picker ──
+    /// <summary>The 3 themes the gear-icon popup exposes. ThemeManager keeps this list authoritative.</summary>
+    public IReadOnlyList<string> AvailableThemes => ThemeManager.Available;
+
+    [ObservableProperty] private string selectedTheme = ThemeManager.Current;
+    partial void OnSelectedThemeChanged(string value) => ThemeManager.Apply(value);
+
+    [ObservableProperty] private bool isThemePickerOpen;
+    [RelayCommand] private void ToggleThemePicker() => IsThemePickerOpen = !IsThemePickerOpen;
 
     /// <summary>Provenance of the currently-loaded build — set when a build is loaded so the result
     /// page's ★ Favorite button knows what to persist. <see cref="_currentTierKind"/>/<see cref="_currentTier"/>

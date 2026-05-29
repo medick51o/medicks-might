@@ -1,0 +1,65 @@
+<!--
+    Default theme — current dark-warm + crimson + gold palette.
+    The token system formalizes 20 keys that the MainWindow XAML reads via {DynamicResource ...}.
+    See `ThemeManager.cs` for the swap mechanism; see Themes/Discord.xaml + Themes/Dark.xaml
+    for alternates. The ThemeId sentinel lets ThemeManager.Apply find and unmerge this dict
+    when swapping themes at runtime.
+
+    Tokens that DO NOT live here (intentionally): the 8 in-game rule-color swatches (Gold,
+    Silver, Purple, Blue, Orange, Cyan, Green, White), class-chip class colors, mythics pink,
+    source-pill brand colors, tier badges. Those are game-truth / external-brand literals that
+    bypass the theme system and stay hardcoded.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <sys:String x:Key="ThemeId">Default</sys:String>
+
+    <!-- ── Surfaces ── -->
+    <SolidColorBrush x:Key="Surface.Page"        Color="#17120f" />
+    <SolidColorBrush x:Key="Surface.Header"      Color="#cc1d1612" />  <!-- 80% alpha baked -->
+    <SolidColorBrush x:Key="Surface.Card"        Color="#401d1611" />  <!-- 25% alpha baked -->
+    <SolidColorBrush x:Key="Surface.Card.Hover"  Color="#803c2f25" />  <!-- 50% alpha baked -->
+    <SolidColorBrush x:Key="Surface.Inset"       Color="#241d18" />
+    <SolidColorBrush x:Key="Surface.Footer"      Color="#231a14" />
+    <SolidColorBrush x:Key="Surface.Panel"       Color="#231a14" />     <!-- variant border bg, options panel bg -->
+
+    <!-- ── Text ── -->
+    <SolidColorBrush x:Key="Text.Primary"        Color="#e3d8cc" />
+    <SolidColorBrush x:Key="Text.Secondary"      Color="#b6a597" />
+    <SolidColorBrush x:Key="Text.Muted"          Color="#9a8c80" />
+    <SolidColorBrush x:Key="Text.OnAccent"       Color="#1a1410" />
+
+    <!-- ── Accents ── -->
+    <SolidColorBrush x:Key="Accent.Primary"      Color="#d4af37" />  <!-- gold: section labels, brand wordmark -->
+    <SolidColorBrush x:Key="Accent.Secondary"    Color="#e22d24" />  <!-- crimson logo flash (M/K runs) -->
+    <SolidColorBrush x:Key="Accent.Link"         Color="#9fb6d8" />
+    <SolidColorBrush x:Key="Accent.Link.Hover"   Color="#cfe0f5" />
+
+    <!-- ── Actions (buttons) ── -->
+    <SolidColorBrush x:Key="Action.Primary.Bg"        Color="#9c2b25" />  <!-- D4 crimson -->
+    <SolidColorBrush x:Key="Action.Primary.Bg.Hover"  Color="#b8352e" />
+    <SolidColorBrush x:Key="Action.Primary.Fg"        Color="#ffffff" />
+    <SolidColorBrush x:Key="Action.Secondary.Bg"      Color="#3a312b" />
+    <SolidColorBrush x:Key="Action.Secondary.Bg.Hover" Color="#4a3f37" />
+    <SolidColorBrush x:Key="Action.Disabled.Bg"       Color="#3a3330" />
+    <SolidColorBrush x:Key="Action.Disabled.Fg"       Color="#8a7e74" />
+
+    <!-- ── Borders ── -->
+    <SolidColorBrush x:Key="Border.Subtle"       Color="#3a312b" />
+    <SolidColorBrush x:Key="Border.Strong"       Color="#4a3c30" />
+    <SolidColorBrush x:Key="Border.Input"        Color="#5a4a3e" />
+
+    <!-- ── Status bands ── -->
+    <SolidColorBrush x:Key="Danger.Bg"           Color="#3a1414" />
+    <SolidColorBrush x:Key="Danger.Border"       Color="#d0524a" />
+    <SolidColorBrush x:Key="Danger.Fg"           Color="#f3b0ab" />
+    <SolidColorBrush x:Key="Caution.Bg"          Color="#3a2a14" />
+    <SolidColorBrush x:Key="Caution.Border"      Color="#e0915a" />
+    <SolidColorBrush x:Key="Caution.Fg"          Color="#f0c89a" />
+
+    <!-- ── Watermark (full-bleed warlord image opacity) ── -->
+    <sys:Double x:Key="Watermark.Opacity">0.22</sys:Double>
+
+</ResourceDictionary>

@@ -1,0 +1,64 @@
+<!--
+    Dark theme — true #000 OLED-friendly, cyan-500 accent (distinct from Default's gold and
+    Discord's blurple), rose-400 secondary M/K flash (cyberpunk pairing, also reads coherent
+    with the existing mythics pink #ff6ec7 without being mistaken for it). Watermark at 14%
+    so the warlord's lava colors register against pure black without dominating.
+
+    WCAG: Text.Primary #f5f5f5 = 19.2:1 against #000 (AAA). Accent.Primary cyan = 11.7:1 (AAA).
+    Text.Muted #737373 = 4.7:1 (AA normal text).
+
+    See Themes/Default.xaml for the formal token list.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <sys:String x:Key="ThemeId">Dark</sys:String>
+
+    <!-- ── Surfaces ── true black + minimal lifts -->
+    <SolidColorBrush x:Key="Surface.Page"        Color="#000000" />
+    <SolidColorBrush x:Key="Surface.Header"      Color="#e60a0a0a" />  <!-- @ 90% -->
+    <SolidColorBrush x:Key="Surface.Card"        Color="#b30f0f0f" />  <!-- @ 70% for watermark bleed -->
+    <SolidColorBrush x:Key="Surface.Card.Hover"  Color="#cc1f1f1f" />
+    <SolidColorBrush x:Key="Surface.Inset"       Color="#0a0a0a" />
+    <SolidColorBrush x:Key="Surface.Footer"      Color="#080808" />
+    <SolidColorBrush x:Key="Surface.Panel"       Color="#0f0f0f" />
+
+    <!-- ── Text ── neutral scale, all AA+ over #000 -->
+    <SolidColorBrush x:Key="Text.Primary"        Color="#f5f5f5" />  <!-- 19.2:1 -->
+    <SolidColorBrush x:Key="Text.Secondary"      Color="#a3a3a3" />  <!-- 8.6:1 -->
+    <SolidColorBrush x:Key="Text.Muted"          Color="#737373" />  <!-- 4.7:1 -->
+    <SolidColorBrush x:Key="Text.OnAccent"       Color="#000000" />
+
+    <!-- ── Accents ── cyan + rose (cyberpunk pairing) -->
+    <SolidColorBrush x:Key="Accent.Primary"      Color="#22d3ee" />  <!-- cyan-500: section labels, brand wordmark -->
+    <SolidColorBrush x:Key="Accent.Secondary"    Color="#f472b6" />  <!-- rose-400: M/K flash -->
+    <SolidColorBrush x:Key="Accent.Link"         Color="#67e8f9" />  <!-- cyan-300 -->
+    <SolidColorBrush x:Key="Accent.Link.Hover"   Color="#a5f3fc" />
+
+    <!-- ── Actions ── deeper cyan so the button reads as a surface, not just colored text -->
+    <SolidColorBrush x:Key="Action.Primary.Bg"        Color="#0891b2" />  <!-- cyan-600 -->
+    <SolidColorBrush x:Key="Action.Primary.Bg.Hover"  Color="#06b6d4" />  <!-- cyan-500-ish -->
+    <SolidColorBrush x:Key="Action.Primary.Fg"        Color="#000000" />  <!-- black on cyan -->
+    <SolidColorBrush x:Key="Action.Secondary.Bg"      Color="#171717" />  <!-- neutral-900 -->
+    <SolidColorBrush x:Key="Action.Secondary.Bg.Hover" Color="#262626" />  <!-- neutral-800 -->
+    <SolidColorBrush x:Key="Action.Disabled.Bg"       Color="#0a0a0a" />
+    <SolidColorBrush x:Key="Action.Disabled.Fg"       Color="#525252" />
+
+    <!-- ── Borders ── hair-thin on OLED, visible on card surfaces -->
+    <SolidColorBrush x:Key="Border.Subtle"       Color="#1f1f1f" />
+    <SolidColorBrush x:Key="Border.Strong"       Color="#404040" />
+    <SolidColorBrush x:Key="Border.Input"        Color="#404040" />
+
+    <!-- ── Status bands ── standard ramps over near-black -->
+    <SolidColorBrush x:Key="Danger.Bg"           Color="#1a0606" />
+    <SolidColorBrush x:Key="Danger.Border"       Color="#ef4444" />
+    <SolidColorBrush x:Key="Danger.Fg"           Color="#fca5a5" />
+    <SolidColorBrush x:Key="Caution.Bg"          Color="#1a1306" />
+    <SolidColorBrush x:Key="Caution.Border"      Color="#f59e0b" />
+    <SolidColorBrush x:Key="Caution.Fg"          Color="#fde68a" />
+
+    <!-- ── Watermark ── 14% — between Default's 22% and Discord's 10% — lava in the art is the only warmth -->
+    <sys:Double x:Key="Watermark.Opacity">0.14</sys:Double>
+
+</ResourceDictionary>

@@ -1,0 +1,62 @@
+<!--
+    Discord theme — borrows Discord's iconic Old Dark palette so the app reads as familiar
+    to anyone who's opened Discord. Three-grey surface stack (#202225 → #2f3136 → #36393f),
+    blurple primary action, fuchsia secondary flash for the M/K monogram (Nitro vibe),
+    Discord's literal blue link color, lowered watermark opacity (10%) because the flat
+    cool greys don't absorb the warlord's warm lava tones as well as Default's warm-dark.
+
+    See Themes/Default.xaml for the formal token list.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <sys:String x:Key="ThemeId">Discord</sys:String>
+
+    <!-- ── Surfaces ── Discord's stack: tertiary (gutter) → secondary (channel list) → primary (chat) -->
+    <SolidColorBrush x:Key="Surface.Page"        Color="#202225" />  <!-- tertiary, deepest -->
+    <SolidColorBrush x:Key="Surface.Header"      Color="#e62f3136" />  <!-- secondary @ 90% -->
+    <SolidColorBrush x:Key="Surface.Card"        Color="#e036393f" />  <!-- primary @ 88% (alpha for watermark bleed) -->
+    <SolidColorBrush x:Key="Surface.Card.Hover"  Color="#cc3a3d44" />  <!-- Discord's hover-row tint -->
+    <SolidColorBrush x:Key="Surface.Inset"       Color="#202225" />   <!-- inputs in Discord are darker than chat -->
+    <SolidColorBrush x:Key="Surface.Footer"      Color="#292b2f" />
+    <SolidColorBrush x:Key="Surface.Panel"       Color="#2f3136" />
+
+    <!-- ── Text ── Discord's published #header-1 / #header-2 / #muted -->
+    <SolidColorBrush x:Key="Text.Primary"        Color="#dcddde" />
+    <SolidColorBrush x:Key="Text.Secondary"      Color="#b9bbbe" />
+    <SolidColorBrush x:Key="Text.Muted"          Color="#72767d" />
+    <SolidColorBrush x:Key="Text.OnAccent"       Color="#ffffff" />
+
+    <!-- ── Accents ── Blurple + Nitro fuchsia + Discord-blue link -->
+    <SolidColorBrush x:Key="Accent.Primary"      Color="#5865f2" />  <!-- BLURPLE -->
+    <SolidColorBrush x:Key="Accent.Secondary"    Color="#eb459e" />  <!-- Nitro fuchsia (M/K flash) -->
+    <SolidColorBrush x:Key="Accent.Link"         Color="#00aff4" />  <!-- Discord's actual link color -->
+    <SolidColorBrush x:Key="Accent.Link.Hover"   Color="#5dc6f5" />
+
+    <!-- ── Actions ── Blurple primary, Discord gray secondary -->
+    <SolidColorBrush x:Key="Action.Primary.Bg"        Color="#5865f2" />
+    <SolidColorBrush x:Key="Action.Primary.Bg.Hover"  Color="#4752c4" />
+    <SolidColorBrush x:Key="Action.Primary.Fg"        Color="#ffffff" />
+    <SolidColorBrush x:Key="Action.Secondary.Bg"      Color="#4f545c" />
+    <SolidColorBrush x:Key="Action.Secondary.Bg.Hover" Color="#5d6269" />
+    <SolidColorBrush x:Key="Action.Disabled.Bg"       Color="#3a3d44" />
+    <SolidColorBrush x:Key="Action.Disabled.Fg"       Color="#72767d" />
+
+    <!-- ── Borders ── Discord uses page-color as "borders" (gutter showing through) -->
+    <SolidColorBrush x:Key="Border.Subtle"       Color="#202225" />
+    <SolidColorBrush x:Key="Border.Strong"       Color="#40444b" />
+    <SolidColorBrush x:Key="Border.Input"        Color="#40444b" />
+
+    <!-- ── Status bands ── Discord's literal red/yellow -->
+    <SolidColorBrush x:Key="Danger.Bg"           Color="#3a1414" />
+    <SolidColorBrush x:Key="Danger.Border"       Color="#ed4245" />  <!-- Discord red -->
+    <SolidColorBrush x:Key="Danger.Fg"           Color="#f5a3a5" />
+    <SolidColorBrush x:Key="Caution.Bg"          Color="#3a2a14" />
+    <SolidColorBrush x:Key="Caution.Border"      Color="#faa61a" />  <!-- Discord warning -->
+    <SolidColorBrush x:Key="Caution.Fg"          Color="#fbd38d" />
+
+    <!-- ── Watermark ── 10% to keep brand present without breaking the Discord feel -->
+    <sys:Double x:Key="Watermark.Opacity">0.10</sys:Double>
+
+</ResourceDictionary>

@@ -60,6 +60,19 @@ public sealed class FavoriteStarBrushConverter : IValueConverter
         => Binding.DoNothing;
 }
 
+/// <summary>Two-way string equality for radio-button groups bound to a string source-of-truth.
+/// Convert: value.ToString() == parameter.ToString() → bool. ConvertBack: if bool is true, returns
+/// parameter (selects this radio's value); if false, Binding.DoNothing (leaves source unchanged
+/// when a different radio in the group takes ownership). Used by the theme picker popup.</summary>
+public sealed class StringEqualsConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => string.Equals(value?.ToString(), parameter?.ToString(), StringComparison.Ordinal);
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? parameter : Binding.DoNothing;
+}
+
 /// <summary>Brand color for the result-page source-origin pill. Maps the build's source string
 /// (set in MainViewModel.SetCurrentSource) to a muted brand-adjacent brush. Stays quiet on the
 /// page (not a callout) but distinguishable at a glance — Maxroll teal, D4Builds rust,
@@ -99,14 +112,21 @@ public sealed class AllTrueToVisibilityConverter : IMultiValueConverter
 }
 
 /// <summary>Options-panel label text: bright when the toggle is ON, grayed when OFF — so the
-/// whole row (swatch + words) visibly goes inactive together.</summary>
+/// whole row (swatch + words) visibly goes inactive together. Reads Text.Primary / Text.Muted
+/// from the active theme dictionary at convert time so theme swaps re-paint these labels too
+/// (previously cached static brushes at init time → frozen on the first-loaded theme).</summary>
 public sealed class ActiveTextConverter : IValueConverter
 {
-    private static readonly SolidColorBrush On = new(Color.FromRgb(0xe3, 0xd8, 0xcc));
-    private static readonly SolidColorBrush Off = new(Color.FromRgb(0x6b, 0x62, 0x5a));
+    // Fallback brushes used if Application.Current isn't ready (designer / unit-test contexts).
+    private static readonly SolidColorBrush FallbackOn  = new(Color.FromRgb(0xe3, 0xd8, 0xcc));
+    private static readonly SolidColorBrush FallbackOff = new(Color.FromRgb(0x6b, 0x62, 0x5a));
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value is true ? On : Off;
+    {
+        var key = value is true ? "Text.Primary" : "Text.Muted";
+        return Application.Current?.TryFindResource(key) as Brush
+               ?? (value is true ? FallbackOn : FallbackOff);
+    }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => Binding.DoNothing;
