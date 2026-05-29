@@ -131,6 +131,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string selectedTheme = ThemeManager.Current;
     partial void OnSelectedThemeChanged(string value) => ThemeManager.Apply(value);
 
+    /// <summary>Universal "drop panel opacity so the warlord shows through" toggle. Theme-
+    /// agnostic — applies on top of whichever palette is active. Persists with theme choice.</summary>
+    [ObservableProperty] private bool translucentPanels = ThemeManager.TranslucentPanels;
+    partial void OnTranslucentPanelsChanged(bool value) => ThemeManager.SetTranslucentPanels(value);
+
     [ObservableProperty] private bool isThemePickerOpen;
     [RelayCommand] private void ToggleThemePicker() => IsThemePickerOpen = !IsThemePickerOpen;
 

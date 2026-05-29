@@ -314,6 +314,15 @@
                                              VerticalContentAlignment="Center"
                                              IsChecked="{Binding SelectedTheme, Converter={StaticResource StrEq}, ConverterParameter=Dark}" />
                             </StackPanel>
+                            <!-- Theme-agnostic toggle: when ON, ThemeManager forces Surface.Panel
+                                 + Surface.Inset opacity to ~65% so the warlord watermark surfaces
+                                 through cards/inputs. Applies on top of any theme; re-applies on
+                                 theme swap (so a Default→Discord switch keeps the translucency). -->
+                            <Border Background="{DynamicResource Border.Subtle}" Height="1" Margin="0,10,0,8" />
+                            <CheckBox IsChecked="{Binding TranslucentPanels}"
+                                      Content="Translucent panels (warlord bleeds through)"
+                                      Foreground="{DynamicResource Text.Primary}"
+                                      ToolTip="Drops panel opacity ~35% so the hero artwork shows through cards and inputs. Works with any theme." />
                             <TextBlock Text="Persists across launches"
                                        FontSize="10" Foreground="{DynamicResource Text.Muted}"
                                        Margin="0,10,0,0" />
