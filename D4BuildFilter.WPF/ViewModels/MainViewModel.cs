@@ -138,11 +138,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool translucentPanels = ThemeManager.TranslucentPanels;
     partial void OnTranslucentPanelsChanged(bool value) => ThemeManager.SetTranslucentPanels(value);
 
-    /// <summary>Mirrors <see cref="ThemeManager.IsTranslucentSupported"/>. Re-notified after
-    /// every theme swap via the TranslucentSupportChanged event so the picker checkbox
-    /// dims/un-dims live when you switch themes with the popup open.</summary>
-    public bool IsTranslucentSupported => ThemeManager.IsTranslucentSupported;
-    public bool IsTranslucentUnsupported => !IsTranslucentSupported;
+    /// <summary>Mirrors <see cref="ThemeManager.IsTranslucentDiscouraged"/> — drives the
+    /// "may look unusual" warning text in the picker. Re-notified after every theme swap via
+    /// the TranslucentSupportChanged event so the warning appears/disappears live.</summary>
+    public bool IsTranslucentDiscouraged => ThemeManager.IsTranslucentDiscouraged;
 
     [ObservableProperty] private bool isThemePickerOpen;
     [RelayCommand] private void ToggleThemePicker() => IsThemePickerOpen = !IsThemePickerOpen;
@@ -296,15 +295,13 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        // Refresh the picker's TranslucentPanels + IsTranslucentSupported bindings whenever the
-        // theme swaps (Discord turns the feature off; Default/Dark turn it on). Without this the
-        // checkbox stays in whatever state it was when the popup was first rendered.
+        // Re-notify TranslucentPanels after a theme swap so the picker checkbox reflects
+        // whatever ThemeManager.TranslucentPanels is now (no longer gets force-cleared since
+        // Medick wanted Discord to also be clickable).
         ThemeManager.TranslucentSupportChanged += () =>
         {
-            OnPropertyChanged(nameof(TranslucentPanels));
             SetProperty(ref translucentPanels, ThemeManager.TranslucentPanels, nameof(TranslucentPanels));
-            OnPropertyChanged(nameof(IsTranslucentSupported));
-            OnPropertyChanged(nameof(IsTranslucentUnsupported));
+            OnPropertyChanged(nameof(IsTranslucentDiscouraged));
         };
 
         // Class filter strip: 8 D4 classes, all enabled by default. Unchecking a class hides every

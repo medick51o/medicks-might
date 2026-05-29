@@ -55,12 +55,16 @@ public static class ThemeManager
     /// almost opaque even when the toggle is ON — Medick's flag).</summary>
     private static readonly string[] TranslucentBrushKeys = { "Surface.Panel", "Surface.Inset", "Surface.Card" };
 
-    /// <summary>Whether the current theme supports the translucent toggle. Discord opts out:
-    /// warm warlord bleeding through Discord's cool flat greys breaks the brand-borrow value
-    /// proposition. Picker checkbox binds to this for IsEnabled.</summary>
-    public static bool IsTranslucentSupported => Current != "Discord";
+    /// <summary>True if the current theme is one the design agent flagged as poor combo with
+    /// translucent on (Discord — warm warlord through cool flat greys). The picker SHOWS a
+    /// soft warning but no longer hard-blocks; per Medick's "let me click it" feedback.</summary>
+    public static bool IsTranslucentDiscouraged => Current == "Discord";
 
-    /// <summary>Fires when IsTranslucentSupported flips (after a theme swap) so the VM can
+    /// <summary>Kept for binding compatibility — now always true (toggle is always clickable).
+    /// Discouragement signal moved to IsTranslucentDiscouraged for the warning text.</summary>
+    public static bool IsTranslucentSupported => true;
+
+    /// <summary>Fires when IsTranslucentDiscouraged flips (after a theme swap) so the VM can
     /// re-notify the bound picker checkbox.</summary>
     public static event Action? TranslucentSupportChanged;
 
@@ -80,10 +84,9 @@ public static class ThemeManager
 
     /// <summary>Toggle the universal translucent-panels effect on/off. Re-applies immediately
     /// to all DynamicResource consumers of Surface.Panel / Surface.Inset / Surface.Card.
-    /// Persists. Early-returns if the current theme doesn't support the feature (Discord).</summary>
+    /// Persists.</summary>
     public static void SetTranslucentPanels(bool on)
     {
-        if (on && !IsTranslucentSupported) return; // Discord opts out — silently no-op
         if (TranslucentPanels == on) return;
         TranslucentPanels = on;
         ApplyTranslucencyOverride();
@@ -170,9 +173,6 @@ public static class ThemeManager
         Current = themeId;
         // Theme swap brings fresh originals — wipe the cache and re-apply translucency on top.
         ResetTranslucencyCache();
-        // If user had translucent ON but is swapping to an unsupported theme (Discord), force it off.
-        if (TranslucentPanels && !IsTranslucentSupported)
-            TranslucentPanels = false;
         ApplyTranslucencyOverride();
         if (persist) TrySave(themeId, TranslucentPanels);
         ThemeChanged?.Invoke(themeId);

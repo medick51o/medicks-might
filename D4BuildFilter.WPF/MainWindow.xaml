@@ -320,15 +320,9 @@
                                  theme swap (so a Default→Discord switch keeps the translucency). -->
                             <Border Background="{DynamicResource Border.Subtle}" Height="1" Margin="0,10,0,8" />
                             <CheckBox IsChecked="{Binding TranslucentPanels}"
-                                      IsEnabled="{Binding IsTranslucentSupported}"
                                       Content="Warlord bleed"
                                       Foreground="{DynamicResource Text.Primary}"
-                                      ToolTip="Lets the hero artwork show through cards. Not available in Discord theme (cool greys + warm warlord clashes)." />
-                            <!-- Helper text when the toggle is unavailable (Discord active) -->
-                            <TextBlock Text="Not available in Discord theme"
-                                       FontSize="10" Foreground="{DynamicResource Text.Muted}"
-                                       FontStyle="Italic" Margin="20,2,0,0"
-                                       Visibility="{Binding IsTranslucentUnsupported, Converter={StaticResource BoolToVis}}" />
+                                      ToolTip="Lets the hero artwork show through cards. Works in any theme." />
                             <TextBlock Text="Persists across launches"
                                        FontSize="10" Foreground="{DynamicResource Text.Muted}"
                                        Margin="0,10,0,0" />
