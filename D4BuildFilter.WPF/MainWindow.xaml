@@ -834,14 +834,14 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: affix pool. beta.8.1: cap MaxHeight to 300 so the column is
-                             symmetric with the right tab column above. "Not yet filterable" moved
-                             behind the ShowPendingAffixes toggle (off by default) — it's dev-facing
-                             info (which affixes our mapper couldn't resolve), not user info. -->
+                        <!-- Left: affix pool. beta.8.2: fixed Height 240 so the column is exactly
+                             symmetric with the right tab column (which is fixed 264 to fit the
+                             Legend tab). "Not yet filterable" sits behind the ShowPendingAffixes
+                             toggle (off by default) — dev info, not user info. -->
                         <StackPanel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top">
                             <TextBlock Text="Filterable affixes — these drive the gold / silver match"
                                        Style="{StaticResource SectionLabel}" />
-                            <ListBox ItemsSource="{Binding PoolLines}" MaxHeight="300" />
+                            <ListBox ItemsSource="{Binding PoolLines}" Height="240" />
 
                             <TextBlock Text="Not yet filterable (dev — affixes the mapper hasn't resolved)"
                                        Style="{StaticResource SectionLabel}" Margin="0,12,0,4">
@@ -865,14 +865,13 @@
                         <!-- Right: uniques / mythics / pending / color legend in a TabControl.
                              beta.8 polish: was 4 stacked sections + 4 fixed-height ListBoxes burning
                              ~360px of vertical with lots of dead air when only 1-2 categories were
-                             populated. Tabs let each view use the full panel height + only one is
-                             ever rendered, so the right column matches the left column's density.
-                             beta.8.1: capped MaxHeight=300 so it sizes to the Legend (the tallest
-                             static tab) instead of stretching to match the left column — most builds
-                             have ≤3 uniques and ≤2 mythics, so the auto-size was wasted real estate. -->
+                             populated.
+                             beta.8.2: fixed Height 264 (instead of MaxHeight=300) so the right box is
+                             exactly the same height as the left column (240 ListBox + 24 header label
+                             = 264). Filter Options below snaps up since no asymmetric row stretch. -->
                         <Border Grid.Column="1" Margin="8,0,0,0" Background="#80231a14"
                                 BorderBrush="#4a3c30" BorderThickness="1" CornerRadius="4"
-                                VerticalAlignment="Top" MaxHeight="300">
+                                VerticalAlignment="Top" Height="264">
                             <TabControl Background="Transparent" BorderThickness="0" Padding="10">
                                 <TabControl.Resources>
                                     <Style TargetType="TabItem">
