@@ -1008,10 +1008,11 @@
 
                             <!-- Uniques panel (middle = visual anchor) -->
                             <StackPanel Grid.Column="1" Margin="4,0,4,0">
-                                <TextBlock Text="Build uniques → purple"
-                                           Style="{StaticResource SectionLabel}"
+                                <TextBlock Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap"
-                                           Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
+                                           Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}">
+                                    <Run Text="Build uniques → " /><Run Text="purple" Foreground="#a020f0" />
+                                </TextBlock>
                                 <ListBox ItemsSource="{Binding UniquePurpleLines}" MinHeight="80" MaxHeight="160"
                                          Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
                                 <TextBlock Text="Build uniques — name match only"
