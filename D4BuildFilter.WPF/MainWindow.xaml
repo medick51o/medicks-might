@@ -907,7 +907,7 @@
                     <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
                             CornerRadius="4" Padding="12,8" Margin="0,0,0,12">
                         <StackPanel>
-                            <TextBlock Text="Variants included (uncheck to narrow the filter — recompiles live)"
+                            <TextBlock Text="Variants — uncheck to drop one from the filter"
                                        Style="{StaticResource SectionLabel}" Margin="0,0,0,6" />
                             <ItemsControl ItemsSource="{Binding Variants}">
                                 <ItemsControl.ItemsPanel>
@@ -938,7 +938,7 @@
                              entire result page fits without scroll at 1080p so users don't scroll to
                              reach the Copy button. -->
                         <StackPanel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top">
-                            <TextBlock Text="Filterable affixes — these drive the gold / silver match"
+                            <TextBlock Text="Build affixes — what we're watching for"
                                        Style="{StaticResource SectionLabel}" />
                             <ListBox ItemsSource="{Binding PoolLines}" Height="172"
                                      HorizontalContentAlignment="Stretch"
@@ -1021,7 +1021,7 @@
                                         <ListBox ItemsSource="{Binding UniquePurpleLines}" MinHeight="120" MaxHeight="240"
                                                  Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}" />
 
-                                        <TextBlock Text="Pending capture (resolved by name, no filter ID yet)"
+                                        <TextBlock Text="Build uniques — name match only"
                                                    Style="{StaticResource SectionLabel}" Margin="0,14,0,4"
                                                    Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}" />
                                         <ListBox ItemsSource="{Binding UniquePendingLines}" MinHeight="60" MaxHeight="120"
@@ -1035,7 +1035,7 @@
 
                                 <TabItem Header="Mythics">
                                     <StackPanel Margin="0,8,0,0">
-                                        <TextBlock Text="Mythics — own category, left untouched (natural beam)"
+                                        <TextBlock Text="Mythics — always drop, untouched by this filter"
                                                    Style="{StaticResource SectionLabel}"
                                                    Foreground="#ff6ec7"
                                                    Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
@@ -1074,7 +1074,7 @@
 
                     <!-- Filter options — toggles recompile the code live -->
                     <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,10,0,4"
-                               ToolTip="Each toggle is a rule the filter emits. Gold = 3+ build affixes per slot, Silver = 2+ (one roll away). Mythics are never touched." />
+                               ToolTip="Toggle what the filter highlights. Mythics always drop." />
                     <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
                             CornerRadius="4" Padding="14,10">
                         <StackPanel>
@@ -1188,18 +1188,11 @@
                                               Foreground="{Binding StrictEndgame, Converter={StaticResource ActiveText}}"
                                               ToolTip="Gate the build-affix tiers to Ancestral (top item-power) gear — great for T6+, hides everything else while leveling." />
                                 </Grid>
-                                <!-- Show pending affixes (dev): off by default; surfaces the "Not yet
-                                     filterable" diagnostic on the result page. Medick's mark — most users
-                                     don't care which affixes haven't been mapped yet, that's our job. -->
-                                <Grid Margin="0,3,14,3">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
-                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="Transparent" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" />
-                                    <CheckBox Grid.Column="1" Content="Show pending affixes (dev)" IsChecked="{Binding ShowPendingAffixes}"
-                                              Foreground="{Binding ShowPendingAffixes, Converter={StaticResource ActiveText}}"
-                                              ToolTip="Surface the 'Not yet filterable' list on the result page — affixes the mapper couldn't resolve to a filter ID. Off by default since it's dev diagnostic info, not user info." />
-                                </Grid>
+                                <!-- The "Show pending affixes (dev)" toggle that used to live here was
+                                     removed for ship — internal dev diagnostic, not user info. The
+                                     ShowPendingAffixes VM property is preserved so a future power-user
+                                     surface (settings.json flag / hidden chord) can rebind it. -->
+
                             </UniformGrid>
                             <!-- beta.8.3: the 2-paragraph explainer here moved into tooltips on
                                  "Filter options" header + "Precise per-slot rules" checkbox above —
@@ -1261,8 +1254,8 @@
                     <Border Background="{DynamicResource Caution.Bg}" BorderBrush="{DynamicResource Caution.Border}" BorderThickness="1"
                             CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
                         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Caution.Fg}">
-                            <Run FontWeight="Bold" Text="⚠ Changed an option (e.g. toggled a Gold/Silver tier)?" />
-                            <Run Text=" The code above is rebuilt every time you toggle something — but a filter you've ALREADY pasted into Diablo 4 won't update on its own. To apply a change: copy the new code and import it again, or check/uncheck the matching rules directly in the in-game filter." />
+                            <Run FontWeight="Bold" Text="⚠ Changed an option?" />
+                            <Run Text=" Copy the new code and re-import to apply changes — in-game filters don't auto-update." />
                         </TextBlock>
                     </Border>
 
@@ -1302,7 +1295,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" FontSize="11" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center">
-                    <Run Text="D4 Build Filter (preview)" />
+                    <Run Text="MedicK's Might · BETA" />
                     <Run Text="  •  " />
                     <Run Text="{Binding StatusMessage, Mode=OneWay}" Foreground="#8c8" />
                 </TextBlock>

@@ -501,7 +501,7 @@ public partial class MainViewModel : ObservableObject
     public const int MaxTitleLength = 24;
     private bool _suppressRecompile;
     public string TitleLengthNote =>
-        $"{FilterTitle.Length} / {MaxTitleLength} characters — D4 drops the name above this on import";
+        $"{FilterTitle.Length} / {MaxTitleLength}";
 
     private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n].TrimEnd();
 
@@ -725,7 +725,7 @@ public partial class MainViewModel : ObservableObject
         var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter", title);
 
         BuildSubtitle = $"{_resolved.Class}   •   {selected.Count} of {_resolved.Variants.Count} variants   •   "
-            + $"{compiled.Pool.Count} filterable affixes in the pool";
+            + $"{compiled.Pool.Count} affixes tracked";
 
         PoolLines.Clear();
         foreach (var name in compiled.PoolNames) PoolLines.Add(name);
@@ -750,7 +750,7 @@ public partial class MainViewModel : ObservableObject
         // If round-trip ever fails, surface it loud — but the encoder's been stable for sessions.
         FilterInfo = output.RoundTripOk
             ? $"{output.RuleCount} / {MaxRules} rules"
-            : $"⚠ {output.RuleCount} rules — encoder round-trip FAILED, do not import";
+            : $"⚠ {output.RuleCount} rules — filter is corrupted, regenerate before importing";
         CapWarning = output.RuleCount > MaxRules
             ? $"⚠ {output.RuleCount} rules — Diablo 4 rejects filters over {MaxRules} on import. "
               + "Turn off a tier (Gold 3+ or Silver 2+), or deselect some variants, to get back under the limit."
@@ -766,8 +766,7 @@ public partial class MainViewModel : ObservableObject
         try
         {
             Clipboard.SetText(ImportCode);
-            StatusMessage = $"Copied the import code ({ImportCode.Length} chars) — "
-                + "paste it into D4's Loot Filter → Import.";
+            StatusMessage = "Copied — paste into D4's Loot Filter → Import.";
         }
         catch (Exception ex)
         {
