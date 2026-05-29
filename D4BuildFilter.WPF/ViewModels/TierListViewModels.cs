@@ -51,7 +51,8 @@ public sealed partial class TierBuildVM : ObservableObject
     public static Brush ClassBrush(string cls) => ColorFor(cls);
 
     /// <summary>Recognizable per-class color, tuned for legibility on the dimmed warlord background.
-    /// Roughly tracks each class's in-game identity.</summary>
+    /// Roughly tracks each class's in-game identity. Paladin is the one exception — pink, lifted
+    /// from WoW's iconic Paladin color (Medick's call).</summary>
     private static Brush ColorFor(string cls) => cls switch
     {
         "Barbarian"   => Frozen(0xE0, 0x84, 0x5A),   // rust / amber
@@ -60,7 +61,7 @@ public sealed partial class TierBuildVM : ObservableObject
         "Rogue"       => Frozen(0xE4, 0xCC, 0x4A),   // bright yellow
         "Sorcerer"    => Frozen(0x7C, 0xB6, 0xE6),   // ice blue
         "Spiritborn"  => Frozen(0x6F, 0xC9, 0xB8),   // teal / jade
-        "Paladin"     => Frozen(0xF2, 0xD4, 0x6A),   // bright gold
+        "Paladin"     => Frozen(0xF4, 0x8C, 0xBA),   // WoW Paladin pink (Medick's pick)
         "Warlock"     => Frozen(0xB5, 0x8A, 0xE6),   // purple
         _             => Frozen(0xE3, 0xD8, 0xCC),   // cream fallback
     };
