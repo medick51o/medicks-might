@@ -5,37 +5,40 @@
 <h1 align="center">Medic<span style="color:#e22d24">K</span>'s Might</h1>
 <p align="center"><i>Filters Made EZ</i></p>
 
+<p align="center"><b>THE GOLD STANDARD IN LOOT FILTER STANDARDIZATION FOR DIABLO 4</b></p>
+
 <p align="center">Turn any Diablo 4 build into a ready-to-import in-game loot filter — in seconds.</p>
 
 ---
 
 ## Download
 
-Grab the latest **MedicK's Might.zip** from [Releases](../../releases/latest), unzip the folder (keep all the files together), then double-click **MedicK's Might.exe**.
+Grab the latest **MedicKs-Might-BETA.zip** from [Releases](../../releases/latest), unzip the folder (keep all the files together), then double-click **MedicK's Might.exe**.
 
 > 🛡 Windows may say *"Windows protected your PC"* (unknown publisher) — click **More info → Run anyway**. It's unsigned, not unsafe.
 
-**No install needed** — the .NET runtime is bundled in.
+**No install needed** — the .NET runtime is bundled in (single-file self-contained).
 
 ## What it does
 
-- **Browse this season's top builds** — live S/A/B tier lists from Maxroll and D4Builds right on the landing page.
-- **One click loads a build** — guide pages auto-resolve to their planner; D4Builds URLs load directly.
-- **Or paste a build URL** — Maxroll, Mobalytics, or D4Builds.
-- **Or paste any affix list** — works with any build guide (Icy Veins, Discord, screenshots, anywhere).
+- **Browse this season's top builds** — live tier lists from **Maxroll**, **D4Builds**, and **Mobalytics** right on the landing page, with tabs per source (Endgame · Bossing · Leveling · Pushing · Speedfarming — every list the source publishes).
+- **All 8 classes color-coded** — Barb · Druid · Necro · Rogue · Sorc · Spiritborn · Paladin · Warlock — with a class filter row to hide the classes you don't play.
+- **★ Favorites** — star any build or community paste; landing page surfaces them up top with provenance ("Maxroll · Endgame · S · added 3d ago"). Favorites are live references, not snapshots — they re-fetch on click so the build self-updates as the meta shifts.
+- **Paste anything** — a Maxroll/D4Builds/Mobalytics URL, OR a raw affix list copied from Icy Veins / Discord / a screenshot. Universal paste mode handles the rest.
 - **Compiles a precise per-slot loot filter:**
   - **Gold** (3+ build affixes) and **Silver** (2+) per gear slot — your build's keepers
-  - Weapons grouped by handedness (1H / 2H) so the Barb arsenal fits the rule cap
-  - **Purple** — build uniques · **Blue** — Greater Affixes · **Green** — charms & seals · **White** — Codex upgrades
+  - Weapons grouped by handedness (1H / 2H) so the Barb arsenal fits the 25-rule cap
+  - **Purple** — build uniques · **Orange/Cyan** — Item Power tiers (900+/850+) · **Blue** — Greater Affixes · **Green** — charms & seals · **White** — Codex upgrades
   - Mythics never touched (they drop with their natural beam)
   - Everything else hidden
+- **Talisman & set-bonus recognition** — decoded community filters spell out set names (e.g. *"Talisman: Barbarian Set 01"*) instead of hex blobs.
 - **Round-trip verified import code** — paste straight into Diablo 4's Loot Filter → Import.
 
 ## How to use
 
 1. Download from [Releases](../../releases/latest) and unzip.
 2. Run **MedicK's Might.exe**.
-3. Click a build on the landing page (or paste a build URL).
+3. Click a build on the landing page, star a favorite, or paste a build URL / affix list.
 4. Tweak the options if you want (live preview).
 5. Copy the import code.
 6. In Diablo 4: **Inventory → Loot Filter → Import**, paste.
@@ -43,16 +46,17 @@ Grab the latest **MedicK's Might.zip** from [Releases](../../releases/latest), u
 ## Build from source
 
 ```bash
-git clone <this repo>
-cd D4BuildFilter
+git clone https://github.com/medick51o/medicks-might.git
+cd medicks-might
 dotnet build -c Release
 dotnet run --project D4BuildFilter.WPF
 ```
 
-Stack: **.NET 10 · WPF · CommunityToolkit.Mvvm**. Three projects — `Core` (protobuf encoder, fetchers, compiler), `WPF` (UI), `Tester` (console). 67 xUnit tests.
+Stack: **.NET 10 · WPF · CommunityToolkit.Mvvm**. Three projects — `Core` (protobuf encoder, fetchers, compiler, affix/unique/talisman DBs), `WPF` (UI), `Tester` (console). **106 xUnit tests**.
 
 ## Credits
 
-- Tier-list rankings live-pulled from **[Maxroll.gg](https://maxroll.gg/d4/tierlists/endgame-tier-list)** and **[D4Builds.gg](https://d4builds.gg/tierlist/)**, displayed with attribution.
-- Item / affix / unique data from [DiabloTools/d4data](https://github.com/DiabloTools/d4data) via [ThunderEagle/D4LootBench](https://github.com/ThunderEagle/D4LootBench) (MIT).
+- Tier-list rankings live-pulled from **[Maxroll.gg](https://maxroll.gg/d4/tierlists/endgame-tier-list)**, **[D4Builds.gg](https://d4builds.gg/tierlist/)**, and **[Mobalytics](https://mobalytics.gg/diablo-4)**, displayed with attribution.
+- Affix / skill / unique / talisman-set data from [DiabloTools/d4data](https://github.com/DiabloTools/d4data) (build 3.0.3.72031) via [ThunderEagle/D4LootBench](https://github.com/ThunderEagle/D4LootBench) (MIT).
+- Display-only affix label cross-reference from [d4lfteam/d4lf](https://github.com/d4lfteam/d4lf).
 - Built by **Medick** · MK — *Medick's Madhouse*.
