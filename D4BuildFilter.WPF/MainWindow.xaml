@@ -117,11 +117,27 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="10"
                                 Padding="{TemplateBinding Padding}">
-                            <TextBlock Text="{TemplateBinding Content}"
-                                       Foreground="{TemplateBinding Foreground}"
-                                       FontSize="{TemplateBinding FontSize}"
-                                       TextWrapping="Wrap" TextAlignment="Center"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <!-- Two-line content: build name (TemplateBinding Content, set per
+                                 instance) then an optional "(ClassName)" subtitle bound to the
+                                 chip's DataContext (TierBuildVM.ClassName). Subtitle Visibility is
+                                 driven by MainViewModel.ShowClassNames so the toggle on the landing
+                                 page collapses every chip's class line at once. -->
+                            <StackPanel>
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           FontSize="{TemplateBinding FontSize}"
+                                           TextWrapping="Wrap" TextAlignment="Center"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Foreground="{TemplateBinding Foreground}"
+                                           Opacity="0.7" FontSize="10"
+                                           TextAlignment="Center" HorizontalAlignment="Center"
+                                           Margin="0,2,0,0"
+                                           Visibility="{Binding DataContext.ShowClassNames,
+                                                        RelativeSource={RelativeSource AncestorType=Window},
+                                                        Converter={StaticResource BoolToVis}}">
+                                    <Run Text="(" /><Run Text="{Binding ClassName, Mode=OneWay}" /><Run Text=")" />
+                                </TextBlock>
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -454,6 +470,51 @@
                     </Border>
                 </StackPanel>
 
+                <!-- ══════ Filter / Show controls ══════
+                     Sits between the Favorites strip and the tier-list grid. Class checkboxes
+                     are colored with the class's chip color so the row reads as a class palette
+                     legend; the two show/hide toggles control chip metadata visibility globally. -->
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0">
+                    <DockPanel LastChildFill="True">
+                        <!-- Right-side toggles: show class name subtitle / show ★ star button -->
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox Content="Show class name" IsChecked="{Binding ShowClassNames}"
+                                      Foreground="#d8cabb" Margin="0,0,18,0" VerticalAlignment="Center"
+                                      ToolTip="Show '(Sorcerer)' subtitle under each chip's build name" />
+                            <CheckBox Content="Show ★ favorite" IsChecked="{Binding ShowFavoriteStars}"
+                                      Foreground="#d8cabb" VerticalAlignment="Center"
+                                      ToolTip="Show the star toggle on every tier-list chip" />
+                        </StackPanel>
+                        <TextBlock Text="Show classes — uncheck to hide a class from every tier list"
+                                   FontSize="11" FontWeight="SemiBold" Foreground="#9a8c80"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding ClassFilters}" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- Each class checkbox: a thematic Unicode glyph + class name in
+                                     the class's chip color. Glyph + color = double cue so the row
+                                     reads at a glance (matches the chip-name palette in the grid
+                                     below). All on by default; unchecking hides every chip of that
+                                     class across all 3 tier sources. -->
+                                <CheckBox IsChecked="{Binding IsEnabled}"
+                                          Foreground="{Binding ClassColor}"
+                                          FontWeight="SemiBold"
+                                          Margin="0,0,16,4" VerticalContentAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Glyph}" FontSize="14"
+                                                   Margin="0,0,5,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding ClassName}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
                 <!-- ══════ This season's top builds — live community tier lists ══════
                      Three columns: D4Builds (left), Maxroll (middle), Mobalytics (right).
                      Every tier surfaced: S/A/B/C/D plus Mobalytics-only God Tier (top) and Support
@@ -530,6 +591,9 @@
                                                                         Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
                                                                         Command="{Binding ToggleFavoriteCommand}"
                                                                         Margin="0,3,9,0"
+                                                                        Visibility="{Binding DataContext.ShowFavoriteStars,
+                                                                                     RelativeSource={RelativeSource AncestorType=Window},
+                                                                                     Converter={StaticResource BoolToVis}}"
                                                                         ToolTip="Star to save under Your Favorites" />
                                                             </Grid>
                                                         </DataTemplate>
@@ -601,6 +665,9 @@
                                                                         Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
                                                                         Command="{Binding ToggleFavoriteCommand}"
                                                                         Margin="0,3,9,0"
+                                                                        Visibility="{Binding DataContext.ShowFavoriteStars,
+                                                                                     RelativeSource={RelativeSource AncestorType=Window},
+                                                                                     Converter={StaticResource BoolToVis}}"
                                                                         ToolTip="Star to save under Your Favorites" />
                                                             </Grid>
                                                         </DataTemplate>
@@ -672,6 +739,9 @@
                                                                         Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
                                                                         Command="{Binding ToggleFavoriteCommand}"
                                                                         Margin="0,3,9,0"
+                                                                        Visibility="{Binding DataContext.ShowFavoriteStars,
+                                                                                     RelativeSource={RelativeSource AncestorType=Window},
+                                                                                     Converter={StaticResource BoolToVis}}"
                                                                         ToolTip="Star to save under Your Favorites" />
                                                             </Grid>
                                                         </DataTemplate>

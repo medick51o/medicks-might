@@ -87,11 +87,27 @@ public partial class MainViewModel : ObservableObject
     private readonly Dictionary<D4BuildsList, List<TierGroupVM>> _d4buildsCache = new();
     private readonly Dictionary<MobalyticsList, List<TierGroupVM>> _mobalyticsCache = new();
 
+    // ── Landing-page filters & toggles (live on the input page) ──
+    // Class filter: 8 colored checkboxes (one per class), all on by default. Unchecking a class
+    // hides every chip of that class across all 3 tier sources. Uses the class palette as legend.
+    public IReadOnlyList<ClassFilterVM> ClassFilters { get; }
+    // Show the "(Sorcerer)" subtitle under each chip's build name. Off = chip just shows the build
+    // name (the class color already conveys class for trained eyes).
+    [ObservableProperty] private bool showClassNames = true;
+    // Show the ★/☆ star on each chip. Off = chips read cleaner; you can still star/unstar from
+    // the result page after compiling.
+    [ObservableProperty] private bool showFavoriteStars = true;
+
+    // No on-change handlers for the show-* toggles: the chip XAML binds Visibility directly to
+    // these properties via RelativeSource, so toggling them re-evaluates the bindings — no
+    // collection rebuild needed (avoids a flicker on every checkbox click).
+
     // ── Favorites (persisted to %LOCALAPPDATA%\MedicKsMight\favorites.json) ──
     // The chips on the landing page's "Your Favorites" row + the star indicator on every tier chip
     // are both driven from this store. Favorites are LIVE REFERENCES: when the user re-opens one we
     // re-fetch from the source, so meta drift over the season is reflected automatically.
     private readonly FavoritesStore _favorites = new();
+    private readonly PasteStore _pasteStore = new();
     public ObservableCollection<FavoriteChipVM> Favorites { get; } = new();
     public bool HasFavorites => Favorites.Count > 0;
 
@@ -185,6 +201,10 @@ public partial class MainViewModel : ObservableObject
     private void RemoveFavorite(FavoriteChipVM chip)
     {
         _favorites.Remove(chip.Url);
+        // Community pastes: also drop the sidecar text file (favorites file alone wouldn't be enough
+        // to restore the build, and a dangling sidecar would leak disk space across re-favorites).
+        if (chip.Url.StartsWith("paste://", StringComparison.OrdinalIgnoreCase))
+            _pasteStore.Remove(chip.Url["paste://".Length..]);
         RefreshFavoritesUi();
     }
 
@@ -216,7 +236,14 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
-        // Build the tab strips. Default Endgame is active; other tabs come up dim and fetch on click.
+        // Class filter strip: 8 D4 classes, all enabled by default. Unchecking a class hides every
+        // chip of that class across all 3 tier sources. Order matches the in-game class select roughly.
+        ClassFilters = new[]
+        {
+            "Barbarian", "Druid", "Necromancer", "Rogue",
+            "Sorcerer", "Spiritborn", "Paladin", "Warlock",
+        }.Select(c => new ClassFilterVM(c, RefreshAllTierViews)).ToList();
+
         MaxrollTabs = new[]
         {
             new TierTabVM("Endgame",    nameof(MaxrollList.Endgame),   true),
@@ -268,7 +295,10 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Cache-aware tab activation: serve from cache if hit, else fetch + populate + cache.
     /// Generic over the per-source enum + per-source fetcher so all three sources share one flow.
     /// <paramref name="source"/> + <paramref name="tierKind"/> stamp each chip with its provenance
-    /// so a subsequent ★ favorite remembers where the build came from.</summary>
+    /// so a subsequent ★ favorite remembers where the build came from.
+    /// <para>The cache holds the FULL group/build list (no class filter applied); the visible
+    /// <paramref name="target"/> collection is a class-filtered projection built via
+    /// <see cref="ProjectIntoTarget"/>. This way the class-filter toggles never need to re-fetch.</para></summary>
     private async Task ActivateAsync<TKind>(TKind kind,
         Dictionary<TKind, List<TierGroupVM>> cache,
         ObservableCollection<TierGroupVM> target,
@@ -278,8 +308,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (cache.TryGetValue(kind, out var hit))
         {
-            target.Clear();
-            foreach (var g in hit) target.Add(g);
+            ProjectIntoTarget(hit, target);
             setStatus(hit.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
             return;
         }
@@ -298,13 +327,43 @@ public partial class MainViewModel : ObservableObject
                         favUrls.Contains(b.Url))).ToList()))
                 .ToList();
             cache[kind] = groups;
-            foreach (var g in groups) target.Add(g);
+            ProjectIntoTarget(groups, target);
             setStatus(groups.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
         }
         catch
         {
             setStatus("Couldn't load right now — open the full list ↗");
         }
+    }
+
+    /// <summary>Apply the current class filter to a cached group list and replace the visible
+    /// target. A tier with all-hidden builds is dropped from the view entirely (avoids showing an
+    /// empty "S" row when the user has hidden every S-tier class). Cheap on small collections.</summary>
+    private void ProjectIntoTarget(IReadOnlyList<TierGroupVM> source, ObservableCollection<TierGroupVM> target)
+    {
+        var hidden = new HashSet<string>(
+            ClassFilters.Where(f => !f.IsEnabled).Select(f => f.ClassName),
+            StringComparer.OrdinalIgnoreCase);
+        target.Clear();
+        foreach (var g in source)
+        {
+            var visibleBuilds = g.Builds.Where(b => !hidden.Contains(b.ClassName)).ToList();
+            if (visibleBuilds.Count == 0) continue; // drop empty tier rows
+            target.Add(new TierGroupVM(g.Tier, visibleBuilds));
+        }
+    }
+
+    /// <summary>Re-project every currently-active source's cached groups through the class filter.
+    /// Called when a class checkbox toggles. Inactive tabs are untouched — they'll filter when the
+    /// user clicks them (via ActivateAsync's cache-hit path, which also uses ProjectIntoTarget).</summary>
+    private void RefreshAllTierViews()
+    {
+        if (_maxrollCache.TryGetValue(ActiveMaxrollList, out var mr))
+            ProjectIntoTarget(mr, MaxrollTiers);
+        if (_d4buildsCache.TryGetValue(ActiveD4BuildsList, out var db))
+            ProjectIntoTarget(db, D4BuildsTiers);
+        if (_mobalyticsCache.TryGetValue(ActiveMobalyticsList, out var mb))
+            ProjectIntoTarget(mb, MobalyticsTiers);
     }
 
     /// <summary>Tier chip click handler: capture chip provenance (so the result-page ★ knows where
@@ -374,6 +433,15 @@ public partial class MainViewModel : ObservableObject
         $"{FilterTitle.Length} / {MaxTitleLength} characters — D4 drops the name above this on import";
 
     private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n].TrimEnd();
+
+    /// <summary>Stable 12-char hash of pasted text — used as the synthetic URL identity for
+    /// favorite-ing pastes that have no real source URL. Same text = same favorite entry.</summary>
+    private static string PasteHash(string text)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text ?? ""));
+        return Convert.ToHexString(bytes).Substring(0, 12).ToLowerInvariant();
+    }
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
@@ -446,6 +514,27 @@ public partial class MainViewModel : ObservableObject
         State = AppState.Loading;
         try
         {
+            // Community paste favorites: synthetic "paste://<hash>" URL → re-load from sidecar text
+            // + re-run the paste parser. Source label tagged "Community" so the chip stays
+            // identified as a community paste and the result-page ★ re-favorites the same URL.
+            if (source.StartsWith("paste://", StringComparison.OrdinalIgnoreCase))
+            {
+                var hash = source["paste://".Length..];
+                var text = _pasteStore.Load(hash);
+                if (text is null)
+                {
+                    StatusMessage = "This community paste's text was deleted — re-paste it to reload.";
+                    State = AppState.Input;
+                    return;
+                }
+                var pasted = await Task.Run(() => PastedBuild.Parse(text, "Pasted Build"));
+                _currentSource = "Community";
+                _currentSourceUrl = source;
+                _currentTierKind = null;
+                _currentTier = null;
+                Ingest(pasted, "Community paste");
+                return;
+            }
             var (resolved, srcLabel) = await Task.Run(async () =>
             {
                 // Route by source: d4builds (Firestore) vs Mobalytics (__PRELOADED_STATE__) vs maxroll.
@@ -496,14 +585,18 @@ public partial class MainViewModel : ObservableObject
         State = AppState.Loading;
         try
         {
-            var resolved = await Task.Run(() => PastedBuild.Parse(PastedText, "Pasted Build"));
-            // Pastes have no source URL — favoriting them isn't meaningful (nothing to re-fetch).
-            // Clear provenance so the result-page ★ button hides itself via CanFavoriteCurrent.
-            _currentSource = "Paste";
-            _currentSourceUrl = "";
+            var pasted = PastedText;
+            var resolved = await Task.Run(() => PastedBuild.Parse(pasted, "Pasted Build"));
+            // Community paste favorites: synthesize a stable "paste://<hash>" pseudo-URL so the
+            // favorite is starrable + identifiable, AND drop the raw text into the PasteStore
+            // sidecar so a future ★ favorite click on the landing page can re-load it.
+            var hash = PasteHash(pasted);
+            _pasteStore.Save(hash, pasted);
+            _currentSource = "Community";
+            _currentSourceUrl = $"paste://{hash}";
             _currentTierKind = null;
             _currentTier = null;
-            Ingest(resolved, "Pasted");
+            Ingest(resolved, "Community paste");
         }
         catch (Exception ex)
         {
