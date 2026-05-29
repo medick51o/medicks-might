@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -57,6 +58,18 @@ public sealed class FavoriteStarBrushConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => Binding.DoNothing;
+}
+
+/// <summary>Multi-binding visibility: visible only when EVERY bound boolean is true. Used to gate
+/// the "Not yet filterable" diagnostic on (ShowPendingAffixes AND HasDropped) — both must be true
+/// or we collapse. BooleanToVisibilityConverter only handles single inputs.</summary>
+public sealed class AllTrueToVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        => values.All(v => v is true) ? Visibility.Visible : Visibility.Collapsed;
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => Array.Empty<object>();
 }
 
 /// <summary>Options-panel label text: bright when the toggle is ON, grayed when OFF — so the

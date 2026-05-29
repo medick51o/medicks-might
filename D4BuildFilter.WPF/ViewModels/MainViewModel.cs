@@ -475,6 +475,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool optCodex = true;
     [ObservableProperty] private bool optHideRest = true;
 
+    // Dev-facing diagnostic toggle (off by default). When ON, the result page surfaces the
+    // "Not yet filterable" list — affixes the mapper couldn't resolve to a filter ID. End users
+    // can't act on this info; it's for us to track DB gaps. Medick explicitly flagged it as noise.
+    [ObservableProperty] private bool showPendingAffixes;
+
     partial void OnStrictEndgameChanged(bool value) => Recompile();
     partial void OnOptPerSlotChanged(bool value) => Recompile();
     partial void OnOptGoldTierChanged(bool value) => Recompile();

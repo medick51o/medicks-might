@@ -21,6 +21,7 @@
         <local:StringToVisibilityConverter x:Key="StringToVis" />
         <local:FavoriteStarConverter x:Key="FavStar" />
         <local:FavoriteStarBrushConverter x:Key="FavStarBrush" />
+        <local:AllTrueToVisibilityConverter x:Key="AllTrueToVis" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#e3d8cc" />
@@ -833,26 +834,45 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <!-- Left: affix pool + drops -->
-                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <!-- Left: affix pool. beta.8.1: cap MaxHeight to 300 so the column is
+                             symmetric with the right tab column above. "Not yet filterable" moved
+                             behind the ShowPendingAffixes toggle (off by default) — it's dev-facing
+                             info (which affixes our mapper couldn't resolve), not user info. -->
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top">
                             <TextBlock Text="Filterable affixes — these drive the gold / silver match"
                                        Style="{StaticResource SectionLabel}" />
-                            <ListBox ItemsSource="{Binding PoolLines}" Height="240" />
+                            <ListBox ItemsSource="{Binding PoolLines}" MaxHeight="300" />
 
-                            <TextBlock Text="Not yet filterable (needs in-game ID capture)"
-                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4"
-                                       Visibility="{Binding HasDropped, Converter={StaticResource BoolToVis}}" />
-                            <ListBox ItemsSource="{Binding DroppedLines}" Height="120"
-                                     Visibility="{Binding HasDropped, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="Not yet filterable (dev — affixes the mapper hasn't resolved)"
+                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4">
+                                <TextBlock.Visibility>
+                                    <MultiBinding Converter="{StaticResource AllTrueToVis}">
+                                        <Binding Path="ShowPendingAffixes" />
+                                        <Binding Path="HasDropped" />
+                                    </MultiBinding>
+                                </TextBlock.Visibility>
+                            </TextBlock>
+                            <ListBox ItemsSource="{Binding DroppedLines}" Height="120">
+                                <ListBox.Visibility>
+                                    <MultiBinding Converter="{StaticResource AllTrueToVis}">
+                                        <Binding Path="ShowPendingAffixes" />
+                                        <Binding Path="HasDropped" />
+                                    </MultiBinding>
+                                </ListBox.Visibility>
+                            </ListBox>
                         </StackPanel>
 
                         <!-- Right: uniques / mythics / pending / color legend in a TabControl.
                              beta.8 polish: was 4 stacked sections + 4 fixed-height ListBoxes burning
                              ~360px of vertical with lots of dead air when only 1-2 categories were
                              populated. Tabs let each view use the full panel height + only one is
-                             ever rendered, so the right column matches the left column's density. -->
+                             ever rendered, so the right column matches the left column's density.
+                             beta.8.1: capped MaxHeight=300 so it sizes to the Legend (the tallest
+                             static tab) instead of stretching to match the left column — most builds
+                             have ≤3 uniques and ≤2 mythics, so the auto-size was wasted real estate. -->
                         <Border Grid.Column="1" Margin="8,0,0,0" Background="#80231a14"
-                                BorderBrush="#4a3c30" BorderThickness="1" CornerRadius="4">
+                                BorderBrush="#4a3c30" BorderThickness="1" CornerRadius="4"
+                                VerticalAlignment="Top" MaxHeight="300">
                             <TabControl Background="Transparent" BorderThickness="0" Padding="10">
                                 <TabControl.Resources>
                                     <Style TargetType="TabItem">
@@ -953,21 +973,28 @@
                                       Foreground="{Binding OptPerSlot, Converter={StaticResource ActiveText}}" Margin="0,0,0,8" />
                             <TextBlock Text="Build-affix tiers — how many of a slot's affixes an item needs, and the color it gets:"
                                        FontSize="11" Foreground="#9a8c80" Margin="0,0,0,6" />
+                            <!-- beta.8.1: every row uses a 2-col Grid (32px chip slot | checkbox+label)
+                                 so every checkbox locks to x=32 regardless of how many chips a row
+                                 carries. Fixes the Item Power row pushing right because it has 2 chips. -->
                             <UniformGrid Columns="2">
                                 <!-- 3+ → Gold -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="{Binding OptGoldTier, Converter={StaticResource ActiveColor}, ConverterParameter=#FFD700}" />
-                                    <CheckBox Content="3+ affixes per slot → Gold (best items)" IsChecked="{Binding OptGoldTier}"
+                                    <CheckBox Grid.Column="1" Content="3+ affixes per slot → Gold (best items)" IsChecked="{Binding OptGoldTier}"
                                               Foreground="{Binding OptGoldTier, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
+                                </Grid>
                                 <!-- 2+ → Silver -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="{Binding OptSilverTier, Converter={StaticResource ActiveColor}, ConverterParameter=#AAAAAA}" />
-                                    <CheckBox Content="2+ affixes per slot → Silver (one roll away)" IsChecked="{Binding OptSilverTier}"
+                                    <CheckBox Grid.Column="1" Content="2+ affixes per slot → Silver (one roll away)" IsChecked="{Binding OptSilverTier}"
                                               Foreground="{Binding OptSilverTier, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
+                                </Grid>
                             </UniformGrid>
 
                             <Border Height="1" Background="#3a312b" Margin="0,10,0,10" />
@@ -975,55 +1002,84 @@
                             <!-- ── Secondary tiers (each marker shows its in-game highlight color, grays when off) ── -->
                             <UniformGrid Columns="2">
                                 <!-- Build uniques → purple -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="{Binding OptBuildUniques, Converter={StaticResource ActiveColor}, ConverterParameter=#A020F0}" />
-                                    <CheckBox Content="Build uniques → Purple" IsChecked="{Binding OptBuildUniques}"
+                                    <CheckBox Grid.Column="1" Content="Build uniques → Purple" IsChecked="{Binding OptBuildUniques}"
                                               Foreground="{Binding OptBuildUniques, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
+                                </Grid>
                                 <!-- Greater Affixes → blue -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="{Binding OptGreaterAffixes, Converter={StaticResource ActiveColor}, ConverterParameter=#2251E8}" />
-                                    <CheckBox Content="Greater Affixes → Blue" IsChecked="{Binding OptGreaterAffixes}"
+                                    <CheckBox Grid.Column="1" Content="Greater Affixes → Blue" IsChecked="{Binding OptGreaterAffixes}"
                                               Foreground="{Binding OptGreaterAffixes, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
-                                <!-- Item-power tiers → orange / cyan -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,3,0"
-                                            Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#FF8C00}" />
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
-                                            Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#00FFFF}" />
-                                    <CheckBox Content="Item power 900/850 → Orange/Cyan (gearing aid — noisy at endgame)" IsChecked="{Binding OptItemPowerTiers}"
+                                </Grid>
+                                <!-- Item-power tiers → orange + cyan (TWO chips in the same fixed 32px slot,
+                                     side-by-side centered, so the checkbox still locks to x=32) -->
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="13" Height="14" CornerRadius="3" Margin="0,0,2,0"
+                                                Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#FF8C00}" />
+                                        <Border Width="13" Height="14" CornerRadius="3" Margin="2,0,0,0"
+                                                Background="{Binding OptItemPowerTiers, Converter={StaticResource ActiveColor}, ConverterParameter=#00FFFF}" />
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1" Content="Item power 900/850 → Orange/Cyan (gearing aid — noisy at endgame)"
+                                              IsChecked="{Binding OptItemPowerTiers}" TextElement.FontSize="12"
                                               Foreground="{Binding OptItemPowerTiers, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
+                                </Grid>
                                 <!-- Charms &amp; Seals → green -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="{Binding OptCharmsSeals, Converter={StaticResource ActiveColor}, ConverterParameter=#00C800}" />
-                                    <CheckBox Content="Charms &amp; Seals → Green" IsChecked="{Binding OptCharmsSeals}"
+                                    <CheckBox Grid.Column="1" Content="Charms &amp; Seals → Green" IsChecked="{Binding OptCharmsSeals}"
                                               Foreground="{Binding OptCharmsSeals, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
+                                </Grid>
                                 <!-- Codex upgrades → white -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="{Binding OptCodex, Converter={StaticResource ActiveColor}, ConverterParameter=#FFFFFF}" />
-                                    <CheckBox Content="Codex upgrades → White" IsChecked="{Binding OptCodex}"
+                                    <CheckBox Grid.Column="1" Content="Codex upgrades → White" IsChecked="{Binding OptCodex}"
                                               Foreground="{Binding OptCodex, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
-                                <!-- Hide everything else → no highlight (hollow marker) -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" CornerRadius="3" VerticalAlignment="Center" Margin="0,0,7,0"
+                                </Grid>
+                                <!-- Hide everything else → hollow marker (no highlight color) -->
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                             Background="Transparent" BorderBrush="#6b625a" BorderThickness="1" />
-                                    <CheckBox Content="Hide everything else" IsChecked="{Binding OptHideRest}"
+                                    <CheckBox Grid.Column="1" Content="Hide everything else" IsChecked="{Binding OptHideRest}"
                                               Foreground="{Binding OptHideRest, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
-                                <!-- Strict endgame → behavioral (no highlight color) -->
-                                <StackPanel Orientation="Horizontal" Margin="0,2,14,2">
-                                    <Border Width="13" Height="13" Margin="0,0,7,0" Background="Transparent" />
-                                    <CheckBox Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}"
+                                </Grid>
+                                <!-- Strict endgame → behavioral, no chip -->
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <!-- empty chip slot for alignment -->
+                                    <CheckBox Grid.Column="1" Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}"
                                               Foreground="{Binding StrictEndgame, Converter={StaticResource ActiveText}}" />
-                                </StackPanel>
+                                </Grid>
+                                <!-- Show pending affixes (dev): off by default; surfaces the "Not yet
+                                     filterable" diagnostic on the result page. Medick's mark — most users
+                                     don't care which affixes haven't been mapped yet, that's our job. -->
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="3"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Background="Transparent" BorderBrush="#5a4a3e" BorderThickness="1" />
+                                    <CheckBox Grid.Column="1" Content="Show pending affixes (dev)" IsChecked="{Binding ShowPendingAffixes}"
+                                              Foreground="{Binding ShowPendingAffixes, Converter={StaticResource ActiveText}}"
+                                              ToolTip="Surface the 'Not yet filterable' list on the result page — affixes the mapper couldn't resolve to a filter ID. Off by default since it's dev diagnostic info, not user info." />
+                                </Grid>
                             </UniformGrid>
 
                             <TextBlock TextWrapping="Wrap" Foreground="#9a8c80" FontSize="11" Margin="0,10,0,0">
