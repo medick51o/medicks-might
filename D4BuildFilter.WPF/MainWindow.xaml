@@ -988,13 +988,12 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- Mythics panel (pink subtitle preserves the in-game cue that mythics are special) -->
+                            <!-- v3: dropped the gold-underlined "tab" headers — the colored SectionLabel
+                                 below them was already doing the panel-title work, the tab pseudo-headers
+                                 were just visual noise. Each panel's section label IS the title now. -->
+
+                            <!-- Mythics panel -->
                             <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="0,0,0,2"
-                                        Padding="0,0,0,4" Margin="0,0,0,8" HorizontalAlignment="Left">
-                                    <TextBlock Text="Mythics" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Accent.Primary}" />
-                                </Border>
                                 <TextBlock Text="Mythics — always drop, untouched by this filter"
                                            Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap"
@@ -1009,11 +1008,6 @@
 
                             <!-- Uniques panel (middle = visual anchor) -->
                             <StackPanel Grid.Column="1" Margin="4,0,4,0">
-                                <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="0,0,0,2"
-                                        Padding="0,0,0,4" Margin="0,0,0,8" HorizontalAlignment="Left">
-                                    <TextBlock Text="Uniques" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Accent.Primary}" />
-                                </Border>
                                 <TextBlock Text="Build uniques → purple"
                                            Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap"
@@ -1031,19 +1025,14 @@
                                            Visibility="{Binding HasNoUniques, Converter={StaticResource BoolToVis}}" />
                             </StackPanel>
 
-                            <!-- Legend panel — body Border shifts ~20px down so it lines up with where the
-                                 ListBoxes in the flanking panels start, not where their headers are -->
+                            <!-- Legend panel — title now matches the other panels' SectionLabel sizing. -->
                             <StackPanel Grid.Column="2" Margin="4,0,0,0">
-                                <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="0,0,0,2"
-                                        Padding="0,0,0,4" Margin="0,0,0,8" HorizontalAlignment="Left">
-                                    <TextBlock Text="Legend" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource Accent.Primary}" />
-                                </Border>
+                                <TextBlock Text="Legend — what the colors mean"
+                                           Style="{StaticResource SectionLabel}"
+                                           TextWrapping="Wrap" />
                                 <Border Background="{DynamicResource Surface.Inset}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
-                                        CornerRadius="4" Padding="10,8" Margin="0,22,0,0">
+                                        CornerRadius="4" Padding="10,8">
                                     <StackPanel>
-                                        <TextBlock FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}" Margin="0,0,0,4"
-                                                   Text="What the colors mean (top rule wins)" />
                                         <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — build uniques" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — 3+ build affixes" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — 2+ build affixes" /></TextBlock>
