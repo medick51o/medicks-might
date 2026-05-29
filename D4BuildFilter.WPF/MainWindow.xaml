@@ -22,6 +22,7 @@
         <local:FavoriteStarConverter x:Key="FavStar" />
         <local:FavoriteStarBrushConverter x:Key="FavStarBrush" />
         <local:AllTrueToVisibilityConverter x:Key="AllTrueToVis" />
+        <local:SourceToBrushConverter x:Key="SourceBrush" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#e3d8cc" />
@@ -801,9 +802,25 @@
                                 <Run Text="Favorite" />
                             </TextBlock>
                         </Button>
-                        <TextBlock Text="{Binding BuildName}"
-                                   FontSize="22" FontWeight="Bold" Foreground="#d4af37"
-                                   VerticalAlignment="Center" />
+                        <!-- Build name + source-origin pill on the same row.
+                             The pill (MAXROLL / D4BUILDS / MOBALYTICS / COMMUNITY) tells the user
+                             at a glance which site the build came from — useful when comparing
+                             favorites, attribution, or returning to source for updates. Brand-
+                             colored via SourceBrush converter. Collapsed pre-load. -->
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding BuildName}"
+                                       FontSize="22" FontWeight="Bold" Foreground="#d4af37"
+                                       VerticalAlignment="Center" />
+                            <Border CornerRadius="9" Padding="9,2" Margin="12,3,0,0"
+                                    Background="{Binding CurrentSource, Converter={StaticResource SourceBrush}}"
+                                    Visibility="{Binding HasCurrentSource, Converter={StaticResource BoolToVis}}"
+                                    VerticalAlignment="Center"
+                                    ToolTip="Source of this build — click to reload from origin">
+                                <TextBlock Text="{Binding CurrentSourceLabel}"
+                                           Foreground="White" FontSize="10" FontWeight="Bold"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                        </StackPanel>
                     </DockPanel>
                     <TextBlock Text="{Binding BuildSubtitle}"
                                FontSize="12" Foreground="#b6a597" Margin="0,4,0,12" />

@@ -133,6 +133,28 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool isCurrentFavorited;
     public bool CanFavoriteCurrent => !string.IsNullOrEmpty(_currentSourceUrl);
 
+    /// <summary>Source label rendered as a small brand-colored pill next to the result-page H1
+    /// build name — Maxroll / D4Builds / Mobalytics / Community. Empty for pre-load / landing.
+    /// See <c>SetCurrentSource()</c> for the writers that keep <see cref="HasCurrentSource"/>
+    /// + <see cref="CurrentSourceLabel"/> in sync with the underlying field.</summary>
+    public string CurrentSource => _currentSource;
+    public string CurrentSourceLabel => _currentSource.ToUpperInvariant();
+    public bool HasCurrentSource => !string.IsNullOrEmpty(_currentSource);
+
+    /// <summary>Write the build's source-of-origin + URL together and notify every UI binding
+    /// that depends on either (the source pill on the H1 + the ★ Favorite button visibility).
+    /// Centralizes what used to be 4 scattered `_currentSource = ...; _currentSourceUrl = ...`
+    /// pairs across the load paths.</summary>
+    private void SetCurrentSource(string source, string url)
+    {
+        _currentSource = source;
+        _currentSourceUrl = url;
+        OnPropertyChanged(nameof(CurrentSource));
+        OnPropertyChanged(nameof(CurrentSourceLabel));
+        OnPropertyChanged(nameof(HasCurrentSource));
+        OnPropertyChanged(nameof(CanFavoriteCurrent));
+    }
+
     partial void OnActiveMaxrollListChanged(MaxrollList value) { SyncTabs(MaxrollTabs, value.ToString()); _ = ActivateMaxrollAsync(value); }
     partial void OnActiveD4BuildsListChanged(D4BuildsList value) { SyncTabs(D4BuildsTabs, value.ToString()); _ = ActivateD4BuildsAsync(value); }
     partial void OnActiveMobalyticsListChanged(MobalyticsList value) { SyncTabs(MobalyticsTabs, value.ToString()); _ = ActivateMobalyticsAsync(value); }
@@ -383,8 +405,7 @@ public partial class MainViewModel : ObservableObject
     /// the build came from) and stamp the favorite as re-opened if it's one of the user's.</summary>
     private void LoadBuildFromChipUrl(TierBuild b, string source, string tierKind, string tier)
     {
-        _currentSource = source;
-        _currentSourceUrl = b.Url;
+        SetCurrentSource(source, b.Url);
         _currentTierKind = tierKind;
         _currentTier = tier;
         if (_favorites.Contains(b.Url)) _favorites.StampOpened(b.Url);
@@ -550,8 +571,7 @@ public partial class MainViewModel : ObservableObject
                     return;
                 }
                 var pasted = await Task.Run(() => PastedBuild.Parse(text, "Pasted Build"));
-                _currentSource = "Community";
-                _currentSourceUrl = source;
+                SetCurrentSource("Community", source);
                 _currentTierKind = null;
                 _currentTier = null;
                 Ingest(pasted, "Community paste");
@@ -580,11 +600,10 @@ public partial class MainViewModel : ObservableObject
                 raw ??= await MaxrollFetcher.FetchRawAsync(source);
                 return (MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default()), "Maxroll");
             });
-            // URL-loaded builds: capture provenance for the result-page ★ button. If the build
-            // came from a tier chip, LoadBuildFromChip already pre-seeded TierKind/Tier; here we
-            // refine Source to whatever the fetcher actually resolved.
-            _currentSource = srcLabel;
-            _currentSourceUrl = source;
+            // URL-loaded builds: capture provenance for the result-page ★ button + source pill.
+            // If the build came from a tier chip, LoadBuildFromChip already pre-seeded
+            // TierKind/Tier; here we refine Source to whatever the fetcher actually resolved.
+            SetCurrentSource(srcLabel, source);
             Ingest(resolved, srcLabel);
         }
         catch (Exception ex)
@@ -614,8 +633,7 @@ public partial class MainViewModel : ObservableObject
             // sidecar so a future ★ favorite click on the landing page can re-load it.
             var hash = PasteHash(pasted);
             _pasteStore.Save(hash, pasted);
-            _currentSource = "Community";
-            _currentSourceUrl = $"paste://{hash}";
+            SetCurrentSource("Community", $"paste://{hash}");
             _currentTierKind = null;
             _currentTier = null;
             Ingest(resolved, "Community paste");

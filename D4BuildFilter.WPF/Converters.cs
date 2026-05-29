@@ -60,6 +60,32 @@ public sealed class FavoriteStarBrushConverter : IValueConverter
         => Binding.DoNothing;
 }
 
+/// <summary>Brand color for the result-page source-origin pill. Maps the build's source string
+/// (set in MainViewModel.SetCurrentSource) to a muted brand-adjacent brush. Stays quiet on the
+/// page (not a callout) but distinguishable at a glance — Maxroll teal, D4Builds rust,
+/// Mobalytics violet, Community neutral gray, fallback dim warm.</summary>
+public sealed class SourceToBrushConverter : IValueConverter
+{
+    private static readonly SolidColorBrush Maxroll    = new(Color.FromRgb(0x2e, 0x7c, 0x7e)); // muted teal
+    private static readonly SolidColorBrush D4Builds   = new(Color.FromRgb(0xa8, 0x5d, 0x2c)); // amber rust
+    private static readonly SolidColorBrush Mobalytics = new(Color.FromRgb(0x6a, 0x4a, 0x99)); // violet
+    private static readonly SolidColorBrush Community  = new(Color.FromRgb(0x5a, 0x4f, 0x46)); // neutral gray
+    private static readonly SolidColorBrush Fallback   = new(Color.FromRgb(0x3a, 0x33, 0x2b));
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => (value as string)?.ToLowerInvariant() switch
+        {
+            "maxroll"    => Maxroll,
+            "d4builds"   => D4Builds,
+            "mobalytics" => Mobalytics,
+            "community"  => Community,
+            _            => Fallback,
+        };
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
 /// <summary>Multi-binding visibility: visible only when EVERY bound boolean is true. Used to gate
 /// the "Not yet filterable" diagnostic on (ShowPendingAffixes AND HasDropped) — both must be true
 /// or we collapse. BooleanToVisibilityConverter only handles single inputs.</summary>
