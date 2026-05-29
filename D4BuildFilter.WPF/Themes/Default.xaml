@@ -62,4 +62,7 @@
     <!-- ── Watermark (full-bleed warlord image opacity) ── -->
     <sys:Double x:Key="Watermark.Opacity">0.22</sys:Double>
 
+    <!-- ── Translucent toggle: per-theme opacity for Surface.Panel/Inset/Card when ON. -->
+    <sys:Double x:Key="Translucent.Opacity">0.35</sys:Double>
+
 </ResourceDictionary>

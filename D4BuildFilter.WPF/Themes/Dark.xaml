@@ -24,10 +24,12 @@
     <SolidColorBrush x:Key="Surface.Footer"      Color="#080808" />
     <SolidColorBrush x:Key="Surface.Panel"       Color="#0f0f0f" />
 
-    <!-- ── Text ── neutral scale, all AA+ over #000 -->
-    <SolidColorBrush x:Key="Text.Primary"        Color="#f5f5f5" />  <!-- 19.2:1 -->
-    <SolidColorBrush x:Key="Text.Secondary"      Color="#a3a3a3" />  <!-- 8.6:1 -->
-    <SolidColorBrush x:Key="Text.Muted"          Color="#737373" />  <!-- 4.7:1 -->
+    <!-- ── Text ── Medick's tone-down 2026-05-29: pure white was too stark for a basement-
+         dwelling dark theme; secondary felt too bright next to it. Softer primary + lower
+         secondary gives a moodier read while staying AA+. -->
+    <SolidColorBrush x:Key="Text.Primary"        Color="#d4d4d4" />  <!-- 11.4:1 vs #000 (AAA) -->
+    <SolidColorBrush x:Key="Text.Secondary"      Color="#969696" />  <!-- 6.7:1 (AA) — bumped from #8a8a8a so it survives over the warlord bleed-through in translucent mode -->
+    <SolidColorBrush x:Key="Text.Muted"          Color="#6b6b6b" />  <!-- 4.1:1 (AA large text) -->
     <SolidColorBrush x:Key="Text.OnAccent"       Color="#000000" />
 
     <!-- ── Accents ── cyan + rose (cyberpunk pairing) -->
@@ -46,7 +48,7 @@
     <SolidColorBrush x:Key="Action.Disabled.Fg"       Color="#525252" />
 
     <!-- ── Borders ── hair-thin on OLED, visible on card surfaces -->
-    <SolidColorBrush x:Key="Border.Subtle"       Color="#1f1f1f" />
+    <SolidColorBrush x:Key="Border.Subtle"       Color="#262626" />  <!-- one step up from #1f1f1f so card edges are visible on OLED, not invisible -->
     <SolidColorBrush x:Key="Border.Strong"       Color="#404040" />
     <SolidColorBrush x:Key="Border.Input"        Color="#404040" />
 
@@ -60,5 +62,8 @@
 
     <!-- ── Watermark ── 14% — between Default's 22% and Discord's 10% — lava in the art is the only warmth -->
     <sys:Double x:Key="Watermark.Opacity">0.14</sys:Double>
+
+    <!-- ── Translucent toggle: Dark loves more bleed (true-black gives art nowhere to hide) -->
+    <sys:Double x:Key="Translucent.Opacity">0.40</sys:Double>
 
 </ResourceDictionary>

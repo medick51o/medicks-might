@@ -132,9 +132,17 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedThemeChanged(string value) => ThemeManager.Apply(value);
 
     /// <summary>Universal "drop panel opacity so the warlord shows through" toggle. Theme-
-    /// agnostic — applies on top of whichever palette is active. Persists with theme choice.</summary>
+    /// agnostic — applies on top of whichever palette is active. Persists with theme choice.
+    /// Discord doesn't support it (see <see cref="IsTranslucentSupported"/>); picker greys
+    /// out the checkbox there.</summary>
     [ObservableProperty] private bool translucentPanels = ThemeManager.TranslucentPanels;
     partial void OnTranslucentPanelsChanged(bool value) => ThemeManager.SetTranslucentPanels(value);
+
+    /// <summary>Mirrors <see cref="ThemeManager.IsTranslucentSupported"/>. Re-notified after
+    /// every theme swap via the TranslucentSupportChanged event so the picker checkbox
+    /// dims/un-dims live when you switch themes with the popup open.</summary>
+    public bool IsTranslucentSupported => ThemeManager.IsTranslucentSupported;
+    public bool IsTranslucentUnsupported => !IsTranslucentSupported;
 
     [ObservableProperty] private bool isThemePickerOpen;
     [RelayCommand] private void ToggleThemePicker() => IsThemePickerOpen = !IsThemePickerOpen;
@@ -288,6 +296,17 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
+        // Refresh the picker's TranslucentPanels + IsTranslucentSupported bindings whenever the
+        // theme swaps (Discord turns the feature off; Default/Dark turn it on). Without this the
+        // checkbox stays in whatever state it was when the popup was first rendered.
+        ThemeManager.TranslucentSupportChanged += () =>
+        {
+            OnPropertyChanged(nameof(TranslucentPanels));
+            SetProperty(ref translucentPanels, ThemeManager.TranslucentPanels, nameof(TranslucentPanels));
+            OnPropertyChanged(nameof(IsTranslucentSupported));
+            OnPropertyChanged(nameof(IsTranslucentUnsupported));
+        };
+
         // Class filter strip: 8 D4 classes, all enabled by default. Unchecking a class hides every
         // chip of that class across all 3 tier sources. Order matches the in-game class select roughly.
         ClassFilters = new[]

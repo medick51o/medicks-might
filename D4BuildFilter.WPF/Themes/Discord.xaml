@@ -56,7 +56,13 @@
     <SolidColorBrush x:Key="Caution.Border"      Color="#faa61a" />  <!-- Discord warning -->
     <SolidColorBrush x:Key="Caution.Fg"          Color="#fbd38d" />
 
-    <!-- ── Watermark ── 10% to keep brand present without breaking the Discord feel -->
-    <sys:Double x:Key="Watermark.Opacity">0.10</sys:Double>
+    <!-- ── Watermark ── 12% (bumped from 0.10) so the warm crimson M/K monogram in the
+         header has a hint of warlord behind it for visual context — without breaking the
+         Discord-flat feel. Per design-agent review 2026-05-29. -->
+    <sys:Double x:Key="Watermark.Opacity">0.12</sys:Double>
+
+    <!-- ── Translucent toggle: NOT defined for Discord. The translucent feature is
+         hard-disabled in the picker when Discord is active (per design-agent: the warm
+         warlord bleeding through Discord's cool flat greys breaks the brand-borrow). -->
 
 </ResourceDictionary>
