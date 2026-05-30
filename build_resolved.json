@@ -1,426 +1,532 @@
 {
-  "build": "Call of the Ancients Endgame Barbarian",
+  "build": "Singer Ancient Barb (S13 LoH)",
   "class": "Barbarian",
   "variants": [
     {
-      "name": "Starter",
+      "name": "Mythics (P230)",
       "affixes": [
         "Strength",
         "Maximum Life",
-        "Resistance to All Elements",
+        "Damage Over Time Multiplier",
+        "2h Mace: 392.7% Overpower Damage",
+        "All Damage Multipler",
+        "Strength",
+        "Maximum Life",
+        "Damage Over Time Multiplier",
+        "1h Mace: 196.3% Overpower Damage",
+        "All Damage Multiplier",
+        "Vulnerable Damage Multiplier",
+        "Strength",
         "Cooldown Reduction",
+        "Damage Over Time Multiplier",
         "Strength",
+        "Damage Over Time Multiplier",
+        "Vulnerable Damage Multiplier",
+        "Vulnerable Damage Multiplier",
+        "Damage Over Time Multiplier",
+        "Strength",
+        "Rend",
+        "Strength",
+        "Maximum Life",
+        "Armor",
         "Resistance to All Elements",
-        "Maximum Life",
-        "to Rallying Cry",
-        "Strength",
-        "Maximum Life",
-        "x All Damage Multiplier",
-        "Fury On Kill",
-        "Strength",
-        "Maximum Life",
-        "x All Damage Multiplier",
-        "Fury On Kill",
-        "Strength",
-        "Maximum Life",
-        "x All Damage Multiplier",
-        "Life On Hit",
-        "Strength",
-        "Maximum Life",
-        "x All Damage Multiplier",
-        "Life On Hit",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "Resistance to All Elements",
-        "Fury Regeneration",
-        "Strength",
-        "Maximum Life",
-        "to War Cry",
-        "Resistance to All Elements",
-        "Strength",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "Strength",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "to Ancient Skills",
-        "Damage",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "to Combat Skills",
-        "Physical Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "to Combat Skills",
-        "Physical Resistance"
-      ],
-      "uniques": []
-    },
-    {
-      "name": "Midgame",
-      "affixes": [
         "Strength",
         "Maximum Life",
         "Maximum Resource",
-        "Cooldown Reduction",
+        "Fury per Second",
         "Strength",
-        "Resistance to All Elements",
-        "Maximum Life",
-        "to Rallying Cry",
-        "Weapon Damage",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Life On Hit",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Maximum Life",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "Resistance to All Elements",
+        "Barrier Generation",
         "Armor",
+        "Attacks Reduce Evade\u0027s Cooldown by 1.5 Seconds",
+        "Maximum Life",
         "Strength",
         "Maximum Life",
-        "to War Cry",
-        "Resistance to All Elements",
-        "Strength",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "Strength",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "x Critical Strike Damage Multiplier",
-        "Damage",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "to Combat Skills",
-        "Physical Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "to Combat Skills",
-        "Physical Resistance"
-      ],
-      "uniques": [
-        "Banished Lord\u0027s Talisman"
-      ]
-    },
-    {
-      "name": "Endgame",
-      "affixes": [
-        "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "Movement Speed",
-        "to Core Skills",
-        "Strength",
-        "Resistance to All Elements",
-        "Maximum Life",
-        "to Rallying Cry",
-        "Weapon Damage",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "Resistance to All Elements",
-        "Armor",
-        "Strength",
-        "Maximum Life",
-        "to War Cry",
-        "Resistance to All Elements",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "x Critical Strike Damage Multiplier",
-        "Attack Speed",
-        "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "to Core Skills",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "x Critical Strike Damage Multiplier",
-        "Damage",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "to Combat Skills",
-        "Physical Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "to Combat Skills",
-        "Physical Resistance"
-      ],
-      "uniques": [
-        "Heir of Perdition",
-        "Ring of Starless Skies",
-        "Banished Lord\u0027s Talisman"
-      ]
-    },
-    {
-      "name": "Walking Simulator",
-      "affixes": [
-        "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "Movement Speed",
-        "to Core Skills",
-        "Damage Reduction",
-        "Movement Speed",
-        "Resistance to All Elements",
-        "Resistance to All Elements",
-        "Weapon Damage",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Lucky Hit: Up to a 15 Chance to Restore Primary Resource",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Maximum Life",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
-        "Resistance to All Elements",
-        "Armor",
-        "Strength",
-        "Maximum Life",
-        "to War Cry",
-        "Resistance to All Elements",
-        "Strength",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "Cooldown Reduction",
-        "Attack Speed",
-        "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "to Core Skills",
-        "to All Skills",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "x Critical Strike Damage Multiplier",
-        "Damage",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "Physical Resistance",
-        "to Combat Skills",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "Physical Resistance",
-        "to Combat Skills"
-      ],
-      "uniques": [
-        "Heir of Perdition",
-        "Tyrael\u0027s Might",
-        "Ring of Starless Skies",
-        "Banished Lord\u0027s Talisman"
-      ]
-    },
-    {
-      "name": "Push (Ult Variant)",
-      "affixes": [
-        "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "Movement Speed",
-        "to Core Skills",
+        "Vulnerable Damage",
+        "Polearm: 114.8% Vulnerable Damage",
+        "Fury on Kill (2H Only)",
         "Strength",
         "Maximum Resource",
         "Maximum Life",
-        "to Defensive Skills",
-        "Weapon Damage",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "Gem Strength in this Item",
-        "Strength",
-        "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Gem Strength in this Item",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Lucky Hit: Up to a 15 Chance to Restore Primary Resource",
-        "Gem Strength in this Item",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Maximum Life",
-        "Gem Strength in this Item",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "x All Damage Multiplier",
-        "Strength",
-        "Maximum Life",
         "Resistance to All Elements",
-        "Armor",
+        "% Strength",
+        "All Skills",
+        "Vulnerable Damage Multiplier",
+        "Damage Over Time Multiplier",
         "Strength",
+        "Damage Over Time Multiplier",
         "Maximum Life",
-        "to War Cry",
-        "Resistance to All Elements",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "Cooldown Reduction",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "Cooldown Reduction",
-        "Strength",
-        "Critical Strike Chance",
-        "x Vulnerable Damage Multiplier",
-        "x Critical Strike Damage Multiplier",
-        "Damage",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "Physical Resistance",
-        "to Combat Skills",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Fire Resistance",
-        "to Combat Skills",
-        "Lightning Resistance",
-        "Physical Resistance",
-        "to Combat Skills"
+        "All Damage Multipler"
       ],
       "uniques": [
+        "Ring of the Ravenous",
         "Heir of Perdition",
-        "Banished Lord\u0027s Talisman"
+        "Chainscourged Mail",
+        "Shattered Vow"
+      ],
+      "slots": [
+        {
+          "slot": "Bludgeoning Weapon",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Damage Over Time Multiplier",
+            "2h Mace: 392.7% Overpower Damage",
+            "All Damage Multipler"
+          ]
+        },
+        {
+          "slot": "Dual-Wield Weapon 1",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Damage Over Time Multiplier",
+            "1h Mace: 196.3% Overpower Damage",
+            "All Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Ring 2",
+          "affixes": [
+            "Vulnerable Damage Multiplier",
+            "Strength",
+            "Cooldown Reduction",
+            "Damage Over Time Multiplier"
+          ]
+        },
+        {
+          "slot": "Ring 1",
+          "affixes": [
+            "Strength",
+            "Damage Over Time Multiplier",
+            "Vulnerable Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Gloves",
+          "affixes": [
+            "Vulnerable Damage Multiplier",
+            "Damage Over Time Multiplier",
+            "Strength",
+            "Rend"
+          ]
+        },
+        {
+          "slot": "Pants",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Armor",
+            "Resistance to All Elements"
+          ]
+        },
+        {
+          "slot": "Helm",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Maximum Resource",
+            "Fury per Second"
+          ]
+        },
+        {
+          "slot": "Boots",
+          "affixes": [
+            "Strength",
+            "Barrier Generation",
+            "Armor",
+            "Attacks Reduce Evade\u0027s Cooldown by 1.5 Seconds",
+            "Maximum Life"
+          ]
+        },
+        {
+          "slot": "Slashing Weapon",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Vulnerable Damage",
+            "Polearm: 114.8% Vulnerable Damage",
+            "Fury on Kill (2H Only)"
+          ]
+        },
+        {
+          "slot": "Chest Armor",
+          "affixes": [
+            "Strength",
+            "Maximum Resource",
+            "Maximum Life",
+            "Resistance to All Elements"
+          ]
+        },
+        {
+          "slot": "Amulet",
+          "affixes": [
+            "% Strength",
+            "All Skills",
+            "Vulnerable Damage Multiplier",
+            "Damage Over Time Multiplier"
+          ]
+        },
+        {
+          "slot": "Dual-Wield Weapon 2",
+          "affixes": [
+            "Strength",
+            "Damage Over Time Multiplier",
+            "Maximum Life",
+            "All Damage Multipler"
+          ]
+        }
       ]
     },
     {
-      "name": "Push (Overpower)",
+      "name": "150 Clear Pxx \u0026 Touming no bugs",
       "affixes": [
-        "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "Movement Speed",
-        "to Core Skills",
-        "Strength",
-        "Resistance to All Elements",
-        "Maximum Life",
-        "to Defensive Skills",
-        "Weapon Damage",
         "Strength",
         "Maximum Life",
-        "x Critical Strike Damage Multiplier",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Lucky Hit: Up to a 15 Chance to Restore Primary Resource",
-        "Strength",
-        "x Critical Strike Damage Multiplier",
-        "x All Damage Multiplier",
-        "Maximum Life",
-        "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "x All Damage Multiplier",
+        "Critical Strike Damage Multiplier",
+        "Polearm: 114.8% Vulnerable Damage",
+        "All Damage Multiplier",
         "Strength",
         "Maximum Life",
-        "Resistance to All Elements",
+        "Maximum Resource",
+        "Fury per Second",
+        "Strength",
         "Armor",
+        "War Cry",
+        "Attacks Reduce Evade\u0027s Cooldown by 1.5 Seconds",
+        "Maximum Life",
         "Strength",
         "Maximum Life",
-        "to War Cry",
+        "Barrier Generation",
         "Resistance to All Elements",
         "Strength",
+        "Defensive Skills",
+        "Maximum Life",
+        "Resistance to All Elements",
+        "% Strength",
         "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "Attack Speed",
+        "Vulnerable Damage Multiplier",
+        "Critical Strike Damage Multiplier",
+        "Strength",
+        "Critical Strike Damage Multiplier",
+        "Maximum Life",
+        "All Damage Multipler",
+        "Strength",
+        "Weapon Damage",
+        "Critical Strike Damage Multiplier",
+        "2h Mace: 392.7% Overpower Damage",
+        "All Damage Multipler",
+        "Strength",
+        "Maximum Life",
+        "Critical Strike Damage Multiplier",
+        "1h Mace: 196.3% Overpower Damage",
+        "All Damage Multiplier",
+        "Critical Strike Damage Multiplier",
+        "Vulnerable Damage Multiplier",
         "Critical Strike Chance",
-        "Lucky Hit Chance",
-        "to Core Skills",
-        "to All Skills",
+        "Cooldown Reduction",
         "Critical Strike Chance",
-        "x Critical Strike Damage Multiplier",
-        "x Vulnerable Damage Multiplier",
-        "to Ancient Skills",
-        "Damage",
-        "to Combat Skills",
-        "Maximum Life",
-        "to Combat Skills",
-        "Maximum Life",
-        "to Combat Skills",
-        "Maximum Life",
-        "to Combat Skills",
-        "Maximum Life",
-        "to Combat Skills",
-        "Maximum Life",
-        "to Combat Skills",
-        "Maximum Life"
+        "Critical Strike Damage Multiplier",
+        "Vulnerable Damage Multiplier",
+        "Cooldown Reduction",
+        "Critical Strike Chance",
+        "Vulnerable Damage Multiplier",
+        "Cooldown Reduction",
+        "Critical Strike Damage Multiplier"
       ],
       "uniques": [
         "Heir of Perdition",
-        "Ring of Starless Skies"
+        "Arreat\u0027s Bearing",
+        "Banished Lord\u0027s Talisman"
+      ],
+      "slots": [
+        {
+          "slot": "Slashing Weapon",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Critical Strike Damage Multiplier",
+            "Polearm: 114.8% Vulnerable Damage",
+            "All Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Helm",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Maximum Resource",
+            "Fury per Second"
+          ]
+        },
+        {
+          "slot": "Boots",
+          "affixes": [
+            "Strength",
+            "Armor",
+            "War Cry",
+            "Attacks Reduce Evade\u0027s Cooldown by 1.5 Seconds",
+            "Maximum Life"
+          ]
+        },
+        {
+          "slot": "Pants",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Barrier Generation",
+            "Resistance to All Elements"
+          ]
+        },
+        {
+          "slot": "Chest Armor",
+          "affixes": [
+            "Strength",
+            "Defensive Skills",
+            "Maximum Life",
+            "Resistance to All Elements"
+          ]
+        },
+        {
+          "slot": "Amulet",
+          "affixes": [
+            "% Strength",
+            "Critical Strike Chance",
+            "Vulnerable Damage Multiplier",
+            "Critical Strike Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Dual-Wield Weapon 2",
+          "affixes": [
+            "Strength",
+            "Critical Strike Damage Multiplier",
+            "Maximum Life",
+            "All Damage Multipler"
+          ]
+        },
+        {
+          "slot": "Bludgeoning Weapon",
+          "affixes": [
+            "Strength",
+            "Weapon Damage",
+            "Critical Strike Damage Multiplier",
+            "2h Mace: 392.7% Overpower Damage",
+            "All Damage Multipler"
+          ]
+        },
+        {
+          "slot": "Dual-Wield Weapon 1",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Critical Strike Damage Multiplier",
+            "1h Mace: 196.3% Overpower Damage",
+            "All Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Ring 1",
+          "affixes": [
+            "Critical Strike Damage Multiplier",
+            "Vulnerable Damage Multiplier",
+            "Critical Strike Chance",
+            "Cooldown Reduction"
+          ]
+        },
+        {
+          "slot": "Gloves",
+          "affixes": [
+            "Critical Strike Chance",
+            "Critical Strike Damage Multiplier",
+            "Vulnerable Damage Multiplier",
+            "Cooldown Reduction"
+          ]
+        },
+        {
+          "slot": "Ring 2",
+          "affixes": [
+            "Critical Strike Chance",
+            "Vulnerable Damage Multiplier",
+            "Cooldown Reduction",
+            "Critical Strike Damage Multiplier"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mythics (P230)",
+      "affixes": [
+        "Strength",
+        "Maximum Life",
+        "Damage Over Time Multiplier",
+        "1h Mace: 196.3% Overpower Damage",
+        "All Damage Multiplier",
+        "Strength",
+        "Maximum Life",
+        "Damage Over Time Multiplier",
+        "2h Mace: 392.7% Overpower Damage",
+        "All Damage Multipler",
+        "Vulnerable Damage Multiplier",
+        "Strength",
+        "Cooldown Reduction",
+        "Damage Over Time Multiplier",
+        "Strength",
+        "Damage Over Time Multiplier",
+        "Vulnerable Damage Multiplier",
+        "Vulnerable Damage Multiplier",
+        "Damage Over Time Multiplier",
+        "Strength",
+        "Rend",
+        "Strength",
+        "Maximum Resource",
+        "Maximum Life",
+        "Resistance to All Elements",
+        "Strength",
+        "Maximum Life",
+        "Armor",
+        "Resistance to All Elements",
+        "Strength",
+        "Maximum Life",
+        "Vulnerable Damage",
+        "Polearm: 114.8% Vulnerable Damage",
+        "Fury on Kill (2H Only)",
+        "Strength",
+        "Barrier Generation",
+        "Armor",
+        "Attacks Reduce Evade\u0027s Cooldown by 1.5 Seconds",
+        "Maximum Life",
+        "Strength",
+        "Maximum Life",
+        "Maximum Resource",
+        "Fury per Second",
+        "Strength",
+        "Damage Over Time Multiplier",
+        "Maximum Life",
+        "All Damage Multipler",
+        "% Strength",
+        "All Skills",
+        "Vulnerable Damage Multiplier",
+        "Damage Over Time Multiplier"
+      ],
+      "uniques": [
+        "Shattered Vow",
+        "Rage of Harrogath",
+        "Chainscourged Mail",
+        "Heir of Perdition",
+        "Ring of the Ravenous"
+      ],
+      "slots": [
+        {
+          "slot": "Dual-Wield Weapon 1",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Damage Over Time Multiplier",
+            "1h Mace: 196.3% Overpower Damage",
+            "All Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Bludgeoning Weapon",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Damage Over Time Multiplier",
+            "2h Mace: 392.7% Overpower Damage",
+            "All Damage Multipler"
+          ]
+        },
+        {
+          "slot": "Ring 2",
+          "affixes": [
+            "Vulnerable Damage Multiplier",
+            "Strength",
+            "Cooldown Reduction",
+            "Damage Over Time Multiplier"
+          ]
+        },
+        {
+          "slot": "Ring 1",
+          "affixes": [
+            "Strength",
+            "Damage Over Time Multiplier",
+            "Vulnerable Damage Multiplier"
+          ]
+        },
+        {
+          "slot": "Gloves",
+          "affixes": [
+            "Vulnerable Damage Multiplier",
+            "Damage Over Time Multiplier",
+            "Strength",
+            "Rend"
+          ]
+        },
+        {
+          "slot": "Chest Armor",
+          "affixes": [
+            "Strength",
+            "Maximum Resource",
+            "Maximum Life",
+            "Resistance to All Elements"
+          ]
+        },
+        {
+          "slot": "Pants",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Armor",
+            "Resistance to All Elements"
+          ]
+        },
+        {
+          "slot": "Slashing Weapon",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Vulnerable Damage",
+            "Polearm: 114.8% Vulnerable Damage",
+            "Fury on Kill (2H Only)"
+          ]
+        },
+        {
+          "slot": "Boots",
+          "affixes": [
+            "Strength",
+            "Barrier Generation",
+            "Armor",
+            "Attacks Reduce Evade\u0027s Cooldown by 1.5 Seconds",
+            "Maximum Life"
+          ]
+        },
+        {
+          "slot": "Helm",
+          "affixes": [
+            "Strength",
+            "Maximum Life",
+            "Maximum Resource",
+            "Fury per Second"
+          ]
+        },
+        {
+          "slot": "Dual-Wield Weapon 2",
+          "affixes": [
+            "Strength",
+            "Damage Over Time Multiplier",
+            "Maximum Life",
+            "All Damage Multipler"
+          ]
+        },
+        {
+          "slot": "Amulet",
+          "affixes": [
+            "% Strength",
+            "All Skills",
+            "Vulnerable Damage Multiplier",
+            "Damage Over Time Multiplier"
+          ]
+        }
       ]
     }
   ]

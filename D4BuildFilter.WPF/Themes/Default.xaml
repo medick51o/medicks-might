@@ -19,8 +19,8 @@
     <!-- ── Surfaces ── -->
     <SolidColorBrush x:Key="Surface.Page"        Color="#17120f" />
     <SolidColorBrush x:Key="Surface.Header"      Color="#cc1d1612" />  <!-- 80% alpha baked -->
-    <SolidColorBrush x:Key="Surface.Card"        Color="#401d1611" />  <!-- 25% alpha baked -->
-    <SolidColorBrush x:Key="Surface.Card.Hover"  Color="#803c2f25" />  <!-- 50% alpha baked -->
+    <SolidColorBrush x:Key="Surface.Card"        Color="#d91d1611" />  <!-- 85% alpha — opaque enough that class-color chip text clears WCAG AA over the warlord bleed (was 25%, killed contrast) -->
+    <SolidColorBrush x:Key="Surface.Card.Hover"  Color="#e63c2f25" />  <!-- 90% alpha, lifted warm tint -->
     <SolidColorBrush x:Key="Surface.Inset"       Color="#241d18" />
     <SolidColorBrush x:Key="Surface.Footer"      Color="#231a14" />
     <SolidColorBrush x:Key="Surface.Panel"       Color="#231a14" />     <!-- variant border bg, options panel bg -->
@@ -38,8 +38,8 @@
     <SolidColorBrush x:Key="Accent.Link.Hover"   Color="#cfe0f5" />
 
     <!-- ── Actions (buttons) ── -->
-    <SolidColorBrush x:Key="Action.Primary.Bg"        Color="#9c2b25" />  <!-- D4 crimson -->
-    <SolidColorBrush x:Key="Action.Primary.Bg.Hover"  Color="#b8352e" />
+    <SolidColorBrush x:Key="Action.Primary.Bg"        Color="#b8352e" />  <!-- D4 crimson, brightened from #9c2b25 so the Compile/Copy CTAs out-weigh the gold labels -->
+    <SolidColorBrush x:Key="Action.Primary.Bg.Hover"  Color="#cf3d34" />
     <SolidColorBrush x:Key="Action.Primary.Fg"        Color="#ffffff" />
     <SolidColorBrush x:Key="Action.Secondary.Bg"      Color="#3a312b" />
     <SolidColorBrush x:Key="Action.Secondary.Bg.Hover" Color="#4a3f37" />
@@ -60,9 +60,12 @@
     <SolidColorBrush x:Key="Caution.Fg"          Color="#f0c89a" />
 
     <!-- ── Watermark (full-bleed warlord image opacity) ── -->
-    <sys:Double x:Key="Watermark.Opacity">0.22</sys:Double>
+    <!-- 0.16 (was 0.22): with cards now opaque the warlord only reads through the header + gutters,
+         so it can stay warm without washing out content. -->
+    <sys:Double x:Key="Watermark.Opacity">0.16</sys:Double>
 
     <!-- ── Translucent toggle: per-theme opacity for Surface.Panel/Inset/Card when ON. -->
-    <sys:Double x:Key="Translucent.Opacity">0.35</sys:Double>
+    <!-- Floor raised 0.35 → 0.65 so even the "translucent panels" mode keeps chip text legible. -->
+    <sys:Double x:Key="Translucent.Opacity">0.65</sys:Double>
 
 </ResourceDictionary>

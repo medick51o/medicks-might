@@ -761,14 +761,22 @@ public partial class MainViewModel : ObservableObject
         StatusMessage = "";
     }
 
+    /// <summary>Copy-button label. Flips to "✓ Copied" on a successful copy, then resets — gives the
+    /// result page a positive success beat instead of the page's only feedback being warning bands.</summary>
+    [ObservableProperty]
+    private string copyButtonText = "📋 Copy";
+
     [RelayCommand]
-    private void CopyCode()
+    private async Task CopyCodeAsync()
     {
         if (string.IsNullOrEmpty(ImportCode)) return;
         try
         {
             Clipboard.SetText(ImportCode);
             StatusMessage = "Copied — paste into D4's Loot Filter → Import.";
+            CopyButtonText = "✓ Copied";
+            await Task.Delay(1600);
+            CopyButtonText = "📋 Copy";
         }
         catch (Exception ex)
         {
