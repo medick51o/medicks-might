@@ -1,3 +1,21 @@
 bin/
 obj/
 *.user
+
+# Build / publish staging (the 58MB self-contained exe + native libs live here)
+_share/
+
+# QA screenshots + scratch images (regenerated on demand via tools/Capture-*.ps1)
+_design/
+_wpf_full.png
+_discord_landing.png
+
+# Tester scratch outputs
+last_code_perslot.txt
+
+# Local launchers / scratch (machine-specific)
+D4 Filter Launcher.cmd
+Open-D4Filter.ps1
+
+# Claude Code local config + hooks (machine-local)
+.claude/

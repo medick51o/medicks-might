@@ -37,8 +37,11 @@ public sealed class UniqueLookup
         return new UniqueLookup(map);
     }
 
-    public static UniqueLookup Default() =>
+    // Cached singleton — see NameLookup.Default() for rationale (static file, parse once, thread-safe).
+    private static readonly Lazy<UniqueLookup> _default = new(() =>
         FromFile(DataFiles.Find("Uniques.enUS.json")
             ?? throw new FileNotFoundException(
-                "Uniques.enUS.json not found (bundle it in Data\\ or install Diablo4Companion)."));
+                "Uniques.enUS.json not found (bundle it in Data\\ or install Diablo4Companion).")));
+
+    public static UniqueLookup Default() => _default.Value;
 }

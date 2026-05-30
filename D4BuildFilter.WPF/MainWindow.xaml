@@ -103,6 +103,34 @@
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
 
+        <!-- Slim transparent icon button for the 56px header chrome (Ko-fi / Discord), matching
+             the theme-gear's look: transparent, gold glyph, card-hover background on mouseover. -->
+        <Style x:Key="HeaderIcon" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="2,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="hb" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="18"
+                                       Foreground="{DynamicResource Accent.Primary}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="hb" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Clickable build "chip" used in the tier lists. Semi-transparent so the landing-page
              hero background bleeds through (the chip still reads clearly against the dimmed art). -->
         <Style x:Key="BuildChip" TargetType="Button">
@@ -115,6 +143,18 @@
             <Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <!-- Right-click → open this build on its source site (link-out + attribution model).
+                 A ContextMenu isn't in the visual tree, so the command binds through PlacementTarget
+                 back to the chip's TierBuildVM. -->
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="Open on source site ↗"
+                                  Command="{Binding PlacementTarget.DataContext.OpenSourceCommand,
+                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -329,6 +369,14 @@
                         </StackPanel>
                     </Border>
                 </Popup>
+                <!-- Support + community: Ko-fi (☕) and Discord (💬). Icon-only to fit the 56px bar;
+                     tooltips spell them out. Both open placeholder URLs until the accounts exist. -->
+                <Button DockPanel.Dock="Right" Command="{Binding OpenDiscordCommand}"
+                        Style="{StaticResource HeaderIcon}" Content="💬"
+                        ToolTip="Join the Medick's Might Discord" />
+                <Button DockPanel.Dock="Right" Command="{Binding OpenKofiCommand}"
+                        Style="{StaticResource HeaderIcon}" Content="☕"
+                        ToolTip="Support the project on Ko-fi" />
                 <!-- Build name on the right of the build-name area, before the gear -->
                 <TextBlock DockPanel.Dock="Right" Text="{Binding BuildName}"
                            VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold"
@@ -378,9 +426,12 @@
                     <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
                                HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Primary}" />
-                    <TextBlock Text="THE GOLD STANDARD IN LOOT FILTER STANDARDIZATION FOR DIABLO 4"
-                               HorizontalAlignment="Center" Margin="0,4,0,0"
-                               FontSize="11" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}"
+                    <!-- Brand slogan kept (it's part of the MedicK's Might identity) but demoted from
+                         bold-gold to a quiet muted sub-slogan so it stops out-shouting the Compile CTA.
+                         Gold is reserved for section labels + the wordmark now. -->
+                    <TextBlock Text="The gold standard in loot-filter standardization for Diablo 4"
+                               HorizontalAlignment="Center" Margin="0,8,0,0"
+                               FontSize="11" FontWeight="Normal" Foreground="{DynamicResource Text.Muted}"
                                TextAlignment="Center" />
                 </StackPanel>
 
@@ -594,8 +645,14 @@
                 <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0">
                     <TextBlock Text="This season's top builds" FontSize="18" FontWeight="Bold"
                                Foreground="{DynamicResource Accent.Primary}" HorizontalAlignment="Center" />
-                    <TextBlock Text="Pulled live from the community. Click any build to load it straight into the filter."
-                               FontSize="11" Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center" Margin="0,2,0,14" />
+                    <!-- Attribution (link-out model): rankings belong to the sources; we credit them,
+                         link back ("view full list ↗" + right-click any build to open it there), and
+                         sell the filter generation. Keeps us clear of redistributing their data as ours. -->
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" MaxWidth="680"
+                               FontSize="11" Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center" Margin="0,2,0,14">
+                        <Run Text="Tier rankings courtesy of Maxroll, D4Builds &amp; Mobalytics." />
+                        <Run Text="Click a build to compile a filter from it — or right-click to open it on its source." />
+                    </TextBlock>
 
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -1189,14 +1246,11 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Filter title (beta.8.3: inline row to save vertical — was stacked
-                         label+box+note, now a single row "Filter title:  [box]  X/24 chars").
-                         beta.8.4: bumped Margin top 10 → 40 + a 25-tall trailing gap below this row
-                         (via Margin on the next section). That 65px gutter is intentional dead space
-                         that lets the full-bleed warlord watermark surface — the design agent's read
-                         is that consolidating the secondary toggles to 4-col exposes the warlord's
-                         helm + shoulders through this band naturally, without staging. -->
-                    <DockPanel LastChildFill="True" Margin="0,40,0,25">
+                    <!-- Filter title — inline row ("Filter title:  [box]  X/24 chars").
+                         beta.9: dropped the old 65px "warlord-reveal" dead-space gutter. With cards now
+                         opaque the watermark reads through the header/gutters anyway, and the dead band
+                         only pushed the Copy button below the fold. Back on the 8px grid (16 top). -->
+                    <DockPanel LastChildFill="True" Margin="0,16,0,0">
                         <TextBlock DockPanel.Dock="Left" Text="Filter title" VerticalAlignment="Center"
                                    Style="{StaticResource SectionLabel}" Margin="0,0,8,0"
                                    ToolTip="Becomes the filter's name in Diablo 4 when imported. D4 drops names longer than 24 chars." />
@@ -1209,17 +1263,23 @@
                     <!-- Import code (beta.8): single-line monospace + Copy button welded right.
                          Was a 120px multiline wall of base64 dominating the page. The full code lives
                          in the Expander below for the curious; the primary affordance is just Copy. -->
-                    <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
-                    <DockPanel LastChildFill="True">
-                        <Button DockPanel.Dock="Right" Content="📋 Copy"
-                                Command="{Binding CopyCodeCommand}"
-                                Width="110" Height="38" Margin="8,0,0,0" />
-                        <TextBox Text="{Binding ImportCode, Mode=OneWay}"
-                                 IsReadOnly="True" Height="38" FontSize="11"
-                                 TextWrapping="NoWrap"
-                                 HorizontalScrollBarVisibility="Hidden"
-                                 VerticalContentAlignment="Center" />
-                    </DockPanel>
+                    <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
+                    <!-- beta.9: the import code is the whole payoff, so it gets a "ticket" treatment —
+                         a gold left-accent rail so the eye lands here. Copy flips to "✓ Copied" (VM). -->
+                    <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="3,0,0,0"
+                            Background="{DynamicResource Surface.Inset}" CornerRadius="4" Padding="8">
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Content="{Binding CopyButtonText}"
+                                    Command="{Binding CopyCodeCommand}"
+                                    Width="110" Height="38" Margin="8,0,0,0" />
+                            <TextBox Text="{Binding ImportCode, Mode=OneWay}"
+                                     IsReadOnly="True" Height="38" FontSize="11"
+                                     TextWrapping="NoWrap" BorderThickness="0"
+                                     Background="Transparent"
+                                     HorizontalScrollBarVisibility="Hidden"
+                                     VerticalContentAlignment="Center" />
+                        </DockPanel>
+                    </Border>
                     <DockPanel LastChildFill="True" Margin="0,6,0,0">
                         <TextBlock DockPanel.Dock="Right" Text="{Binding FilterInfo}" Foreground="{DynamicResource Text.Secondary}"
                                    VerticalAlignment="Center" FontSize="12" FontFamily="Consolas" />
@@ -1239,14 +1299,13 @@
                                    FontWeight="SemiBold" Foreground="{DynamicResource Danger.Fg}" />
                     </Border>
 
-                    <!-- Re-import warning: options regenerate the code; an imported filter won't auto-update -->
-                    <Border Background="{DynamicResource Caution.Bg}" BorderBrush="{DynamicResource Caution.Border}" BorderThickness="1"
-                            CornerRadius="4" Padding="12,8" Margin="0,10,0,0">
-                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource Caution.Fg}">
-                            <Run FontWeight="Bold" Text="⚠ Changed an option?" />
-                            <Run Text=" Copy the new code and re-import to apply changes — in-game filters don't auto-update." />
-                        </TextBlock>
-                    </Border>
+                    <!-- Re-import note (beta.9): demoted from an always-on amber WARNING band to a quiet
+                         muted helper line. Amber/red are now reserved for the genuine rule-cap failure
+                         above, so a successful compile no longer reads as two alarm colors. -->
+                    <TextBlock TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"
+                               Foreground="{DynamicResource Text.Muted}">
+                        <Run Text="ℹ Changed an option? Copy the new code and re-import — in-game filters don't auto-update." />
+                    </TextBlock>
 
                     <!-- How to import (beta.8: collapsed into an Expander since this is read-once
                          reference content — recovers ~140px of viewport from the read-only banner). -->
@@ -1284,14 +1343,14 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" FontSize="11" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center">
-                    <Run Text="D4 Build Filter (preview)" />
+                    <Run Text="MedicK's Might (beta)" />
                     <Run Text="  •  " />
                     <Run Text="{Binding StatusMessage, Mode=OneWay}" Foreground="#8c8" />
                 </TextBlock>
 
                 <TextBlock Grid.Column="2" FontSize="10" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis">
-                    Free community tool. Not affiliated with Blizzard or maxroll.gg.
+                    Not affiliated with or endorsed by Blizzard Entertainment. Diablo is a trademark of Blizzard Entertainment, Inc.
                 </TextBlock>
             </Grid>
         </Border>

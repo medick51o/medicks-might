@@ -22,15 +22,17 @@ public sealed partial class TierBuildVM : ObservableObject
     public string Source { get; }        // "Maxroll" | "D4Builds" | "Mobalytics"
     public string? TierKind { get; }     // "Endgame" | "Bossing" | ... — null for non-tier chips
     public string? Tier { get; }         // "S" | "A" | ... | "God" | "Support" — null for non-tier chips
-    public string Tip => $"{ClassName} · click to load this build into the filter";
+    public string Tip => $"{ClassName} · click to load into the filter · right-click to open on {Source}";
     public Brush ClassColor { get; }
     private readonly Action<string> _load;
     private readonly Action<TierBuildVM>? _toggleFav;
+    private readonly Action<string>? _openSource;
 
     [ObservableProperty] private bool _isFavorited;
 
     public TierBuildVM(TierBuild b, string source, string? tierKind, string? tier,
-        Action<string> load, Action<TierBuildVM>? toggleFav = null, bool isFavorited = false)
+        Action<string> load, Action<TierBuildVM>? toggleFav = null, bool isFavorited = false,
+        Action<string>? openSource = null)
     {
         Name = b.Name;
         ClassName = b.ClassName;
@@ -40,12 +42,17 @@ public sealed partial class TierBuildVM : ObservableObject
         Tier = tier;
         _load = load;
         _toggleFav = toggleFav;
+        _openSource = openSource;
         IsFavorited = isFavorited;
         ClassColor = ColorFor(b.ClassName);
     }
 
     [RelayCommand] private void Load() => _load(Url);
     [RelayCommand] private void ToggleFavorite() => _toggleFav?.Invoke(this);
+    /// <summary>Open this build on its source site (Maxroll/D4Builds/Mobalytics) in the browser —
+    /// the "link-out + attribution" model: we drive traffic back to the source rather than presenting
+    /// their rankings as our own redistributed data.</summary>
+    [RelayCommand] private void OpenSource() { if (!string.IsNullOrWhiteSpace(Url)) _openSource?.Invoke(Url); }
 
     /// <summary>Public so FavoriteChipVM can render with the same class palette.</summary>
     public static Brush ClassBrush(string cls) => ColorFor(cls);
