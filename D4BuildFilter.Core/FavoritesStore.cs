@@ -22,7 +22,7 @@ public sealed record FavoriteEntry(
 /// <c>%LOCALAPPDATA%\MedicKsMight\favorites.json</c> so it survives app re-installs (the publish zip
 /// blows away the install dir, but AppData stays). Identity is by URL — toggle removes the existing
 /// entry if any, else adds a fresh one.</summary>
-public sealed class FavoritesStore
+public sealed class FavoritesStore : IFavoritesStore
 {
     private readonly string _path;
     private readonly List<FavoriteEntry> _entries = new();

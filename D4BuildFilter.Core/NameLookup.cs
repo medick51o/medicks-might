@@ -46,10 +46,15 @@ public sealed class NameLookup
         return new NameLookup(map);
     }
 
-    /// <summary>Find the data file: bundled copy next to the app first, then a D4Companion install.</summary>
-    public static NameLookup Default() =>
+    // Cached: the data file is static for the life of the process, so parse it once. Previously
+    // Default() re-read + re-parsed the JSON on every Maxroll compile. Lazy is thread-safe by
+    // default (LazyThreadSafetyMode.ExecutionAndPublication) — important once this runs server-side.
+    private static readonly Lazy<NameLookup> _default = new(() =>
         FromFile(DataFiles.Find("Affixes.enUS.json")
             ?? throw new FileNotFoundException(
                 "Affixes.enUS.json not found. Expected it bundled in Data\\ next to the app, " +
-                "or a Diablo4Companion install under Downloads."));
+                "or a Diablo4Companion install under Downloads.")));
+
+    /// <summary>Cached lookup loaded from the bundled file (next to the app) or a D4Companion install.</summary>
+    public static NameLookup Default() => _default.Value;
 }

@@ -108,8 +108,9 @@ public partial class MainViewModel : ObservableObject
     // The chips on the landing page's "Your Favorites" row + the star indicator on every tier chip
     // are both driven from this store. Favorites are LIVE REFERENCES: when the user re-opens one we
     // re-fetch from the source, so meta drift over the season is reflected automatically.
-    private readonly FavoritesStore _favorites = new();
-    private readonly PasteStore _pasteStore = new();
+    // Typed as the interfaces so a future web build can inject DB-backed stores without touching the VM.
+    private readonly IFavoritesStore _favorites = new FavoritesStore();
+    private readonly IPasteStore _pasteStore = new PasteStore();
     public ObservableCollection<FavoriteChipVM> Favorites { get; } = new();
     public bool HasFavorites => Favorites.Count > 0;
     /// <summary>Inverse of <see cref="HasFavorites"/>, for XAML visibility (BooleanToVisibilityConverter
@@ -505,14 +506,7 @@ public partial class MainViewModel : ObservableObject
 
     private static string Truncate(string s, int n) => s.Length <= n ? s : s[..n].TrimEnd();
 
-    /// <summary>Stable 12-char hash of pasted text — used as the synthetic URL identity for
-    /// favorite-ing pastes that have no real source URL. Same text = same favorite entry.</summary>
-    private static string PasteHash(string text)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text ?? ""));
-        return Convert.ToHexString(bytes).Substring(0, 12).ToLowerInvariant();
-    }
+    // PasteHash moved to Core.PasteStore.Hash so the paste identity can be computed server-side too.
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
     [ObservableProperty] private bool strictEndgame;
@@ -612,29 +606,10 @@ public partial class MainViewModel : ObservableObject
                 Ingest(pasted, "Community paste");
                 return;
             }
-            var (resolved, srcLabel) = await Task.Run(async () =>
-            {
-                // Route by source: d4builds (Firestore) vs Mobalytics (__PRELOADED_STATE__) vs maxroll.
-                string? raw = File.Exists(source) ? await File.ReadAllTextAsync(source) : null;
-                bool isD4b = raw is not null
-                    ? raw.Contains("\"newStats\"") || raw.Contains("databases/(default)")
-                    : D4BuildsFetcher.IsD4BuildsUrl(source);
-                bool isMoba = raw is not null
-                    ? raw.Contains("__PRELOADED_STATE__")
-                    : MobalyticsFetcher.IsMobalyticsUrl(source);
-                if (isD4b)
-                {
-                    raw ??= await D4BuildsFetcher.FetchRawAsync(source);
-                    return (D4BuildsFetcher.Parse(raw), "D4Builds");
-                }
-                if (isMoba)
-                {
-                    raw ??= await MobalyticsFetcher.FetchRawAsync(source);
-                    return (MobalyticsFetcher.Parse(raw), "Mobalytics");
-                }
-                raw ??= await MaxrollFetcher.FetchRawAsync(source);
-                return (MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default()), "Maxroll");
-            });
+            // Source-routing now lives in Core.BuildResolver (extracted from here so it's testable
+            // and web-reusable). Task.Run keeps the parse/CPU work off the UI thread.
+            var (resolved, srcLabel) = await Task.Run(
+                () => BuildResolver.ResolveAsync(source, NameLookup.Default(), UniqueLookup.Default()));
             // URL-loaded builds: capture provenance for the result-page ★ button + source pill.
             // If the build came from a tier chip, LoadBuildFromChip already pre-seeded
             // TierKind/Tier; here we refine Source to whatever the fetcher actually resolved.
@@ -666,7 +641,7 @@ public partial class MainViewModel : ObservableObject
             // Community paste favorites: synthesize a stable "paste://<hash>" pseudo-URL so the
             // favorite is starrable + identifiable, AND drop the raw text into the PasteStore
             // sidecar so a future ★ favorite click on the landing page can re-load it.
-            var hash = PasteHash(pasted);
+            var hash = PasteStore.Hash(pasted);
             _pasteStore.Save(hash, pasted);
             SetCurrentSource("Community", $"paste://{hash}");
             _currentTierKind = null;
