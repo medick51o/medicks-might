@@ -103,6 +103,34 @@
             <Setter Property="Margin" Value="0,0,0,4" />
         </Style>
 
+        <!-- Slim transparent icon button for the 56px header chrome (Ko-fi / Discord), matching
+             the theme-gear's look: transparent, gold glyph, card-hover background on mouseover. -->
+        <Style x:Key="HeaderIcon" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Margin" Value="2,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="hb" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <TextBlock Text="{TemplateBinding Content}" FontSize="18"
+                                       Foreground="{DynamicResource Accent.Primary}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="hb" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Clickable build "chip" used in the tier lists. Semi-transparent so the landing-page
              hero background bleeds through (the chip still reads clearly against the dimmed art). -->
         <Style x:Key="BuildChip" TargetType="Button">
@@ -115,6 +143,18 @@
             <Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <!-- Right-click → open this build on its source site (link-out + attribution model).
+                 A ContextMenu isn't in the visual tree, so the command binds through PlacementTarget
+                 back to the chip's TierBuildVM. -->
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Header="Open on source site ↗"
+                                  Command="{Binding PlacementTarget.DataContext.OpenSourceCommand,
+                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -329,6 +369,14 @@
                         </StackPanel>
                     </Border>
                 </Popup>
+                <!-- Support + community: Ko-fi (☕) and Discord (💬). Icon-only to fit the 56px bar;
+                     tooltips spell them out. Both open placeholder URLs until the accounts exist. -->
+                <Button DockPanel.Dock="Right" Command="{Binding OpenDiscordCommand}"
+                        Style="{StaticResource HeaderIcon}" Content="💬"
+                        ToolTip="Join the Medick's Might Discord" />
+                <Button DockPanel.Dock="Right" Command="{Binding OpenKofiCommand}"
+                        Style="{StaticResource HeaderIcon}" Content="☕"
+                        ToolTip="Support the project on Ko-fi" />
                 <!-- Build name on the right of the build-name area, before the gear -->
                 <TextBlock DockPanel.Dock="Right" Text="{Binding BuildName}"
                            VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold"
@@ -597,8 +645,14 @@
                 <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0">
                     <TextBlock Text="This season's top builds" FontSize="18" FontWeight="Bold"
                                Foreground="{DynamicResource Accent.Primary}" HorizontalAlignment="Center" />
-                    <TextBlock Text="Pulled live from the community. Click any build to load it straight into the filter."
-                               FontSize="11" Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center" Margin="0,2,0,14" />
+                    <!-- Attribution (link-out model): rankings belong to the sources; we credit them,
+                         link back ("view full list ↗" + right-click any build to open it there), and
+                         sell the filter generation. Keeps us clear of redistributing their data as ours. -->
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" MaxWidth="680"
+                               FontSize="11" Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center" Margin="0,2,0,14">
+                        <Run Text="Tier rankings courtesy of Maxroll, D4Builds &amp; Mobalytics." />
+                        <Run Text="Click a build to compile a filter from it — or right-click to open it on its source." />
+                    </TextBlock>
 
                     <Grid>
                         <Grid.ColumnDefinitions>

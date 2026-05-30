@@ -393,7 +393,8 @@ public partial class MainViewModel : ObservableObject
                     new TierBuildVM(b, source, tierKind, g.Key,
                         url => LoadBuildFromChipUrl(b, source, tierKind, g.Key),
                         ToggleFavorite,
-                        favUrls.Contains(b.Url))).ToList()))
+                        favUrls.Contains(b.Url),
+                        openSource: OpenUrl)).ToList()))
                 .ToList();
             cache[kind] = groups;
             ProjectIntoTarget(groups, target);
@@ -758,6 +759,15 @@ public partial class MainViewModel : ObservableObject
             StatusMessage = $"Clipboard error: {ex.Message}";
         }
     }
+
+    // ── Community + support links ──
+    // Placeholder URLs — update these constants once Medick creates the Ko-fi + Discord (the app
+    // wiring is done so it's a one-line change each). Kept in the VM (app-shell concern, not Core).
+    public const string KofiUrl    = "https://ko-fi.com/medicksmight";
+    public const string DiscordUrl = "https://discord.gg/medicksmight";
+
+    [RelayCommand] private void OpenKofi()    => OpenUrl(KofiUrl);
+    [RelayCommand] private void OpenDiscord() => OpenUrl(DiscordUrl);
 
     [RelayCommand]
     private void OpenMaxroll() => OpenUrl("https://maxroll.gg/d4/build-guides");
