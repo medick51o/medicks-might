@@ -761,9 +761,11 @@ public partial class MainViewModel : ObservableObject
     }
 
     // ── Community + support links ──
-    // Ko-fi is live (Medick's real page). Discord is still a placeholder until the server exists.
+    // Ko-fi is live (Medick's real page).
     public const string KofiUrl    = "https://ko-fi.com/medick94265";
-    public const string DiscordUrl = "https://discord.gg/medicksmight";   // TODO: replace with real invite
+    // ⚠ TEMPORARY invite — expires ~2026-06-29 (30 days) / 50 uses max. Replace with a
+    //   never-expire, unlimited-use invite before then or the Discord button will dead-link.
+    public const string DiscordUrl = "https://discord.gg/RFDBSg4Yq";
 
     [RelayCommand] private void OpenKofi()    => OpenUrl(KofiUrl);
     [RelayCommand] private void OpenDiscord() => OpenUrl(DiscordUrl);
