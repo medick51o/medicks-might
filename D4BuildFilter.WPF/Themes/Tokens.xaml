@@ -33,7 +33,8 @@
 
     <!-- Type ramp. One web-grade font family token (Phase 3 repoints Font.Sans to Inter; until then
          it is Segoe UI so Phase 1 is a zero-visual change). Mono stays for the import code. -->
-    <FontFamily x:Key="Font.Sans">Segoe UI</FontFamily>
+    <!-- Bundled Inter (Assets/Fonts/*.ttf, Resource). Fallback to Segoe UI if it ever fails to load. -->
+    <FontFamily x:Key="Font.Sans">pack://application:,,,/Assets/Fonts/#Inter, Segoe UI</FontFamily>
     <FontFamily x:Key="Font.Mono">Consolas</FontFamily>
 
     <!-- Sizes: nine 1px-apart sizes collapsed to six deliberate steps. -->

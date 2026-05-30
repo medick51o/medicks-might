@@ -27,7 +27,7 @@
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-            <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
         </Style>
 
         <!-- Primary action button — themed via Action.Primary tokens -->
@@ -36,7 +36,8 @@
             <Setter Property="Foreground" Value="{DynamicResource Action.Primary.Fg}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="16,8" />
-            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
+            <Setter Property="FontSize" Value="{DynamicResource Type.Body}" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
@@ -77,7 +78,7 @@
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Border.Input}" />
             <Setter Property="Padding" Value="8,6" />
-            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
             <Setter Property="CaretBrush" Value="{DynamicResource Text.Primary}" />
         </Style>
 
@@ -85,14 +86,14 @@
             <Setter Property="Background" Value="{DynamicResource Surface.Inset}" />
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Border.Strong}" />
-            <Setter Property="FontFamily" Value="Consolas" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
+            <Setter Property="FontSize" Value="{DynamicResource Type.BodySm}" />
         </Style>
 
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
-            <Setter Property="FontFamily" Value="Segoe UI" />
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
+            <Setter Property="FontSize" Value="{DynamicResource Type.BodySm}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
 
@@ -1257,7 +1258,7 @@
                         <TextBlock DockPanel.Dock="Right" Text="{Binding TitleLengthNote}"
                                    FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" Margin="8,0,0,0" />
                         <TextBox Text="{Binding FilterTitle, UpdateSourceTrigger=PropertyChanged}"
-                                 MaxLength="24" Height="30" FontSize="{DynamicResource Type.Body}" FontFamily="Segoe UI" />
+                                 MaxLength="24" Height="30" FontSize="{DynamicResource Type.Body}" FontFamily="{DynamicResource Font.Sans}" />
                     </DockPanel>
 
                     <!-- Import code (beta.8): single-line monospace + Copy button welded right.
@@ -1274,6 +1275,7 @@
                                     Width="110" Height="38" Margin="8,0,0,0" />
                             <TextBox Text="{Binding ImportCode, Mode=OneWay}"
                                      IsReadOnly="True" Height="38" FontSize="{DynamicResource Type.Caption}"
+                                     FontFamily="{DynamicResource Font.Mono}"
                                      TextWrapping="NoWrap" BorderThickness="0"
                                      Background="Transparent"
                                      HorizontalScrollBarVisibility="Hidden"
@@ -1282,11 +1284,12 @@
                     </Border>
                     <DockPanel LastChildFill="True" Margin="0,6,0,0">
                         <TextBlock DockPanel.Dock="Right" Text="{Binding FilterInfo}" Foreground="{DynamicResource Text.Secondary}"
-                                   VerticalAlignment="Center" FontSize="{DynamicResource Type.BodySm}" FontFamily="Consolas" />
+                                   VerticalAlignment="Center" FontSize="{DynamicResource Type.BodySm}" FontFamily="{DynamicResource Font.Mono}" />
                         <Expander Header="▾ Show full code" Foreground="{DynamicResource Text.Muted}" FontSize="{DynamicResource Type.Caption}"
                                   HorizontalAlignment="Left">
                             <TextBox Text="{Binding ImportCode, Mode=OneWay}"
                                      IsReadOnly="True" MinHeight="100" MaxHeight="200" TextWrapping="Wrap"
+                                     FontFamily="{DynamicResource Font.Mono}"
                                      VerticalScrollBarVisibility="Auto" FontSize="{DynamicResource Type.Caption}" Margin="0,6,0,0" />
                         </Expander>
                     </DockPanel>

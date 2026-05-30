@@ -1,6 +1,14 @@
 /* MedicK's Might landing — brand-matched to the app's Default theme.
-   Palette: page #17120f, gold #d4af37, crimson #b8352e, cream text #e3d8cc. */
+   Palette: page #17120f, gold #d4af37, crimson #b8352e, cream text #e3d8cc.
+   Type: Inter — the SAME font the desktop app bundles (Assets/Fonts), so the two
+   products render with pixel-identical letterforms. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root {
+  /* Design-system tokens shared 1:1 with the app's Themes/Tokens.xaml */
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
   --page: #17120f;
   --card: #211a15;
   --border: #4a3c30;
@@ -17,7 +25,7 @@
 body {
   background: var(--page);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -73,7 +81,7 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px 0 48px;
 }
 .card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 22px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-6);
 }
 .card h3 { color: var(--gold); font-size: 17px; margin-bottom: 8px; }
 .card p { color: var(--text); font-size: 14px; }

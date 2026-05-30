@@ -29,6 +29,9 @@
     <Resource Include="Assets\mk_logo.png" />
     <!-- Hero banner artwork (D4 warlord) for the landing page header. -->
     <Resource Include="Assets\hero.jpg" />
+    <!-- Inter font (SIL OFL) — bundled so the app uses the same web-grade type as the future
+         website (web/style.css also loads Inter) for pixel-parity across the desktop->web jump. -->
+    <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
 </Project>
