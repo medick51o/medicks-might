@@ -48,20 +48,22 @@ public class FilterCompilerTests
     }
 
     [Fact]
-    public void All_options_on_is_nine_rules()
+    public void All_options_on_is_ten_rules()
     {
-        // purple + gold + silver + 2 item-power + GA + charms + codex + hide = 9
-        Assert.Equal(9, RuleCount(new FilterOptions()));
+        // purple + gold + silver + 2 item-power + GA + red-ancestral-charms + green-charms + codex + hide = 10
+        // (the CharmsSealsAncestral red rule, default-on, is the 10th — added after this test was written.)
+        Assert.Equal(10, RuleCount(new FilterOptions()));
     }
 
     [Theory]
-    [InlineData(nameof(FilterOptions.HideRest), 8)]        // -1
-    [InlineData(nameof(FilterOptions.ItemPowerTiers), 7)]  // -2 (orange + cyan)
-    [InlineData(nameof(FilterOptions.SilverTier), 8)]      // -1
-    [InlineData(nameof(FilterOptions.BuildUniques), 8)]    // -1
-    [InlineData(nameof(FilterOptions.GreaterAffixes), 8)]  // -1
-    [InlineData(nameof(FilterOptions.CharmsSeals), 8)]     // -1
-    [InlineData(nameof(FilterOptions.Codex), 8)]           // -1
+    [InlineData(nameof(FilterOptions.HideRest), 9)]              // -1
+    [InlineData(nameof(FilterOptions.ItemPowerTiers), 8)]        // -2 (orange + cyan)
+    [InlineData(nameof(FilterOptions.SilverTier), 9)]            // -1
+    [InlineData(nameof(FilterOptions.BuildUniques), 9)]          // -1
+    [InlineData(nameof(FilterOptions.GreaterAffixes), 9)]        // -1
+    [InlineData(nameof(FilterOptions.CharmsSeals), 9)]           // -1
+    [InlineData(nameof(FilterOptions.CharmsSealsAncestral), 9)]  // -1 (red ancestral rule)
+    [InlineData(nameof(FilterOptions.Codex), 9)]                 // -1
     public void Turning_off_one_option_changes_rule_count(string option, int expected)
     {
         var o = option switch
@@ -72,6 +74,7 @@ public class FilterCompilerTests
             nameof(FilterOptions.BuildUniques) => new FilterOptions { BuildUniques = false },
             nameof(FilterOptions.GreaterAffixes) => new FilterOptions { GreaterAffixes = false },
             nameof(FilterOptions.CharmsSeals) => new FilterOptions { CharmsSeals = false },
+            nameof(FilterOptions.CharmsSealsAncestral) => new FilterOptions { CharmsSealsAncestral = false },
             nameof(FilterOptions.Codex) => new FilterOptions { Codex = false },
             _ => new FilterOptions(),
         };
@@ -84,7 +87,8 @@ public class FilterCompilerTests
         var o = new FilterOptions
         {
             BuildUniques = false, SilverTier = false, ItemPowerTiers = false,
-            GreaterAffixes = false, CharmsSeals = false, Codex = false, HideRest = false,
+            GreaterAffixes = false, CharmsSeals = false, CharmsSealsAncestral = false,
+            Codex = false, HideRest = false,
         };
         Assert.Equal(1, RuleCount(o));
     }
