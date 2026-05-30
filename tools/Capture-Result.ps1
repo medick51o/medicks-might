@@ -49,6 +49,9 @@ try {
     Start-Sleep -Milliseconds 2500
 
     $auto = [System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+    # Nav shell defaults to the Browse tab; the sample button lives on the Compile tab, so switch first.
+    [void](Invoke-ButtonByName $auto "Compile")
+    Start-Sleep -Milliseconds 800
     $clicked = Invoke-ButtonByName $auto "Load sample build (offline)"
     if (-not $clicked) {
         # fall back to any button whose name contains 'sample'

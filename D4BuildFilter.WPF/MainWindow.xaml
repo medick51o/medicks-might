@@ -156,6 +156,36 @@
             </Setter>
         </Style>
 
+        <!-- Top-nav tab (Browse / Compile / Favorites). Active state is driven by the button's Tag
+             (bound to the VM's Is*Tab bool): gold text + a 2px gold underline — the web-app nav signal. -->
+        <Style x:Key="NavTab" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
+            <Setter Property="FontSize" Value="{DynamicResource Type.Body}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,28,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="nb" Background="Transparent" BorderBrush="Transparent"
+                                BorderThickness="0,0,0,2" Padding="2,11">
+                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Accent.Primary}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="True">
+                                <Setter TargetName="nb" Property="BorderBrush" Value="{DynamicResource Accent.Primary}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Accent.Primary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Clickable build "chip" used in the tier lists. Semi-transparent so the landing-page
              hero background bleeds through (the chip still reads clearly against the dimmed art). -->
         <Style x:Key="BuildChip" TargetType="Button">
@@ -332,9 +362,10 @@
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />   <!-- header -->
+            <RowDefinition Height="Auto" />   <!-- top-nav tab strip (web-app shell) -->
+            <RowDefinition Height="*" />      <!-- body -->
+            <RowDefinition Height="Auto" />   <!-- footer -->
         </Grid.RowDefinitions>
 
         <!-- ════════════════════════ HEADER: slim 56px chrome, always visible across all states.
@@ -451,8 +482,21 @@
             </DockPanel>
         </Border>
 
+        <!-- ════ TOP-NAV TAB STRIP (web-app shell): Browse / Compile / Favorites, gold active underline ════ -->
+        <Border Grid.Row="1" Background="{DynamicResource Surface.Header}"
+                BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="0,0,0,1" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Margin="18,0">
+                <Button Content="Browse" Style="{StaticResource NavTab}" Tag="{Binding IsBrowseTab}"
+                        Command="{Binding SelectTabCommand}" CommandParameter="Browse" />
+                <Button Content="Compile" Style="{StaticResource NavTab}" Tag="{Binding IsCompileTab}"
+                        Command="{Binding SelectTabCommand}" CommandParameter="Compile" />
+                <Button Content="Favorites" Style="{StaticResource NavTab}" Tag="{Binding IsFavTab}"
+                        Command="{Binding SelectTabCommand}" CommandParameter="Favorites" />
+            </StackPanel>
+        </Border>
+
         <!-- ════════════════════════ BODY ════════════════════════ -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
 
             <!-- FULL-PAGE WATERMARK: warlord art behind all content across every state, dimmed to
                  22% so the gold/crimson UI reads cleanly on Result/Options too. IsHitTestVisible=
@@ -476,7 +520,8 @@
                      The MK monogram + wordmark already sits in the slim 56px chrome above; this
                      callout is just the value-prop tagline + manifesto, so the landing keeps its
                      hero feeling without burning 220px of vertical on a redundant logo lockup. -->
-                <StackPanel HorizontalAlignment="Center" Margin="0,8,0,4">
+                <StackPanel HorizontalAlignment="Center" Margin="0,8,0,4"
+                            Visibility="{Binding IsCompileTab, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="Turn any Diablo 4 build into a ready-to-import loot filter"
                                HorizontalAlignment="Center" FontSize="{DynamicResource Type.H2}" FontWeight="SemiBold"
                                Foreground="{DynamicResource Text.Primary}" />
@@ -489,7 +534,8 @@
                                TextAlignment="Center" />
                 </StackPanel>
 
-                <StackPanel HorizontalAlignment="Center" MaxWidth="660" Margin="0,16,0,0">
+                <StackPanel HorizontalAlignment="Center" MaxWidth="660" Margin="0,16,0,0"
+                            Visibility="{Binding IsCompileTab, Converter={StaticResource BoolToVis}}">
 
                     <!-- Source toggle: maxroll URL vs. paste from any guide -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,18">
@@ -565,7 +611,8 @@
                      the player gets THIS month's meta, not what was current when they starred it.
                      beta.8: header now shows count + empty state, so first-run users see the affordance
                      instead of an invisible feature (was hidden behind HasFavorites). -->
-                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0">
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0"
+                            Visibility="{Binding IsFavTab, Converter={StaticResource BoolToVis}}">
                     <DockPanel LastChildFill="True" Margin="0,0,0,6">
                         <TextBlock DockPanel.Dock="Right" Text="{Binding FavoritesCountLabel}"
                                    FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" />
@@ -696,7 +743,8 @@
                      Three columns: D4Builds (left), Maxroll (middle), Mobalytics (right).
                      Every tier surfaced: S/A/B/C/D plus Mobalytics-only God Tier (top) and Support
                      (utility). Cards + chips at 25% opacity so the warlord background bleeds through. -->
-                <StackPanel HorizontalAlignment="Stretch" Margin="0,30,0,0">
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,8,0,0"
+                            Visibility="{Binding IsBrowseTab, Converter={StaticResource BoolToVis}}">
                     <TextBlock Text="This season's top builds" FontSize="{DynamicResource Type.H2}" FontWeight="Bold"
                                Foreground="{DynamicResource Accent.Primary}" HorizontalAlignment="Center" />
                     <!-- Attribution (link-out model): rankings belong to the sources; we credit them,
@@ -1396,7 +1444,7 @@
         </Grid>
 
         <!-- ════════════════════════ FOOTER ════════════════════════ -->
-        <Border Grid.Row="2" Background="{DynamicResource Surface.Panel}" Padding="12,6" CornerRadius="{DynamicResource Radius.Control}" Margin="0,12,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource Surface.Panel}" Padding="12,6" CornerRadius="{DynamicResource Radius.Control}" Margin="0,12,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

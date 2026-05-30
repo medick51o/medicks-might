@@ -17,6 +17,10 @@ public enum AppState
     Result,
 }
 
+/// <summary>Top-nav destinations (the web-app shell). Browse = tier lists, Compile = the URL/paste
+/// form, Favorites = saved builds. The Result view is shown on top after a compile.</summary>
+public enum InputTab { Browse, Compile, Favorites }
+
 public partial class MainViewModel : ObservableObject
 {
     // ── App state ──
@@ -33,6 +37,31 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Header swaps between a big "wtf Immortan Joe" splash (landing) and a slim banner
     /// (loading + result). Once business starts, the art shrinks down so the build screen drives.</summary>
     public bool IsNotInputState => State != AppState.Input;
+
+    // ── Top-nav tab (web-app shell): which Input sub-view is showing ──
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBrowseTab))]
+    [NotifyPropertyChangedFor(nameof(IsCompileTab))]
+    [NotifyPropertyChangedFor(nameof(IsFavTab))]
+    private InputTab activeTab = InputTab.Browse;
+
+    public bool IsBrowseTab => ActiveTab == InputTab.Browse;
+    public bool IsCompileTab => ActiveTab == InputTab.Compile;
+    public bool IsFavTab => ActiveTab == InputTab.Favorites;
+
+    /// <summary>Switch the top-nav tab. Also returns to the Input state, so the nav works from the
+    /// result page (clicking Browse/Compile/Favorites takes you back to that view).</summary>
+    [RelayCommand]
+    private void SelectTab(string tab)
+    {
+        ActiveTab = tab switch
+        {
+            "Compile"   => InputTab.Compile,
+            "Favorites" => InputTab.Favorites,
+            _           => InputTab.Browse,
+        };
+        State = AppState.Input;
+    }
 
     // ── Input ──
     [ObservableProperty]
