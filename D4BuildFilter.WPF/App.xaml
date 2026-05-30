@@ -6,7 +6,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Default theme. ThemeManager swaps this for Discord/Dark at runtime
+                <!-- Tokens FIRST: the theme-invariant design system (radius/type/elevation/spacing/
+                     font/motion). No ThemeId sentinel, so ThemeManager never unmerges it on a swap. -->
+                <ResourceDictionary Source="/Themes/Tokens.xaml" />
+                <!-- Default theme. ThemeManager swaps THIS for Discord/Dark at runtime
                      based on %LOCALAPPDATA%\MedicKsMight\theme.json. -->
                 <ResourceDictionary Source="/Themes/Default.xaml" />
             </ResourceDictionary.MergedDictionaries>

@@ -702,7 +702,7 @@
                                                         MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
                                                         HorizontalAlignment="Center" Margin="0,1,4,0">
                                                     <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="13"
-                                                               Foreground="#1a1410" HorizontalAlignment="Center"
+                                                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
                                                 </Border>
                                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
@@ -776,7 +776,7 @@
                                                         MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
                                                         HorizontalAlignment="Center" Margin="0,1,4,0">
                                                     <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="13"
-                                                               Foreground="#1a1410" HorizontalAlignment="Center"
+                                                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
                                                 </Border>
                                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
@@ -850,7 +850,7 @@
                                                         MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
                                                         HorizontalAlignment="Center" Margin="0,1,4,0">
                                                     <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="13"
-                                                               Foreground="#1a1410" HorizontalAlignment="Center"
+                                                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
                                                                VerticalAlignment="Center" />
                                                 </Border>
                                                 <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
