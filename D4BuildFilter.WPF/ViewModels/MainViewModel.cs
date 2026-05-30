@@ -761,10 +761,9 @@ public partial class MainViewModel : ObservableObject
     }
 
     // ── Community + support links ──
-    // Placeholder URLs — update these constants once Medick creates the Ko-fi + Discord (the app
-    // wiring is done so it's a one-line change each). Kept in the VM (app-shell concern, not Core).
-    public const string KofiUrl    = "https://ko-fi.com/medicksmight";
-    public const string DiscordUrl = "https://discord.gg/medicksmight";
+    // Ko-fi is live (Medick's real page). Discord is still a placeholder until the server exists.
+    public const string KofiUrl    = "https://ko-fi.com/medick94265";
+    public const string DiscordUrl = "https://discord.gg/medicksmight";   // TODO: replace with real invite
 
     [RelayCommand] private void OpenKofi()    => OpenUrl(KofiUrl);
     [RelayCommand] private void OpenDiscord() => OpenUrl(DiscordUrl);
