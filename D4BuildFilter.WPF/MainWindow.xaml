@@ -1513,20 +1513,19 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- ══════ ARTWORK MODE (gallery tab) ══════ Same warlord art, FULL strength. Sized in
-                 code-behind to COVER the viewport (same dramatic crop as the watermark's
-                 UniformToFill) — but the cropped overflow stays reachable by scrolling: starts
-                 centered, pan to the edges, and the wheel pans sideways when the overflow is
-                 horizontal ("we can't see the cool sword"). Last child of the body grid so it
-                 sits above the (empty-on-this-tab) input layer and owns the mouse. -->
-            <ScrollViewer x:Name="ArtworkScroll" Background="Transparent" Padding="0"
-                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                          SizeChanged="ArtworkScroll_SizeChanged"
-                          PreviewMouseWheel="ArtworkScroll_PreviewMouseWheel"
-                          Visibility="{Binding IsArtworkTab, Converter={StaticResource BoolToVis}}">
-                <Image x:Name="ArtworkImage" Source="Assets/hero.jpg" Stretch="Fill"
-                       RenderOptions.BitmapScalingMode="HighQuality" />
-            </ScrollViewer>
+            <!-- ══════ ARTWORK MODE (gallery tab) ══════ Same warlord art, FULL strength,
+                 BOTTOM-anchored: a UniformToFill cover-crop whose clip eats the TOP of the
+                 composition instead of the bottom — the sword lives at the bottom edge (Medick's
+                 call; replaced a scrollable pan, beta.9). WPF's Image element always anchors
+                 top-left, hence an ImageBrush, which exposes AlignmentY. -->
+            <Rectangle IsHitTestVisible="False"
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       Visibility="{Binding IsArtworkTab, Converter={StaticResource BoolToVis}}">
+                <Rectangle.Fill>
+                    <ImageBrush ImageSource="Assets/hero.jpg" Stretch="UniformToFill"
+                                AlignmentX="Center" AlignmentY="Bottom" />
+                </Rectangle.Fill>
+            </Rectangle>
 
         </Grid>
 
