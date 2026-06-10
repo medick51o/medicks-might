@@ -18,8 +18,9 @@ public enum AppState
 }
 
 /// <summary>Top-nav destinations (the web-app shell). Browse = tier lists, Compile = the URL/paste
-/// form, Favorites = saved builds. The Result view is shown on top after a compile.</summary>
-public enum InputTab { Browse, Compile, Favorites }
+/// form, Favorites = saved builds, Artwork = gallery mode (chrome only — the warlord art at full
+/// strength). The Result view is shown on top after a compile.</summary>
+public enum InputTab { Browse, Compile, Favorites, Artwork }
 
 public partial class MainViewModel : ObservableObject
 {
@@ -43,11 +44,13 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsBrowseTab))]
     [NotifyPropertyChangedFor(nameof(IsCompileTab))]
     [NotifyPropertyChangedFor(nameof(IsFavTab))]
+    [NotifyPropertyChangedFor(nameof(IsArtworkTab))]
     private InputTab activeTab = InputTab.Browse;
 
     public bool IsBrowseTab => ActiveTab == InputTab.Browse;
     public bool IsCompileTab => ActiveTab == InputTab.Compile;
     public bool IsFavTab => ActiveTab == InputTab.Favorites;
+    public bool IsArtworkTab => ActiveTab == InputTab.Artwork;
 
     /// <summary>Switch the top-nav tab. Also returns to the Input state, so the nav works from the
     /// result page (clicking Browse/Compile/Favorites takes you back to that view).</summary>
@@ -58,6 +61,7 @@ public partial class MainViewModel : ObservableObject
         {
             "Compile"   => InputTab.Compile,
             "Favorites" => InputTab.Favorites,
+            "Artwork"   => InputTab.Artwork,
             _           => InputTab.Browse,
         };
         State = AppState.Input;

@@ -512,6 +512,9 @@
                         Command="{Binding SelectTabCommand}" CommandParameter="Compile" />
                 <Button Content="Favorites" Style="{StaticResource NavTab}" Tag="{Binding IsFavTab}"
                         Command="{Binding SelectTabCommand}" CommandParameter="Favorites" />
+                <Button Content="Artwork" Style="{StaticResource NavTab}" Tag="{Binding IsArtworkTab}"
+                        Command="{Binding SelectTabCommand}" CommandParameter="Artwork"
+                        ToolTip="Gallery mode — just the warlord, full strength" />
             </StackPanel>
         </Border>
 
@@ -525,6 +528,14 @@
             <Image Source="Assets/hero.jpg" Stretch="UniformToFill" Opacity="{DynamicResource Watermark.Opacity}"
                    RenderOptions.BitmapScalingMode="HighQuality"
                    IsHitTestVisible="False" />
+
+            <!-- ══════ ARTWORK MODE (gallery tab) ══════ Same warlord art, FULL strength — the
+                 watermark above stays dimmed so UI reads, this layer restores 100% when the
+                 Artwork tab is active and every panel below gets out of the way (all input
+                 sections are gated to their own tabs, so the page is just chrome + art). -->
+            <Image Source="Assets/hero.jpg" Stretch="UniformToFill"
+                   RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"
+                   Visibility="{Binding IsArtworkTab, Converter={StaticResource BoolToVis}}" />
 
             <!-- ─── INPUT STATE ─── -->
             <ScrollViewer x:Name="InputScroll"
@@ -717,8 +728,11 @@
                 <!-- ══════ Filter / Show controls ══════
                      Sits between the Favorites strip and the tier-list grid. Class checkboxes
                      are colored with the class's chip color so the row reads as a class palette
-                     legend; the two show/hide toggles control chip metadata visibility globally. -->
-                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0">
+                     legend; the two show/hide toggles control chip metadata visibility globally.
+                     Browse-only: it only affects the tier grid (June 2026 audit — it used to
+                     render orphaned on Compile/Favorites, and would float over Artwork). -->
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0"
+                            Visibility="{Binding IsBrowseTab, Converter={StaticResource BoolToVis}}">
                     <DockPanel LastChildFill="True">
                         <!-- Right-side toggles: show class name subtitle / show ★ star button -->
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
