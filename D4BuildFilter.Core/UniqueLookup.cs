@@ -38,10 +38,16 @@ public sealed class UniqueLookup
     }
 
     // Cached singleton — see NameLookup.Default() for rationale (static file, parse once, thread-safe).
-    private static readonly Lazy<UniqueLookup> _default = new(() =>
-        FromFile(DataFiles.Find("Uniques.enUS.json")
+    private static volatile Lazy<UniqueLookup> _default = new(Load);
+
+    private static UniqueLookup Load() =>
+        FromFile(DataFiles.Find(GameDataStore.UniquesFile)
             ?? throw new FileNotFoundException(
-                "Uniques.enUS.json not found (bundle it in Data\\ or install Diablo4Companion).")));
+                "Uniques.enUS.json not found (bundle it in Data\\ or install Diablo4Companion)."));
 
     public static UniqueLookup Default() => _default.Value;
+
+    /// <summary>Forget the cached lookup so the next <see cref="Default"/> re-reads from disk —
+    /// called after "Update game data" installs fresh files.</summary>
+    public static void Invalidate() => _default = new(Load);
 }

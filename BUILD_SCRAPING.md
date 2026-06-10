@@ -1,4 +1,14 @@
-# Build-source scraping — findings & status (2026-05-27)
+# Build-source scraping — findings & status (2026-05-27, updated 2026-06-10)
+
+> **2026-06-10 — Mobalytics icon-path drift (fixed).** Paladin/Warlock builds stopped using
+> `classes-icons/<Class>.png` (now `uploads/images/diablo-4/Paladin.png?v1`, `…/Warlock-icon.png`),
+> so the icon-anchored MobaItem regex silently dropped **100% of both new classes** (measured live:
+> 23/62 endgame, 9/31 leveling, 17/37 pushing — half of leveling's S-tier). Parser now derives the
+> class from the build slug first and tolerates any icon path; unknown classes list with the neutral
+> chip color instead of vanishing. Also fixed: D-tier sections were parsed then discarded (MobaTiers
+> whitelist lacked "D"), and `BrowserFetch` now passes `--fail` to curl so 403/challenge pages error
+> instead of parsing to a fake-empty list. Live canaries (`RUN_CANARY=1`) now assert Paladin/Warlock
+> presence and ≥30 builds on the Mobalytics endgame list.
 
 How each build site delivers its data, and what that means for importing builds into the filter.
 
@@ -14,7 +24,10 @@ How each build site delivers its data, and what that means for importing builds 
 ## maxroll (done earlier)
 `https://planners.maxroll.gg/profiles/d4/<id>` returns JSON; top-level `data` is a JSON-encoded
 string with `profiles[]` + `items{}`. Affixes referenced by numeric `nid` → resolved via the
-bundled D4Companion `Affixes.enUS.json`. Plain .NET `HttpClient` works (maxroll isn't JA3-strict).
+D4Companion-format `Affixes.enUS.json` (a validated download under `%LOCALAPPDATA%\MedicKsMight\data\`
+when present — see "Update game data" — else the bundled copy). Nids/unique-ids the data can't name
+are counted on `ResolvedBuild` (amber note in the app), not silently dropped. Plain .NET
+`HttpClient` works (maxroll isn't JA3-strict).
 
 ## mobalytics (done 2026-05-27)
 The whole build is server-rendered into the page as `window.__PRELOADED_STATE__ = {…};`.

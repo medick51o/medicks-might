@@ -114,9 +114,37 @@ public partial class MainViewModel : ObservableObject
     public string D4BuildsTierUrl   => TierListFetcher.D4BuildsUrlFor(ActiveD4BuildsList);
     public string MobalyticsTierUrl => TierListFetcher.MobalyticsUrlFor(ActiveMobalyticsList);
 
-    private readonly Dictionary<MaxrollList, List<TierGroupVM>> _maxrollCache = new();
-    private readonly Dictionary<D4BuildsList, List<TierGroupVM>> _d4buildsCache = new();
-    private readonly Dictionary<MobalyticsList, List<TierGroupVM>> _mobalyticsCache = new();
+    /// <summary>One cached tab: the parsed groups plus when they were fetched. Entries older than
+    /// <see cref="TierListTtl"/> re-fetch on activation, so a long-running app stops presenting
+    /// harvest-time tiers as current ("This season's top builds" must actually mean this season).</summary>
+    private sealed record CachedTab(List<TierGroupVM> Groups, DateTime FetchedUtc);
+
+    /// <summary>How long a fetched tier list is served from cache before activation re-fetches.</summary>
+    private static readonly TimeSpan TierListTtl = TimeSpan.FromMinutes(15);
+
+    private readonly Dictionary<MaxrollList, CachedTab> _maxrollCache = new();
+    private readonly Dictionary<D4BuildsList, CachedTab> _d4buildsCache = new();
+    private readonly Dictionary<MobalyticsList, CachedTab> _mobalyticsCache = new();
+
+    /// <summary>Per-source fetch sequencing: each new activation bumps <see cref="Seq"/> and cancels
+    /// the previous in-flight fetch, so a slow stale fetch can neither overwrite the rows of the tab
+    /// the user has since switched to nor leak a 30s curl in the background.</summary>
+    private sealed class SourceRuntime
+    {
+        public CancellationTokenSource? Cts;
+        public int Seq;
+    }
+
+    private readonly SourceRuntime _maxrollRt = new();
+    private readonly SourceRuntime _d4buildsRt = new();
+    private readonly SourceRuntime _mobalyticsRt = new();
+
+    // "updated 14:32" captions next to each source's "view full list ↗" link.
+    [ObservableProperty] private string maxrollUpdatedLabel = "";
+    [ObservableProperty] private string d4BuildsUpdatedLabel = "";
+    [ObservableProperty] private string mobalyticsUpdatedLabel = "";
+
+    private static string UpdatedLabel(DateTime utc) => $"updated {utc.ToLocalTime():HH:mm}";
 
     // ── Landing-page filters & toggles (live on the input page) ──
     // Class filter: 8 colored checkboxes (one per class), all on by default. Unchecking a class
@@ -176,6 +204,49 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool isThemePickerOpen;
     [RelayCommand] private void ToggleThemePicker() => IsThemePickerOpen = !IsThemePickerOpen;
 
+    // ── Game data (the affix/unique name files compiles resolve against) ──
+    // The bundled files freeze at build time, so a new D4 season adds affixes/uniques this exe
+    // has never heard of and Maxroll builds silently compile incomplete. "Update game data"
+    // pulls the current pair from the Diablo4Companion repo into %LOCALAPPDATA%\MedicKsMight\data\,
+    // which DataFiles prefers from then on. Reachable from the theme-gear popup and the result
+    // page's missing-data note.
+
+    /// <summary>Provenance caption in the gear popup: "Using bundled (game build …)" /
+    /// "Using downloaded 2026-06-10".</summary>
+    [ObservableProperty] private string gameDataLabel = $"Using {GameDataStore.DescribeActive()}";
+
+    /// <summary>Last update-attempt outcome, shown under the popup link (empty until first use).</summary>
+    [ObservableProperty] private string gameDataStatus = "";
+
+    [RelayCommand]
+    private async Task UpdateGameDataAsync()
+    {
+        GameDataStatus = "Checking for newer game data…";
+        StatusMessage = "Checking for newer game data…";
+        try
+        {
+            // Network + two ~1 MB JSON validations — keep it off the UI thread.
+            var result = await Task.Run(() => GameDataUpdater.UpdateAsync());
+            GameDataStatus = result.Message;
+            StatusMessage = result.Message;
+            if (result.Updated)
+            {
+                NameLookup.Invalidate();
+                UniqueLookup.Invalidate();
+                GameDataLabel = $"Using {GameDataStore.DescribeActive()}";
+                // A result on screen was resolved against the OLD data — re-fetch the same source
+                // so newly-known affixes actually appear (and the missing-data note recounts).
+                if (State == AppState.Result && !string.IsNullOrEmpty(_currentSourceUrl))
+                    await RunCompileAsync(_currentSourceUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            GameDataStatus = $"Update failed: {ex.Message}";
+            StatusMessage = GameDataStatus;
+        }
+    }
+
     /// <summary>Provenance of the currently-loaded build — set when a build is loaded so the result
     /// page's ★ Favorite button knows what to persist. <see cref="_currentTierKind"/>/<see cref="_currentTier"/>
     /// are only known when the user clicked a tier chip (not when they pasted a URL).</summary>
@@ -218,20 +289,29 @@ public partial class MainViewModel : ObservableObject
         foreach (var t in tabs) t.IsActive = t.Key == activeKey;
     }
 
+    // Re-clicking the already-active tab used to be a silent no-op (the [ObservableProperty]
+    // setter suppresses same-value callbacks) — now it force-refreshes that list, which doubles
+    // as the discoverable "retry" after a failed fetch.
     [RelayCommand]
     private void SelectMaxrollTab(string key)
     {
-        if (Enum.TryParse<MaxrollList>(key, out var k)) ActiveMaxrollList = k;
+        if (!Enum.TryParse<MaxrollList>(key, out var k)) return;
+        if (k == ActiveMaxrollList) _ = ActivateMaxrollAsync(k, force: true);
+        else ActiveMaxrollList = k;
     }
     [RelayCommand]
     private void SelectD4BuildsTab(string key)
     {
-        if (Enum.TryParse<D4BuildsList>(key, out var k)) ActiveD4BuildsList = k;
+        if (!Enum.TryParse<D4BuildsList>(key, out var k)) return;
+        if (k == ActiveD4BuildsList) _ = ActivateD4BuildsAsync(k, force: true);
+        else ActiveD4BuildsList = k;
     }
     [RelayCommand]
     private void SelectMobalyticsTab(string key)
     {
-        if (Enum.TryParse<MobalyticsList>(key, out var k)) ActiveMobalyticsList = k;
+        if (!Enum.TryParse<MobalyticsList>(key, out var k)) return;
+        if (k == ActiveMobalyticsList) _ = ActivateMobalyticsAsync(k, force: true);
+        else ActiveMobalyticsList = k;
     }
 
     [RelayCommand] private void OpenTierUrl(string url) => OpenUrl(url);
@@ -301,7 +381,10 @@ public partial class MainViewModel : ObservableObject
     {
         Favorites.Clear();
         foreach (var f in _favorites.All.OrderByDescending(f => f.DateAdded))
-            Favorites.Add(new FavoriteChipVM(f, LoadBuildFromUrl, RemoveFavorite));
+        {
+            var entry = f;   // capture per iteration for the chip's load closure
+            Favorites.Add(new FavoriteChipVM(entry, _ => LoadBuildFromFavorite(entry), RemoveFavorite));
+        }
         OnPropertyChanged(nameof(HasFavorites));
         OnPropertyChanged(nameof(HasNoFavorites));
         OnPropertyChanged(nameof(FavoritesCountLabel));
@@ -315,11 +398,11 @@ public partial class MainViewModel : ObservableObject
 
     private IEnumerable<TierBuildVM> AllCachedChips()
     {
-        foreach (var g in _maxrollCache.Values.SelectMany(v => v))
+        foreach (var g in _maxrollCache.Values.SelectMany(v => v.Groups))
             foreach (var b in g.Builds) yield return b;
-        foreach (var g in _d4buildsCache.Values.SelectMany(v => v))
+        foreach (var g in _d4buildsCache.Values.SelectMany(v => v.Groups))
             foreach (var b in g.Builds) yield return b;
-        foreach (var g in _mobalyticsCache.Values.SelectMany(v => v))
+        foreach (var g in _mobalyticsCache.Values.SelectMany(v => v.Groups))
             foreach (var b in g.Builds) yield return b;
     }
 
@@ -375,64 +458,200 @@ public partial class MainViewModel : ObservableObject
             ActivateMobalyticsAsync(MobalyticsList.Endgame));
     }
 
-    private Task ActivateMaxrollAsync(MaxrollList kind) =>
+    private Task ActivateMaxrollAsync(MaxrollList kind, bool force = false) =>
         ActivateAsync(kind, _maxrollCache, MaxrollTiers, s => MaxrollTierStatus = s,
             ct => TierListFetcher.FetchMaxrollAsync(kind, ct),
-            "Maxroll", kind.ToString());
+            "Maxroll", kind.ToString(),
+            _maxrollRt, () => ActiveMaxrollList, t => MaxrollUpdatedLabel = t, force);
 
-    private Task ActivateD4BuildsAsync(D4BuildsList kind) =>
+    private Task ActivateD4BuildsAsync(D4BuildsList kind, bool force = false) =>
         ActivateAsync(kind, _d4buildsCache, D4BuildsTiers, s => D4BuildsTierStatus = s,
             ct => TierListFetcher.FetchD4BuildsAsync(kind, ct),
-            "D4Builds", kind.ToString());
+            "D4Builds", kind.ToString(),
+            _d4buildsRt, () => ActiveD4BuildsList, t => D4BuildsUpdatedLabel = t, force);
 
-    private Task ActivateMobalyticsAsync(MobalyticsList kind) =>
+    private Task ActivateMobalyticsAsync(MobalyticsList kind, bool force = false) =>
         ActivateAsync(kind, _mobalyticsCache, MobalyticsTiers, s => MobalyticsTierStatus = s,
             ct => TierListFetcher.FetchMobalyticsAsync(kind, ct),
-            "Mobalytics", kind.ToString());
+            "Mobalytics", kind.ToString(),
+            _mobalyticsRt, () => ActiveMobalyticsList, t => MobalyticsUpdatedLabel = t, force);
 
-    /// <summary>Cache-aware tab activation: serve from cache if hit, else fetch + populate + cache.
-    /// Generic over the per-source enum + per-source fetcher so all three sources share one flow.
-    /// <paramref name="source"/> + <paramref name="tierKind"/> stamp each chip with its provenance
-    /// so a subsequent ★ favorite remembers where the build came from.
+    /// <summary>Cache-aware tab activation: serve from cache when fresh (see <see cref="TierListTtl"/>),
+    /// else fetch + populate + cache. Generic over the per-source enum + per-source fetcher so all
+    /// three sources share one flow. <paramref name="source"/> + <paramref name="tierKind"/> stamp
+    /// each chip with its provenance so a subsequent ★ favorite remembers where the build came from.
     /// <para>The cache holds the FULL group/build list (no class filter applied); the visible
     /// <paramref name="target"/> collection is a class-filtered projection built via
-    /// <see cref="ProjectIntoTarget"/>. This way the class-filter toggles never need to re-fetch.</para></summary>
+    /// <see cref="ProjectIntoTarget"/>. This way the class-filter toggles never need to re-fetch.</para>
+    /// <para>Freshness rules: a new activation supersedes (cancels) the source's in-flight fetch;
+    /// results only touch the visible collection if this kind is still the active tab; 0-build
+    /// parses are NOT cached (could be a real empty list OR a site redesign — either way the next
+    /// activation should retry, not pin "empty" for the session); every successful fetch re-syncs
+    /// favorite tier labels via <see cref="TierReconciler"/>.</para></summary>
     private async Task ActivateAsync<TKind>(TKind kind,
-        Dictionary<TKind, List<TierGroupVM>> cache,
+        Dictionary<TKind, CachedTab> cache,
         ObservableCollection<TierGroupVM> target,
         Action<string> setStatus,
         Func<CancellationToken, Task<TierList>> fetch,
-        string source, string tierKind) where TKind : notnull
+        string source, string tierKind,
+        SourceRuntime rt, Func<TKind> activeKind, Action<string> setUpdated,
+        bool force = false) where TKind : notnull
     {
-        if (cache.TryGetValue(kind, out var hit))
+        if (!force && cache.TryGetValue(kind, out var hit)
+                   && DateTime.UtcNow - hit.FetchedUtc < TierListTtl)
         {
-            ProjectIntoTarget(hit, target);
-            setStatus(hit.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
+            ProjectIntoTarget(hit.Groups, target);
+            setUpdated(UpdatedLabel(hit.FetchedUtc));
+            setStatus(hit.Groups.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
             return;
         }
-        setStatus("Loading…");
-        target.Clear();
+
+        rt.Cts?.Cancel();
+        rt.Cts = new CancellationTokenSource();
+        var ct = rt.Cts.Token;
+        var seq = ++rt.Seq;
+        bool IsCurrent() => seq == rt.Seq
+            && EqualityComparer<TKind>.Default.Equals(activeKind(), kind);
+
+        // Refresh-in-place keeps the old rows visible while the new fetch runs (no blank flash);
+        // a tab SWITCH clears so the previous tab's rows never sit under the new tab's header.
+        if (force) setStatus("Refreshing…");
+        else { setStatus("Loading…"); target.Clear(); }
+
         try
         {
-            var list = await fetch(default);
-            var favUrls = new HashSet<string>(_favorites.All.Select(f => f.Url),
-                StringComparer.OrdinalIgnoreCase);
-            var groups = list.Builds.GroupBy(b => b.Tier)
-                .Select(g => new TierGroupVM(g.Key, g.Select(b =>
-                    new TierBuildVM(b, source, tierKind, g.Key,
-                        url => LoadBuildFromChipUrl(b, source, tierKind, g.Key),
-                        ToggleFavorite,
-                        favUrls.Contains(b.Url),
-                        openSource: OpenUrl)).ToList()))
-                .ToList();
-            cache[kind] = groups;
-            ProjectIntoTarget(groups, target);
-            setStatus(groups.Count == 0 ? "No builds in this list yet — open the full list ↗" : "");
+            var list = await fetch(ct);
+            if (seq != rt.Seq) return;   // superseded — the newer fetch owns cache, favorites & UI
+
+            var fetchedAt = DateTime.UtcNow;
+            var groups = BuildGroups(list, source, tierKind);
+            if (groups.Count > 0)
+            {
+                cache[kind] = new CachedTab(groups, fetchedAt);
+            }
+            else
+            {
+                // Ambiguous: genuinely empty (d4builds Tower mid-season) or markup drift. Don't cache.
+                cache.Remove(kind);
+                AppLog.Write("tierlist", $"{source}/{tierKind}: fetch OK but 0 builds parsed — empty list or format change");
+            }
+
+            // Tier labels on saved favorites re-sync against every fresh list (the S→A problem).
+            var moved = TierReconciler.Reconcile(_favorites, list, source, tierKind, fetchedAt);
+            if (moved > 0) RefreshFavoritesUi();
+
+            if (IsCurrent())
+            {
+                ProjectIntoTarget(groups, target);
+                setUpdated(UpdatedLabel(fetchedAt));
+                setStatus(groups.Count == 0
+                    ? "Nothing listed right now — re-click the tab to retry, or open the full list ↗"
+                    : "");
+            }
         }
-        catch
+        catch (OperationCanceledException)
         {
-            setStatus("Couldn't load right now — open the full list ↗");
+            // Superseded by a newer activation (or shutdown) — the newer flow owns the UI.
         }
+        catch (Exception ex)
+        {
+            AppLog.Write("tierlist", $"{source}/{tierKind}: fetch failed — {ex.GetType().Name}: {ex.Message}");
+            if (IsCurrent())
+                setStatus($"Couldn't reach {source} — re-click the tab to retry, or open the full list ↗");
+        }
+    }
+
+    /// <summary>Project a fetched tier list into chip view-models (shared by tab activation and the
+    /// background favorite-tier refresh).</summary>
+    private List<TierGroupVM> BuildGroups(TierList list, string source, string tierKind)
+    {
+        var favUrls = new HashSet<string>(_favorites.All.Select(f => f.Url),
+            StringComparer.OrdinalIgnoreCase);
+        return list.Builds.GroupBy(b => b.Tier)
+            .Select(g => new TierGroupVM(g.Key, g.Select(b =>
+                new TierBuildVM(b, source, tierKind, g.Key,
+                    url => LoadBuildFromChipUrl(b, source, tierKind, g.Key),
+                    ToggleFavorite,
+                    favUrls.Contains(b.Url),
+                    openSource: OpenUrl)).ToList()))
+            .ToList();
+    }
+
+    // ── Refresh: one button re-pulls everything the landing page claims is live ──
+
+    [ObservableProperty] private bool isRefreshing;
+
+    /// <summary>⟳ button + F5: force-refresh the three active tabs AND every other (source, kind)
+    /// tier list that a saved favorite references, so favorite tier labels re-sync even when their
+    /// tab isn't open. The tier-page URLs themselves are compile-time constants in
+    /// <see cref="TierListFetcher"/> — what's fetched is always the source's live ranking.</summary>
+    [RelayCommand]
+    private async Task RefreshTierListsAsync()
+    {
+        if (IsRefreshing) return;
+        IsRefreshing = true;
+        try
+        {
+            var work = new List<Task>
+            {
+                ActivateMaxrollAsync(ActiveMaxrollList, force: true),
+                ActivateD4BuildsAsync(ActiveD4BuildsList, force: true),
+                ActivateMobalyticsAsync(ActiveMobalyticsList, force: true),
+            };
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                $"Maxroll|{ActiveMaxrollList}",
+                $"D4Builds|{ActiveD4BuildsList}",
+                $"Mobalytics|{ActiveMobalyticsList}",
+            };
+            foreach (var f in _favorites.All)
+            {
+                if (string.IsNullOrEmpty(f.TierKind)) continue;        // paste favorites have no list
+                if (!seen.Add($"{f.Source}|{f.TierKind}")) continue;
+                work.Add(FetchAndReconcileAsync(f.Source, f.TierKind!));
+            }
+            await Task.WhenAll(work);
+        }
+        finally
+        {
+            IsRefreshing = false;
+        }
+    }
+
+    /// <summary>Background fetch of a non-active tier list purely to re-sync favorite tiers (and
+    /// warm the cache for that tab). Never touches the visible collections or status text.</summary>
+    private async Task FetchAndReconcileAsync(string source, string tierKind)
+    {
+        try
+        {
+            switch (source)
+            {
+                case "Maxroll" when Enum.TryParse<MaxrollList>(tierKind, true, out var mk):
+                    CacheAndReconcile(await TierListFetcher.FetchMaxrollAsync(mk), _maxrollCache, mk, source, tierKind);
+                    break;
+                case "D4Builds" when Enum.TryParse<D4BuildsList>(tierKind, true, out var dk):
+                    CacheAndReconcile(await TierListFetcher.FetchD4BuildsAsync(dk), _d4buildsCache, dk, source, tierKind);
+                    break;
+                case "Mobalytics" when Enum.TryParse<MobalyticsList>(tierKind, true, out var bk):
+                    CacheAndReconcile(await TierListFetcher.FetchMobalyticsAsync(bk), _mobalyticsCache, bk, source, tierKind);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("refresh", $"{source}/{tierKind}: favorite-tier refresh failed — {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void CacheAndReconcile<TKind>(TierList list,
+        Dictionary<TKind, CachedTab> cache, TKind kind,
+        string source, string tierKind) where TKind : notnull
+    {
+        var now = DateTime.UtcNow;
+        var groups = BuildGroups(list, source, tierKind);
+        if (groups.Count > 0) cache[kind] = new CachedTab(groups, now);
+        if (TierReconciler.Reconcile(_favorites, list, source, tierKind, now) > 0)
+            RefreshFavoritesUi();
     }
 
     /// <summary>Apply the current class filter to a cached group list and replace the visible
@@ -458,11 +677,11 @@ public partial class MainViewModel : ObservableObject
     private void RefreshAllTierViews()
     {
         if (_maxrollCache.TryGetValue(ActiveMaxrollList, out var mr))
-            ProjectIntoTarget(mr, MaxrollTiers);
+            ProjectIntoTarget(mr.Groups, MaxrollTiers);
         if (_d4buildsCache.TryGetValue(ActiveD4BuildsList, out var db))
-            ProjectIntoTarget(db, D4BuildsTiers);
+            ProjectIntoTarget(db.Groups, D4BuildsTiers);
         if (_mobalyticsCache.TryGetValue(ActiveMobalyticsList, out var mb))
-            ProjectIntoTarget(mb, MobalyticsTiers);
+            ProjectIntoTarget(mb.Groups, MobalyticsTiers);
     }
 
     /// <summary>Tier chip click handler: capture chip provenance (so the result-page ★ knows where
@@ -474,6 +693,19 @@ public partial class MainViewModel : ObservableObject
         _currentTier = tier;
         if (_favorites.Contains(b.Url)) _favorites.StampOpened(b.Url);
         LoadBuildFromUrl(b.Url);
+    }
+
+    /// <summary>Favorites-rail click handler: seed provenance from the SAVED entry (previously this
+    /// path left whatever tier the last-clicked tier chip set, so re-starring from the result page
+    /// could persist a tier the build never had) and advance DateLastOpened, which the chip tooltip
+    /// surfaces as a staleness cue.</summary>
+    private void LoadBuildFromFavorite(FavoriteEntry f)
+    {
+        SetCurrentSource(f.Source, f.Url);
+        _currentTierKind = f.TierKind;
+        _currentTier = f.Tier;
+        _favorites.StampOpened(f.Url);
+        LoadBuildFromUrl(f.Url);
     }
 
     // ── Result: header ──
@@ -515,6 +747,27 @@ public partial class MainViewModel : ObservableObject
     public bool HasCapWarning => !string.IsNullOrEmpty(CapWarning);
     /// <summary>D4's hard cap on rules per filter.</summary>
     public const int MaxRules = 25;
+
+    /// <summary>One-line amber note when the loaded build references affix nids / unique ids the
+    /// LOCAL GAME DATA can't name — the new-season symptom (the filter still compiles, minus those).
+    /// Distinct from the dev-only "not yet filterable" list: that's mapper/DB coverage we have to
+    /// fix in code; this one the user can fix themselves via Update game data. Empty = hidden.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMissingDataNote))]
+    private string missingDataNote = "";
+    public bool HasMissingDataNote => MissingDataNote.Length > 0;
+
+    private static string BuildMissingDataNote(ResolvedBuild b)
+    {
+        int a = b.UnknownAffixNids?.Count ?? 0, u = b.UnknownUniqueIds?.Count ?? 0;
+        if (a + u == 0) return "";
+        var parts = new List<string>(2);
+        if (a > 0) parts.Add(a == 1 ? "1 affix" : $"{a} affixes");
+        if (u > 0) parts.Add(u == 1 ? "1 unique" : $"{u} uniques");
+        return $"{string.Join(" and ", parts)} from this build {(a + u == 1 ? "isn't" : "aren't")} "
+            + "in the local game data (likely added in a newer patch), so the filter skips "
+            + (a + u == 1 ? "it." : "them.");
+    }
 
     /// <summary>The branded in-game filter title (D4 shows this as the filter name on import).
     /// Auto-seeded to the brand (+ build when it still fits 24 chars); editable, recompiles live.</summary>
@@ -588,7 +841,14 @@ public partial class MainViewModel : ObservableObject
     // ── Commands ──
 
     [RelayCommand]
-    private async Task CompileAsync() => await RunCompileAsync(MaxrollUrl);
+    private async Task CompileAsync()
+    {
+        // Hand-entered URL: no tier-chip provenance. Clear leftovers from any earlier chip click
+        // so a result-page ★ doesn't stamp this build with another build's tier.
+        _currentTierKind = null;
+        _currentTier = null;
+        await RunCompileAsync(MaxrollUrl);
+    }
 
     [RelayCommand]
     private async Task LoadSampleAsync()
@@ -599,6 +859,8 @@ public partial class MainViewModel : ObservableObject
             StatusMessage = "Bundled sample build not found next to the app.";
             return;
         }
+        _currentTierKind = null;
+        _currentTier = null;
         await RunCompileAsync(sample);
     }
 
@@ -690,6 +952,13 @@ public partial class MainViewModel : ObservableObject
     {
         _resolved = resolved;
         BuildName = resolved.Build;
+
+        // Surface (and log — season-day triage gold) any ids the local game data couldn't name.
+        MissingDataNote = BuildMissingDataNote(resolved);
+        if (resolved.UnknownDataCount > 0)
+            AppLog.Write("gamedata", $"build '{resolved.Build}': unknown affix nids "
+                + $"[{string.Join(",", resolved.UnknownAffixNids ?? [])}], unknown unique ids "
+                + $"[{string.Join(",", resolved.UnknownUniqueIds ?? [])}]");
 
         // Auto-brand the in-game filter title (the name D4 shows on import). Lead with the brand so it
         // rides every shared code; tack on the build only when the whole thing still fits D4's 24-char
@@ -792,9 +1061,10 @@ public partial class MainViewModel : ObservableObject
     // ── Community + support links ──
     // Ko-fi is live (Medick's real page).
     public const string KofiUrl    = "https://ko-fi.com/medick94265";
-    // ⚠ TEMPORARY invite — expires ~2026-06-29 (30 days) / 50 uses max. Replace with a
-    //   never-expire, unlimited-use invite before then or the Discord button will dead-link.
-    public const string DiscordUrl = "https://discord.gg/RFDBSg4Yq";
+    // Permanent invite (never expires) deliberately capped at 25 uses — anti-bot hygiene: an
+    //   uncapped public invite invites a 100-bot cleanup job. When it fills, Medick mints a fresh
+    //   one and bumps this constant (Discord → Server Settings → Invites).
+    public const string DiscordUrl = "https://discord.gg/jnTk6Ha2ue";
 
     [RelayCommand] private void OpenKofi()    => OpenUrl(KofiUrl);
     [RelayCommand] private void OpenDiscord() => OpenUrl(DiscordUrl);
@@ -808,6 +1078,7 @@ public partial class MainViewModel : ObservableObject
         State = AppState.Input;
         StatusMessage = "";
         _resolved = null;
+        MissingDataNote = "";
         Variants.Clear();
         PoolLines.Clear();
         DroppedLines.Clear();

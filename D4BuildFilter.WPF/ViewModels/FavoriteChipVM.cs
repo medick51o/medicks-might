@@ -34,10 +34,17 @@ public sealed partial class FavoriteChipVM : ObservableObject
         _remove = remove;
         ClassColor = TierBuildVM.ClassBrush(entry.ClassName);
         Provenance = BuildProvenance(entry);
-        Tip = $"{entry.ClassName} · click to re-fetch (live) and load into the filter\n"
+        // Paste favorites re-load a frozen local snapshot — the one favorite type that can NOT
+        // self-update must not claim to be live.
+        var isPaste = entry.Url.StartsWith("paste://", StringComparison.OrdinalIgnoreCase);
+        Tip = (isPaste
+                ? $"{entry.ClassName} · click to re-load your saved paste (paste favorites don't self-update)\n"
+                : $"{entry.ClassName} · click to re-fetch (live) and load into the filter\n")
             + $"{entry.Url}\n"
             + $"Added {entry.DateAdded.ToLocalTime():yyyy-MM-dd}, last opened "
-            + $"{entry.DateLastOpened.ToLocalTime():yyyy-MM-dd}";
+            + $"{entry.DateLastOpened.ToLocalTime():yyyy-MM-dd}"
+            + (entry.TierCheckedUtc is null ? ""
+                : $"\nTier checked against {entry.Source} {AgoLabel(entry.TierCheckedUtc.Value)}");
     }
 
     [RelayCommand] private void Load() => _load(Url);
@@ -47,7 +54,17 @@ public sealed partial class FavoriteChipVM : ObservableObject
     {
         var parts = new List<string> { e.Source };
         if (!string.IsNullOrEmpty(e.TierKind)) parts.Add(e.TierKind!);
-        if (!string.IsNullOrEmpty(e.Tier)) parts.Add(e.Tier!);
+        // Tier with movement awareness, maintained by Core.TierReconciler after every list fetch:
+        //   "S"          — unchanged since starring (or never moved)
+        //   "S→A"        — the source re-ranked it (the old label would now be a lie)
+        //   "was S · off the list" — dropped from its own list entirely (season-rollover signal)
+        if (e.Delisted && !string.IsNullOrEmpty(e.Tier))
+            parts.Add($"was {e.Tier} · off the list");
+        else if (!string.IsNullOrEmpty(e.PrevTier) && !string.IsNullOrEmpty(e.Tier)
+                 && !string.Equals(e.PrevTier, e.Tier, StringComparison.OrdinalIgnoreCase))
+            parts.Add($"{e.PrevTier}→{e.Tier}");
+        else if (!string.IsNullOrEmpty(e.Tier))
+            parts.Add(e.Tier!);
         parts.Add($"added {AgoLabel(e.DateAdded)}");
         return string.Join(" · ", parts);
     }

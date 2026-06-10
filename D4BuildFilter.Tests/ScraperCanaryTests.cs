@@ -35,5 +35,14 @@ public class ScraperCanaryTests
     {
         var list = await TierListFetcher.FetchMobalyticsAsync();
         Assert.NotEmpty(list.Builds);
+        // Regression guard: Mobalytics moved Paladin/Warlock icons off the classes-icons/ path and
+        // an icon-anchored regex silently dropped BOTH classes (2026-06-10: 23/62 endgame builds
+        // lost). The two newest classes are heavily represented on every live list — if neither
+        // parses, the class-attribution path has rotted again.
+        Assert.Contains(list.Builds, b => b.ClassName is "Paladin" or "Warlock");
+        // And no build may be dropped to the point the list visibly thins: live endgame has been
+        // 60+ entries since Lord of Hatred; alert if we parse less than half of recent reality.
+        Assert.True(list.Builds.Count >= 30,
+            $"Only {list.Builds.Count} Mobalytics builds parsed — page shape likely drifted.");
     }
 }

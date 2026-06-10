@@ -35,15 +35,30 @@ public static class BrowserFetch
                 CreateNoWindow = true,
                 StandardOutputEncoding = Encoding.UTF8,
             };
-            foreach (var a in new[] { "-s", "-L", "--compressed", "--max-time", "30", "-A", UserAgent, url.Trim() })
+            // --fail: HTTP >= 400 exits non-zero instead of handing us the error/Cloudflare-challenge
+            // body. Without it a 403 page "succeeds", parses to 0 builds, and renders as a fake
+            // "No builds in this list yet" — the silent season-day failure mode.
+            foreach (var a in new[] { "-s", "-L", "--fail", "--compressed", "--max-time", "30", "-A", UserAgent, url.Trim() })
                 psi.ArgumentList.Add(a);
 
             using var proc = Process.Start(psi);
             if (proc is null) return null;
-            var stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
-            await proc.WaitForExitAsync(ct);
-            var stdout = await stdoutTask;
-            return proc.ExitCode == 0 && stdout.Length > 0 ? stdout : null;
+            try
+            {
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync(ct);
+                await proc.WaitForExitAsync(ct);
+                var stdout = await stdoutTask;
+                return proc.ExitCode == 0 && stdout.Length > 0 ? stdout : null;
+            }
+            catch (OperationCanceledException)
+            {
+                try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { /* already gone */ }
+                throw;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;         // caller's cancellation — don't fall through to HttpClient
         }
         catch
         {
@@ -62,7 +77,10 @@ public static class BrowserFetch
         using var http = new HttpClient(new HttpClientHandler
         {
             AutomaticDecompression = System.Net.DecompressionMethods.All,
-        });
+        })
+        {
+            Timeout = TimeSpan.FromSeconds(30),   // match the curl path's --max-time
+        };
         using var req = new HttpRequestMessage(HttpMethod.Get, url.Trim())
         {
             Version = System.Net.HttpVersion.Version20,

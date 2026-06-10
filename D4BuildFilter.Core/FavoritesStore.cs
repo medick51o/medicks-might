@@ -16,7 +16,12 @@ public sealed record FavoriteEntry(
     string Name,
     string ClassName,
     DateTime DateAdded,
-    DateTime DateLastOpened);
+    DateTime DateLastOpened,
+    // Tier-freshness fields (added for live re-sync; all default so pre-existing favorites.json
+    // files deserialize unchanged). TierReconciler maintains them after every tier-list fetch.
+    string? PrevTier = null,           // tier before the most recent re-rank (null = never moved)
+    DateTime? TierCheckedUtc = null,   // when Tier was last confirmed against a live list
+    bool Delisted = false);            // absent from its own (Source, TierKind) list on last check
 
 /// <summary>Persisted list of starred builds. Defaults to
 /// <c>%LOCALAPPDATA%\MedicKsMight\favorites.json</c> so it survives app re-installs (the publish zip
@@ -68,6 +73,16 @@ public sealed class FavoritesStore : IFavoritesStore
         var existing = Find(url);
         if (existing == null) return;
         _entries.Remove(existing);
+        Save();
+    }
+
+    /// <summary>Replace the entry with the same URL in place (no-op if absent). Used by
+    /// <see cref="TierReconciler"/> to persist re-ranked tiers without changing list position.</summary>
+    public void Update(FavoriteEntry entry)
+    {
+        var i = _entries.FindIndex(e => string.Equals(e.Url, entry.Url, StringComparison.OrdinalIgnoreCase));
+        if (i < 0) return;
+        _entries[i] = entry;
         Save();
     }
 

@@ -14,8 +14,17 @@ public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes,
     IReadOnlyList<ResolvedSlot>? Slots = null);
 
 /// <summary>A whole maxroll build resolved to affix names, ready for the AffixMapper/encoder.
-/// Serializes (camelCase) to the same shape the Tester reads from build_resolved.json.</summary>
-public sealed record ResolvedBuild(string Build, string Class, IReadOnlyList<ResolvedVariant> Variants);
+/// Serializes (camelCase) to the same shape the Tester reads from build_resolved.json.
+/// <paramref name="UnknownAffixNids"/> / <paramref name="UnknownUniqueIds"/> are the ids the LOCAL
+/// GAME DATA couldn't resolve (distinct, across all kept variants). Nonzero right after a season
+/// patch means the data files predate the build — "Update game data" is the fix. Null for sources
+/// that carry display names directly (Mobalytics / d4builds / paste), where no id resolution happens.</summary>
+public sealed record ResolvedBuild(string Build, string Class, IReadOnlyList<ResolvedVariant> Variants,
+    IReadOnlyList<string>? UnknownAffixNids = null, IReadOnlyList<string>? UnknownUniqueIds = null)
+{
+    /// <summary>How many distinct ids this build references that the local game data doesn't know.</summary>
+    public int UnknownDataCount => (UnknownAffixNids?.Count ?? 0) + (UnknownUniqueIds?.Count ?? 0);
+}
 
 /// <summary>
 /// Fetches a Diablo 4 build from maxroll's public planner endpoint and resolves each item's
@@ -119,6 +128,10 @@ public static class MaxrollFetcher
         var items = data.GetProperty("items");   // dict: itemKey(string) -> { explicits: [ { nid, values } ] }
 
         var variants = new List<ResolvedVariant>();
+        // Ids the local game data can't name — silently dropping these is exactly how a new
+        // season's builds compile incomplete with no signal, so count them for the UI.
+        var unknownNids = new SortedSet<long>();
+        var unknownUniqueIds = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var profile in data.GetProperty("profiles").EnumerateArray())
         {
             string vName = profile.TryGetProperty("name", out var pn)
@@ -148,16 +161,21 @@ public static class MaxrollFetcher
                     // Gear unique (or mythic)? Resolve its display name. Mythics are kept too; the
                     // compiler (FilterCompiler.Analyze + UniqueDatabase.IsMythic) splits them into
                     // their own category. (Charms don't resolve here — they're a separate type.)
-                    if (itemId.Length > 0 && uniques.Resolve(itemId) is { } un && seenUnique.Add(un))
-                        uniqueNames.Add(un);
+                    if (itemId.Length > 0)
+                    {
+                        if (uniques.Resolve(itemId) is { } un) { if (seenUnique.Add(un)) uniqueNames.Add(un); }
+                        else if (LooksLikeGearUnique(itemId)) unknownUniqueIds.Add(itemId);
+                    }
 
                     if (!item.TryGetProperty("explicits", out var ex) || ex.ValueKind != JsonValueKind.Array) continue;
                     var slotAffixes = new List<string>();
                     foreach (var e in ex.EnumerateArray())
                     {
                         if (!e.TryGetProperty("nid", out var nidEl)) continue;
-                        var name = names.Resolve(nidEl.GetInt64());
+                        var nid = nidEl.GetInt64();
+                        var name = names.Resolve(nid);
                         if (name is not null) { affixes.Add(name); slotAffixes.Add(name); }   // mapper dedupes by coarse id
+                        else unknownNids.Add(nid);
                     }
                     // Per-slot breakdown: derive a slot label from the item id (e.g. "1HMace_..." -> "1HMace",
                     // "S05_BSK_Helm_..." -> "Helm") — the first id segment that resolves to an item type.
@@ -167,8 +185,18 @@ public static class MaxrollFetcher
             }
             variants.Add(new ResolvedVariant(vName, affixes, uniqueNames, resolvedSlots));
         }
-        return new ResolvedBuild(build, cls, variants);
+        return new ResolvedBuild(build, cls, variants,
+            unknownNids.Select(n => n.ToString()).ToList(), unknownUniqueIds.ToList());
     }
+
+    /// <summary>A maxroll item id that SHOULD have resolved via Uniques.enUS.json: gear uniques
+    /// carry "_Unique_" ("Chest_Unique_Barb_100"). Charm/seal/talisman ids can carry the token too
+    /// but are intentionally absent from the lookup (their own filter category, not a data gap).</summary>
+    private static bool LooksLikeGearUnique(string itemId) =>
+        itemId.Contains("_Unique_", StringComparison.OrdinalIgnoreCase)
+        && !itemId.Contains("Charm", StringComparison.OrdinalIgnoreCase)
+        && !itemId.Contains("Seal", StringComparison.OrdinalIgnoreCase)
+        && !itemId.Contains("Talisman", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsDisabled(string name) =>
         name.Contains("disabled", StringComparison.OrdinalIgnoreCase) ||

@@ -108,4 +108,61 @@ public class SourceParserTests
     [Fact]
     public void Guide_page_with_no_planner_returns_null()
         => Assert.Null(MaxrollFetcher.ParseGuidePlannerLink("<html>just an article, no embed</html>"));
+
+    // ── maxroll: unknown nid / unique-id surfacing (the new-season data-gap signal) ──
+    // Pre-fix these were dropped with NO trace, so a season-day build compiled an incomplete
+    // filter that looked complete. The counts drive the result page's amber "update game data" note.
+
+    [Fact]
+    public void Maxroll_counts_ids_the_local_game_data_cant_name()
+    {
+        // Planner shell: `data` is a JSON-ENCODED STRING (the endpoint's double-parse quirk).
+        var inner = """
+        {"profiles":[{"name":"Main","items":{"0":"1","1":"2","2":"3","3":"4"}}],
+         "items":{
+           "1":{"id":"Helm_Legendary_001","explicits":[{"nid":100},{"nid":999}]},
+           "2":{"id":"Chest_Unique_Barb_100","explicits":[]},
+           "3":{"id":"Ring_Unique_NewSeason_777","explicits":[]},
+           "4":{"id":"Talisman_Charm_Unique_Foo_001","explicits":[]}}}
+        """;
+        var raw = $$"""{"name":"Gap Test","class":"Barbarian","data":{{System.Text.Json.JsonSerializer.Serialize(inner)}}}""";
+
+        // Mini lookups: nid 100 + the Barb chest are known; 999 + the NewSeason ring are not.
+        var dir = Path.Combine(Path.GetTempPath(), $"medicksmight_maxgap_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var affixPath = Path.Combine(dir, "affixes.json");
+            File.WriteAllText(affixPath,
+                """[{"IdSnoList":["100"],"DescriptionClean":"Maximum Life"}]""");
+            var uniquePath = Path.Combine(dir, "uniques.json");
+            File.WriteAllText(uniquePath,
+                """[{"IdNameItem":"Chest_Unique_Barb_100","Name":"Shroud of Test"}]""");
+
+            var rb = MaxrollFetcher.Parse(raw,
+                NameLookup.FromFile(affixPath), UniqueLookup.FromFile(uniquePath));
+
+            Assert.Contains("Maximum Life", rb.Variants[0].Affixes);
+            Assert.Contains("Shroud of Test", rb.Variants[0].Uniques);
+            Assert.Equal(new[] { "999" }, rb.UnknownAffixNids);
+            // The unknown gear unique is flagged; the charm id is NOT (charms are intentionally
+            // absent from Uniques.enUS.json — their own filter category, not a data gap).
+            Assert.Equal(new[] { "Ring_Unique_NewSeason_777" }, rb.UnknownUniqueIds);
+            Assert.Equal(2, rb.UnknownDataCount);
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { /* best-effort temp cleanup */ }
+        }
+    }
+
+    [Fact]
+    public void Sources_that_carry_names_directly_report_no_data_gaps()
+    {
+        // Paste / d4builds / Mobalytics never resolve ids against the local data, so the
+        // amber note must stay silent for them even when an affix later fails to MAP.
+        Assert.Equal(0, PastedBuild.Parse("Maximum Life\nSome Future Affix", "p").UnknownDataCount);
+        Assert.Equal(0, D4BuildsFetcher.Parse(D4bDoc).UnknownDataCount);
+        Assert.Equal(0, MobalyticsFetcher.Parse(MobaHtml).UnknownDataCount);
+    }
 }

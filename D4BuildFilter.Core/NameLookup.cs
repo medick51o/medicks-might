@@ -46,15 +46,23 @@ public sealed class NameLookup
         return new NameLookup(map);
     }
 
-    // Cached: the data file is static for the life of the process, so parse it once. Previously
-    // Default() re-read + re-parsed the JSON on every Maxroll compile. Lazy is thread-safe by
-    // default (LazyThreadSafetyMode.ExecutionAndPublication) — important once this runs server-side.
-    private static readonly Lazy<NameLookup> _default = new(() =>
-        FromFile(DataFiles.Find("Affixes.enUS.json")
+    // Cached: the data file is static for the life of the process (until Invalidate), so parse it
+    // once. Previously Default() re-read + re-parsed the JSON on every Maxroll compile. Lazy is
+    // thread-safe by default (ExecutionAndPublication) — important once this runs server-side.
+    private static volatile Lazy<NameLookup> _default = new(Load);
+
+    private static NameLookup Load() =>
+        FromFile(DataFiles.Find(GameDataStore.AffixesFile)
             ?? throw new FileNotFoundException(
                 "Affixes.enUS.json not found. Expected it bundled in Data\\ next to the app, " +
-                "or a Diablo4Companion install under Downloads.")));
+                "or a Diablo4Companion install under Downloads."));
 
-    /// <summary>Cached lookup loaded from the bundled file (next to the app) or a D4Companion install.</summary>
+    /// <summary>Cached lookup: the downloaded override when valid, else the bundled file (next to
+    /// the app), else a D4Companion install — see <see cref="DataFiles.Find"/>.</summary>
     public static NameLookup Default() => _default.Value;
+
+    /// <summary>Forget the cached lookup so the next <see cref="Default"/> re-reads from disk —
+    /// called after "Update game data" installs fresh files. In-flight users keep the instance
+    /// they already grabbed (the swap is just a reference assignment).</summary>
+    public static void Invalidate() => _default = new(Load);
 }

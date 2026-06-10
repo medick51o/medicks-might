@@ -95,14 +95,29 @@ public static class TierListFetcher
         RegexOptions.Compiled | RegexOptions.Singleline);
     // Slashes appear as `/` in the raw HTML embed and as plain `/` in already-decoded JSON
     // (or in test fixtures). The (?:\\u002F|/) alternation tolerates both.
+    // The icon is captured loosely and the CLASS is derived from the build slug (preferred) or the
+    // icon filename: Paladin/Warlock builds stopped using the classes-icons/<Class>.png convention
+    // ("uploads/images/diablo-4/Paladin.png?v1", "…/Warlock-icon.png"), and an icon-path-anchored
+    // regex was silently dropping 100% of both classes (measured live 2026-06-10: 23/62 endgame,
+    // 9/31 leveling, 17/37 pushing builds lost). `[^{}]*?` tolerates new fields between iconUrl and
+    // linkUrl without ever crossing into the next item object.
     private static readonly Regex MobaItem = new(
-        @"""iconUrl"":""[^""]*classes-icons(?:\\u002F|/)(?<cls>[A-Za-z]+)\.png"",""linkUrl"":""(?:\\u002F|/)diablo-4(?:\\u002F|/)builds(?:\\u002F|/)(?<slug>[^""]+)"",""title"":""(?<title>[^""]+)""",
+        @"""iconUrl"":""(?<icon>[^""]*)""[^{}]*?""linkUrl"":""(?:\\u002F|/)diablo-4(?:\\u002F|/)builds(?:\\u002F|/)(?<slug>[^""]+)"",""title"":""(?<title>[^""]+)""",
         RegexOptions.Compiled);
+
+    /// <summary>Classes we can attribute a Mobalytics build to. Slugs lead with the class name
+    /// ("paladin-blessed-hammer"); icon filenames are the fallback. A class missing here still
+    /// LISTS (with the neutral chip color) — it just can't be class-filtered until added.</summary>
+    private static readonly string[] KnownClasses =
+    {
+        "Barbarian", "Druid", "Necromancer", "Rogue",
+        "Sorcerer", "Spiritborn", "Paladin", "Warlock",
+    };
 
     /// <summary>Per-source list of tiers we surface, in display order. We show ALL meta tiers now
     /// (S→D) plus the Mobalytics-only top (God) and bottom (Support).</summary>
     private static readonly string[] LetterTiers = { "S", "A", "B", "C", "D" };
-    private static readonly string[] MobaTiers   = { "God", "S", "A", "B", "C", "Support" };
+    private static readonly string[] MobaTiers   = { "God", "S", "A", "B", "C", "D", "Support" };
 
     /// <summary>Cross-source ordering used by <see cref="Order"/>. Lower index = displayed first.</summary>
     private static readonly Dictionary<string, int> TierOrder = new(StringComparer.OrdinalIgnoreCase)
@@ -181,7 +196,7 @@ public static class TierListFetcher
             {
                 var slug = m.Groups["slug"].Value;
                 var title = Decode(m.Groups["title"].Value).Trim();
-                var cls = TitleCase(m.Groups["cls"].Value);
+                var cls = ClassFromSlugOrIcon(slug, m.Groups["icon"].Value);
                 if (title.Length == 0 || !seen.Add($"{title}|{tier}")) continue;
                 builds.Add(new TierBuild(title, cls, tier, "https://mobalytics.gg/diablo-4/builds/" + slug));
             }
@@ -196,6 +211,28 @@ public static class TierListFetcher
 
     private static string TitleCase(string s) =>
         string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
+
+    /// <summary>Resolve a Mobalytics build's class: slug prefix first ("paladin-blessed-hammer"),
+    /// then the icon filename ("…/Warlock-icon.png?v1" → Warlock). Unknown → "" so the build still
+    /// lists with the neutral chip color instead of being dropped.</summary>
+    private static string ClassFromSlugOrIcon(string slug, string icon)
+    {
+        var first = slug.Split('-', 2)[0];
+        foreach (var c in KnownClasses)
+            if (first.Equals(c, StringComparison.OrdinalIgnoreCase)) return c;
+
+        var file = icon.Replace("\\u002F", "/");
+        var query = file.IndexOf('?');
+        if (query >= 0) file = file[..query];
+        var slash = file.LastIndexOf('/');
+        if (slash >= 0) file = file[(slash + 1)..];
+        var dot = file.LastIndexOf('.');
+        if (dot >= 0) file = file[..dot];
+        if (file.EndsWith("-icon", StringComparison.OrdinalIgnoreCase)) file = file[..^5];
+        foreach (var c in KnownClasses)
+            if (file.Equals(c, StringComparison.OrdinalIgnoreCase)) return c;
+        return "";
+    }
 
     private static string Decode(string s) => WebUtility.HtmlDecode(s.Replace("\\u0026", "&"));
 }

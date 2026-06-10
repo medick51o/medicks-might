@@ -6,6 +6,12 @@ namespace D4BuildFilter.Core;
 /// loot-filter item-type condition (<see cref="Conditions.Types"/>). The 0x0006d1xx space is
 /// filter-validated: real community filters use e.g. 0x0006d159 (Dagger) in type-5 conditions.
 ///
+/// Newer-class weapons (Flail = Paladin/Warlock, Glaive/Quarterstaff = Spiritborn) sit OUTSIDE
+/// that block — their id is the ItemType <c>__snoID__</c> in d4data, cross-checked against
+/// fnuecke's loot-filter-viewer names.json. Flail (0x234a98) is additionally filter-validated:
+/// two real in-game exports (GameRant Universal, wudijo endgame — D4LootBench reference codes)
+/// carry it in type-5 conditions, proving new types use the raw snoID like the legacy block.
+///
 /// Used to scope build-affix rules to a specific gear slot (e.g. "Boots AND these affixes"),
 /// which removes the cross-slot false positives of the single combined-pool model.
 ///
@@ -34,6 +40,9 @@ public static class ItemTypeDatabase
         ["Crossbow"] = 0x0006d168,
         ["Two-Handed Crossbow"] = 0x0006d169,
         ["Totem"] = 0x0006d16b,
+        ["Flail"] = 0x00234a98,          // Paladin/Warlock 1H (d4data snoID 2312856)
+        ["Glaive"] = 0x00165271,         // Spiritborn 2H (d4data snoID 1462897)
+        ["Quarterstaff"] = 0x0016d22d,   // Spiritborn 2H (d4data snoID 1495597)
         // Armor
         ["Chest Armor"] = 0x0006d16d,
         ["Helm"] = 0x0006d16e,
@@ -53,6 +62,7 @@ public static class ItemTypeDatabase
     {
         0x0006d151, 0x0006d152, 0x0006d13a, 0x0006d144, 0x0006d14c, 0x0006d14f, 0x0006d159,
         0x0006d15d, 0x0006d154, 0x0006d155, 0x0006d153, 0x0006d163, 0x0006d167, 0x0006d168, 0x0006d169,
+        0x00234a98, 0x00165271, 0x0016d22d,   // Flail, Glaive, Quarterstaff
     };
     private static readonly HashSet<uint> WeaponSet = new(AllWeapons);
 
@@ -72,6 +82,8 @@ public static class ItemTypeDatabase
         0x0006d153, // Staff
         0x0006d167, // Bow
         0x0006d169, // Two-Handed Crossbow
+        0x00165271, // Glaive (Spiritborn 2H — d4data body slots match Polearm's)
+        0x0016d22d, // Quarterstaff (Spiritborn 2H — same)
     });
 
     /// <summary>Bucket a weapon slot by handedness so a Barb gets a "1H Weapons" rule (dual-wield)
@@ -87,7 +99,7 @@ public static class ItemTypeDatabase
     }
     private static readonly uint[] Bludgeoning = { 0x0006d13a, 0x0006d144 };                          // maces
     private static readonly uint[] Slashing = { 0x0006d151, 0x0006d152, 0x0006d14c, 0x0006d14f };       // axes + swords
-    private static readonly uint[] OneHanded = { 0x0006d151, 0x0006d13a, 0x0006d14c, 0x0006d159, 0x0006d163, 0x0006d167, 0x0006d168 };
+    private static readonly uint[] OneHanded = { 0x0006d151, 0x0006d13a, 0x0006d14c, 0x0006d159, 0x0006d163, 0x0006d167, 0x0006d168, 0x00234a98 }; // + Flail (dual-wieldable: d4data body slots 14/15 like dagger/sword)
     private static readonly uint[] Ranged = { 0x0006d167, 0x0006d168, 0x0006d169 };                     // bow/xbow
     private static readonly uint[] Offhand = { 0x0006d16a, 0x0006d16b, 0x0006d172 };                    // focus/totem/shield
 
@@ -136,6 +148,11 @@ public static class ItemTypeDatabase
             "bow" => new[] { 0x0006d167u },
             "crossbow" or "1hcrossbow" => new[] { 0x0006d168u },
             "2hcrossbow" => new[] { 0x0006d169u },
+            // Newer-class weapons. Game item ids use bare "Quarterstaff_"/"Glaive_" but "1HFlail_"
+            // (per bundled Uniques.enUS.json); the 1H/2H-prefixed aliases are accepted both ways.
+            "flail" or "1hflail" => new[] { 0x00234a98u },
+            "glaive" or "2hglaive" => new[] { 0x00165271u },
+            "quarterstaff" or "2hquarterstaff" => new[] { 0x0016d22du },
             _ => null,
         };
     }

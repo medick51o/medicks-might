@@ -14,6 +14,10 @@
     <Window.DataContext>
         <vm:MainViewModel />
     </Window.DataContext>
+    <Window.InputBindings>
+        <!-- F5 = re-pull all tier lists + re-sync favorite tiers (same as the ⟳ button). -->
+        <KeyBinding Key="F5" Command="{Binding RefreshTierListsCommand}" />
+    </Window.InputBindings>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <local:ActiveColorConverter x:Key="ActiveColor" />
@@ -445,6 +449,22 @@
                                       Content="Translucent panels"
                                       Foreground="{DynamicResource Text.Primary}"
                                       ToolTip="Adds transparency to the panel backgrounds." />
+                            <!-- Game data: the affix/unique name files the compiler resolves against.
+                                 The bundled copies freeze at build time; this pulls the current
+                                 season's pair from the Diablo4Companion repo so new affixes resolve
+                                 without waiting on an app release. Validated before install; falls
+                                 back to bundled if anything's off. -->
+                            <Border Background="{DynamicResource Border.Subtle}" Height="1" Margin="0,10,0,8" />
+                            <TextBlock Text="Game data" Style="{StaticResource SectionLabel}" Margin="0,0,0,2" />
+                            <TextBlock Text="{Binding GameDataLabel}"
+                                       FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}"
+                                       TextWrapping="Wrap" MaxWidth="260" Margin="0,0,0,4" />
+                            <Button Style="{StaticResource LinkButton}" HorizontalAlignment="Left"
+                                    Command="{Binding UpdateGameDataCommand}" Content="⟳ Update game data"
+                                    ToolTip="Download the latest affix + unique data — new seasons add items the bundled data hasn't heard of." />
+                            <TextBlock Text="{Binding GameDataStatus}"
+                                       FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Caution.Fg}"
+                                       TextWrapping="Wrap" MaxWidth="260" Margin="0,4,0,0" />
                             <TextBlock Text="Persists across launches"
                                        FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}"
                                        Margin="0,10,0,0" />
@@ -745,8 +765,27 @@
                      (utility). Cards + chips at 25% opacity so the warlord background bleeds through. -->
                 <StackPanel HorizontalAlignment="Stretch" Margin="0,8,0,0"
                             Visibility="{Binding IsBrowseTab, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="This season's top builds" FontSize="{DynamicResource Type.H2}" FontWeight="Bold"
-                               Foreground="{DynamicResource Accent.Primary}" HorizontalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="This season's top builds" FontSize="{DynamicResource Type.H2}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Accent.Primary}" VerticalAlignment="Center" />
+                        <!-- Live re-sync: lists also auto-refresh after 15 min on tab activation, and a
+                             re-click of the active tab refreshes just that source. -->
+                        <Button VerticalAlignment="Center" Margin="14,0,0,0"
+                                Command="{Binding RefreshTierListsCommand}"
+                                ToolTip="Re-pull all three tier lists now and re-check your saved builds' tiers (F5). Lists also auto-refresh after 15 minutes.">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
+                                    <Setter Property="Content" Value="⟳ refresh lists" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
+                                            <Setter Property="Content" Value="⟳ refreshing…" />
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
                     <!-- Attribution (link-out model): rankings belong to the sources; we credit them,
                          link back ("view full list ↗" + right-click any build to open it there), and
                          sell the filter generation. Keeps us clear of redistributing their data as ours. -->
@@ -774,6 +813,9 @@
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
                                             Content="view full list ↗" VerticalAlignment="Center"
                                             Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding D4BuildsTierUrl}" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding D4BuildsUpdatedLabel}"
+                                               FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}"
+                                               VerticalAlignment="Center" Margin="0,0,10,0" />
                                     <TextBlock Text="D4Builds" FontSize="{DynamicResource Type.H2}" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
@@ -848,6 +890,9 @@
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
                                             Content="view full list ↗" VerticalAlignment="Center"
                                             Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding MaxrollTierUrl}" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding MaxrollUpdatedLabel}"
+                                               FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}"
+                                               VerticalAlignment="Center" Margin="0,0,10,0" />
                                     <TextBlock Text="Maxroll" FontSize="{DynamicResource Type.H2}" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
@@ -922,6 +967,9 @@
                                     <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}"
                                             Content="view full list ↗" VerticalAlignment="Center"
                                             Command="{Binding OpenTierUrlCommand}" CommandParameter="{Binding MobalyticsTierUrl}" />
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding MobalyticsUpdatedLabel}"
+                                               FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}"
+                                               VerticalAlignment="Center" Margin="0,0,10,0" />
                                     <TextBlock Text="Mobalytics" FontSize="{DynamicResource Type.H2}" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}"
                                                VerticalAlignment="Center" />
                                 </DockPanel>
@@ -1067,6 +1115,24 @@
                     </DockPanel>
                     <TextBlock Text="{Binding BuildSubtitle}"
                                FontSize="{DynamicResource Type.BodySm}" Foreground="{DynamicResource Text.Secondary}" Margin="0,4,0,12" />
+
+                    <!-- Missing-game-data note (amber): the build references affix/unique ids the
+                         local data files can't name — the new-season symptom, fixable by the user
+                         via the inline Update link (which re-fetches this build afterwards). Not
+                         the same as the dev-only "not yet filterable" list below: that's mapper
+                         coverage we fix in code; this is data the app can refresh itself. -->
+                    <Border Background="{DynamicResource Caution.Bg}" BorderBrush="{DynamicResource Caution.Border}"
+                            BorderThickness="1" CornerRadius="{DynamicResource Radius.Control}"
+                            Padding="12,8" Margin="0,0,0,12"
+                            Visibility="{Binding HasMissingDataNote, Converter={StaticResource BoolToVis}}">
+                        <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource Type.BodySm}"
+                                   Foreground="{DynamicResource Caution.Fg}">
+                            <Run Text="⚠ " /><Run Text="{Binding MissingDataNote, Mode=OneWay}" />
+                            <Hyperlink Command="{Binding UpdateGameDataCommand}"
+                                       Foreground="{DynamicResource Accent.Link}"
+                                       ToolTip="Download the latest affix + unique data, then reload this build automatically.">Update game data</Hyperlink>
+                        </TextBlock>
+                    </Border>
 
                     <!-- Variant picker — uncheck a variant to drop it from the combined pool -->
                     <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"

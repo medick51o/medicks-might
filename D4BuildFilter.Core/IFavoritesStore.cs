@@ -11,6 +11,8 @@ public interface IFavoritesStore
     /// <summary>Add the entry if its URL isn't present, else remove it. Returns true = now favorited.</summary>
     bool Toggle(FavoriteEntry candidate);
     void Remove(string url);
+    /// <summary>Replace the entry with the same URL (no-op if absent). Used by tier reconciliation.</summary>
+    void Update(FavoriteEntry entry);
     /// <summary>Stamp DateLastOpened = now for this URL (no-op if not favorited).</summary>
     void StampOpened(string url);
 }
