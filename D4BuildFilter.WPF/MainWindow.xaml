@@ -529,14 +529,6 @@
                    RenderOptions.BitmapScalingMode="HighQuality"
                    IsHitTestVisible="False" />
 
-            <!-- ══════ ARTWORK MODE (gallery tab) ══════ Same warlord art, FULL strength — the
-                 watermark above stays dimmed so UI reads, this layer restores 100% when the
-                 Artwork tab is active and every panel below gets out of the way (all input
-                 sections are gated to their own tabs, so the page is just chrome + art). -->
-            <Image Source="Assets/hero.jpg" Stretch="UniformToFill"
-                   RenderOptions.BitmapScalingMode="HighQuality" IsHitTestVisible="False"
-                   Visibility="{Binding IsArtworkTab, Converter={StaticResource BoolToVis}}" />
-
             <!-- ─── INPUT STATE ─── -->
             <ScrollViewer x:Name="InputScroll"
                           Visibility="{Binding IsInputState, Converter={StaticResource BoolToVis}}"
@@ -1519,6 +1511,21 @@
                                 Width="220" Height="44" FontSize="{DynamicResource Type.Body}" />
                     </StackPanel>
                 </StackPanel>
+            </ScrollViewer>
+
+            <!-- ══════ ARTWORK MODE (gallery tab) ══════ Same warlord art, FULL strength. Sized in
+                 code-behind to COVER the viewport (same dramatic crop as the watermark's
+                 UniformToFill) — but the cropped overflow stays reachable by scrolling: starts
+                 centered, pan to the edges, and the wheel pans sideways when the overflow is
+                 horizontal ("we can't see the cool sword"). Last child of the body grid so it
+                 sits above the (empty-on-this-tab) input layer and owns the mouse. -->
+            <ScrollViewer x:Name="ArtworkScroll" Background="Transparent" Padding="0"
+                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          SizeChanged="ArtworkScroll_SizeChanged"
+                          PreviewMouseWheel="ArtworkScroll_PreviewMouseWheel"
+                          Visibility="{Binding IsArtworkTab, Converter={StaticResource BoolToVis}}">
+                <Image x:Name="ArtworkImage" Source="Assets/hero.jpg" Stretch="Fill"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
             </ScrollViewer>
 
         </Grid>
