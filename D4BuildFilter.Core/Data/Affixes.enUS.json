@@ -9138,17 +9138,19 @@
     "DescriptionClean": "Damage Reduction while Fortified"
   },
   {
-    "IdSno": "2482409;577229;577233",
-    "IdName": "GemPower1Socket;GemPower2Socket;X2_Transfiguration_IncreasedGemEffect",
+    "IdSno": "2482409;2655049;577229;577233",
+    "IdName": "GemPower1Socket;GemPower2Socket;X2_Transfiguration_IncreasedGemEffect;X2_Transfiguration_IncreasedGemEffect2H",
     "IdSnoList": [
       "2482409",
+      "2655049",
       "577229",
       "577233"
     ],
     "IdNameList": [
       "GemPower1Socket",
       "GemPower2Socket",
-      "X2_Transfiguration_IncreasedGemEffect"
+      "X2_Transfiguration_IncreasedGemEffect",
+      "X2_Transfiguration_IncreasedGemEffect2H"
     ],
     "AffixType": 2,
     "Category": 0,
@@ -13129,7 +13131,7 @@
     ],
     "AffixType": 2,
     "Category": 3,
-    "Flags": 1027,
+    "Flags": 1028,
     "IsTemperingAvailable": true,
     "MagicType": 0,
     "AllowedForPlayerClass": [
@@ -20253,6 +20255,108 @@
     "DescriptionClean": "Rampage: Willpower per Kill Streak Tier"
   },
   {
+    "IdSno": "2588120",
+    "IdName": "S14_Mythic_CooldownReductionCDR",
+    "IdSnoList": [
+      "2588120"
+    ],
+    "IdNameList": [
+      "S14_Mythic_CooldownReductionCDR"
+    ],
+    "AffixType": 2,
+    "Category": 0,
+    "Flags": 1028,
+    "IsTemperingAvailable": false,
+    "MagicType": 0,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": [
+      0,
+      14,
+      18,
+      29,
+      17,
+      28,
+      16,
+      30,
+      15
+    ],
+    "AffixAttributes": [
+      {
+        "LocalisationId": "S14_Mythic_CooldownReductionCDR",
+        "LocalisationParameter": 4294967295,
+        "LocalisationAttributeFormulaValue": "0.2",
+        "Localisation": "{c_mythic}{i}Mythic:{/i}{/c} [{VALUE1}*100|1%|] Cooldown Reduction"
+      }
+    ],
+    "ClassRestriction": "",
+    "Description": "Mythic: #% Cooldown Reduction",
+    "DescriptionClean": "Mythic: Cooldown Reduction"
+  },
+  {
+    "IdSno": "1983837;2481661;2571274;2588122;2626679",
+    "IdName": "S14_Mythic_SkillRanksAll;SkillRanksAll_UBERUNIQUE;X2_SkillRankBonus_AllSkills;X2_Transfiguration_SkillRankBonus_AllSkills;X2_UBERUNIQUE_SkillRankBonus_AllSkills",
+    "IdSnoList": [
+      "1983837",
+      "2481661",
+      "2571274",
+      "2588122",
+      "2626679"
+    ],
+    "IdNameList": [
+      "S14_Mythic_SkillRanksAll",
+      "SkillRanksAll_UBERUNIQUE",
+      "X2_SkillRankBonus_AllSkills",
+      "X2_Transfiguration_SkillRankBonus_AllSkills",
+      "X2_UBERUNIQUE_SkillRankBonus_AllSkills"
+    ],
+    "AffixType": 2,
+    "Category": 0,
+    "Flags": 1028,
+    "IsTemperingAvailable": false,
+    "MagicType": 0,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": [
+      0,
+      14,
+      18,
+      29,
+      17,
+      28,
+      16,
+      30,
+      15
+    ],
+    "AffixAttributes": [
+      {
+        "LocalisationId": "Skill_Rank_All_Bonus",
+        "LocalisationParameter": 4294967295,
+        "LocalisationAttributeFormulaValue": "3",
+        "Localisation": "+[{VALUE1}] to All Skills"
+      }
+    ],
+    "ClassRestriction": "",
+    "Description": "+# to All Skills",
+    "DescriptionClean": "to All Skills"
+  },
+  {
     "IdSno": "1093328;1480175",
     "IdName": "ShrineDuration;ShrineDuration_Lesser",
     "IdSnoList": [
@@ -20292,49 +20396,6 @@
     "ClassRestriction": "",
     "Description": "+#% Shrine Buff Duration",
     "DescriptionClean": "Shrine Buff Duration"
-  },
-  {
-    "IdSno": "1983837;2481661;2571274;2626679",
-    "IdName": "SkillRanksAll_UBERUNIQUE;X2_SkillRankBonus_AllSkills;X2_Transfiguration_SkillRankBonus_AllSkills;X2_UBERUNIQUE_SkillRankBonus_AllSkills",
-    "IdSnoList": [
-      "1983837",
-      "2481661",
-      "2571274",
-      "2626679"
-    ],
-    "IdNameList": [
-      "SkillRanksAll_UBERUNIQUE",
-      "X2_SkillRankBonus_AllSkills",
-      "X2_Transfiguration_SkillRankBonus_AllSkills",
-      "X2_UBERUNIQUE_SkillRankBonus_AllSkills"
-    ],
-    "AffixType": 2,
-    "Category": 0,
-    "Flags": 140,
-    "IsTemperingAvailable": false,
-    "MagicType": 0,
-    "AllowedForPlayerClass": [
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1,
-      1
-    ],
-    "AllowedItemLabels": [],
-    "AffixAttributes": [
-      {
-        "LocalisationId": "Skill_Rank_All_Bonus",
-        "LocalisationParameter": 4294967295,
-        "LocalisationAttributeFormulaValue": "5",
-        "Localisation": "+[{VALUE1}] to All Skills"
-      }
-    ],
-    "ClassRestriction": "",
-    "Description": "+# to All Skills",
-    "DescriptionClean": "to All Skills"
   },
   {
     "IdSno": "2483836;2616425;2616427;2616429",
@@ -21739,8 +21800,8 @@
       }
     ],
     "ClassRestriction": "",
-    "Description": "Lucky Hit: Up to a 40% Chance to Deal +# Non Physical Damage",
-    "DescriptionClean": "Lucky Hit: Up to a 40 Chance to Deal Non Physical Damage"
+    "Description": "Lucky Hit: Up to a 40% Chance to Deal +# Holy Damage",
+    "DescriptionClean": "Lucky Hit: Up to a 40 Chance to Deal Holy Damage"
   },
   {
     "IdSno": "1936578;1938949;1940095;2619750;2619864",
@@ -30789,12 +30850,9 @@
     "DescriptionClean": "Versatile Damage"
   },
   {
-    "IdSno": "2614081;2614083;2614085;2618017;2618019;2618025",
-    "IdName": "Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier1;Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier2;Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier3;Tempered_Damage_Generic_LuckHit_Weakened_Tier1;Tempered_Damage_Generic_LuckHit_Weakened_Tier2;Tempered_Damage_Generic_LuckHit_Weakened_Tier3",
+    "IdSno": "2618017;2618019;2618025",
+    "IdName": "Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier1;Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier2;Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier3",
     "IdSnoList": [
-      "2614081",
-      "2614083",
-      "2614085",
       "2618017",
       "2618019",
       "2618025"
@@ -30802,10 +30860,7 @@
     "IdNameList": [
       "Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier1",
       "Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier2",
-      "Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier3",
-      "Tempered_Damage_Generic_LuckHit_Weakened_Tier1",
-      "Tempered_Damage_Generic_LuckHit_Weakened_Tier2",
-      "Tempered_Damage_Generic_LuckHit_Weakened_Tier3"
+      "Tempered_Damage_Generic_LuckHit_Weakened_BarbRogue_Tier3"
     ],
     "AffixType": -1,
     "Category": -1,
@@ -30834,6 +30889,53 @@
     "ClassRestriction": "",
     "Description": "Lucky Hit: Up to a +#% Chance to Weaken for 2 Seconds",
     "DescriptionClean": "Lucky Hit: Up to a Chance to Weaken for 2 Seconds"
+  },
+  {
+    "IdSno": "2614081;2614083;2614085",
+    "IdName": "Tempered_Damage_Generic_LuckHit_Weakened_Tier1;Tempered_Damage_Generic_LuckHit_Weakened_Tier2;Tempered_Damage_Generic_LuckHit_Weakened_Tier3",
+    "IdSnoList": [
+      "2614081",
+      "2614083",
+      "2614085"
+    ],
+    "IdNameList": [
+      "Tempered_Damage_Generic_LuckHit_Weakened_Tier1",
+      "Tempered_Damage_Generic_LuckHit_Weakened_Tier2",
+      "Tempered_Damage_Generic_LuckHit_Weakened_Tier3"
+    ],
+    "AffixType": -1,
+    "Category": -1,
+    "Flags": 4,
+    "IsTemperingAvailable": true,
+    "MagicType": 0,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": [],
+    "AffixAttributes": [
+      {
+        "LocalisationId": "On_Hit_Weakened_Proc",
+        "LocalisationParameter": 4294967295,
+        "LocalisationAttributeFormulaValue": "0",
+        "Localisation": "{c_label}Lucky Hit:{/c} Up to a +[{VALUE}*100|1%|] Chance to Weaken Enemies for {VALUE2} Seconds"
+      },
+      {
+        "LocalisationId": "On_Hit_Weakened_Proc",
+        "LocalisationParameter": 4294967295,
+        "LocalisationAttributeFormulaValue": "2",
+        "Localisation": "{c_label}Lucky Hit:{/c} Up to a +[{VALUE}*100|1%|] Chance to Weaken Enemies for {VALUE2} Seconds"
+      }
+    ],
+    "ClassRestriction": "",
+    "Description": "Lucky Hit: Up to a +#% Chance to Weaken Enemies for # Seconds",
+    "DescriptionClean": "Lucky Hit: Up to a Chance to Weaken Enemies for Seconds"
   },
   {
     "IdSno": "2497379;2502528;2502531;2502533;2634626;2634628;2634630",
@@ -30881,8 +30983,8 @@
       }
     ],
     "ClassRestriction": "",
-    "Description": "+#% Non Physical Damage",
-    "DescriptionClean": "Non Physical Damage"
+    "Description": "+#% Holy Damage",
+    "DescriptionClean": "Holy Damage"
   },
   {
     "IdSno": "1862334;1938729;1939867",
@@ -33766,7 +33868,7 @@
     "AllowedItemLabels": [],
     "AffixAttributes": [
       {
-        "LocalisationId": "Per_Skill_Tag_Buff_Duration_Bonus_Percent",
+        "LocalisationId": "Custom_Duration_Bonus_Per_Skill_Tag",
         "LocalisationParameter": 3360437049,
         "LocalisationAttributeFormulaValue": "0",
         "Localisation": "+[{VALUE2}*100|1%|] {c_important}{VALUE1}{/c} Duration"
@@ -36994,7 +37096,7 @@
       {
         "LocalisationId": "UBERUNIQUE_DoT_Duration",
         "LocalisationParameter": 4294967295,
-        "LocalisationAttributeFormulaValue": "0.5",
+        "LocalisationAttributeFormulaValue": "0.6",
         "Localisation": "+[{VALUE}*100|%|] Damage Over Time Duration"
       }
     ],
@@ -40674,8 +40776,8 @@
       }
     ],
     "ClassRestriction": "",
-    "Description": "x#% Non Physical Damage Multiplier",
-    "DescriptionClean": "x Non Physical Damage Multiplier"
+    "Description": "x#% Holy Damage Multiplier",
+    "DescriptionClean": "x Holy Damage Multiplier"
   },
   {
     "IdSno": "2558717;2602180",
@@ -40990,7 +41092,7 @@
     "AffixAttributes": [
       {
         "LocalisationId": "Skill_Rank_Skill_Tag_Bonus",
-        "LocalisationParameter": 2258379325,
+        "LocalisationParameter": 3759085154,
         "LocalisationAttributeFormulaValue": "0",
         "Localisation": "+[{VALUE2}|0|] to {c_important}{VALUE1}{/c} Skills"
       }

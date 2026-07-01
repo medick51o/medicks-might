@@ -1,0 +1,196 @@
+# Season 14 readiness spec — Medick's Might (2026-06-30)
+
+**Context.** Diablo 4 **Season 14 "Death Awakening" (patch 3.1.0)** went live today
+(2026-06-30, 1pm EDT). This spec closes the last open item from `SEASON_READINESS_AUDIT.md`
+(2026-06-10) — the deferred **Mythic 3.0** change — plus a user-requested **tier recolor**,
+a **season data refresh**, and a **season-day verification** pass.
+
+Scope chosen with Medick: **Standard readiness** + mythic handling kept **tight (fix detection,
+least clutter)**.
+
+---
+
+## Goal / why
+
+Get the existing app **correct and ready for S14 launch** — not a feature build. Concretely:
+
+1. The S14 itemization change (mythic is now a *quality on any unique*) broke an assumption in
+   the filter compiler. Fix it.
+2. Real user feedback: the **gold** keeper-tier blended into yellow rare items, and **silver**
+   looked too dull. Recolor the two affix tiers.
+3. Refresh season data so new S14 items resolve.
+4. Prove all of it works on patch day.
+
+## Out of scope (deliberate)
+
+- **New S14 *systems*** — Pandemonium Ruptures, Solo Self-Found, War Boards, Tower/Pit reward
+  changes, the Corrupted Reaper lair boss. These are activities, not loot-filter rules.
+- **New weapons** — Flail / Quarterstaff / Glaive were already added in the 2026-06-10 pass.
+- The audit's **🟡 polish items** (degenerate-filter guard, 11 name-drift uniques, MainViewModel
+  split, repo hygiene) — parked unless promoted later.
+
+---
+
+## A. Mythic Uniques 3.0 — fix detection (the season-blocker)
+
+**Problem.** S14 makes *mythic* a **quality any unique can have or be upgraded to** (via the
+Horadric Cube), not a fixed set of "uber" items. All uniques now also drop with 2 guaranteed
+affixes and are enchantable. The app currently identifies mythics from a **hardcoded list**
+(`UniqueDatabase.Mythics` / `IsMythic`) and pulls them into their own category — that list is now
+obsolete and unmaintainable.
+
+**Change.**
+- **Retire** `UniqueDatabase.Mythics` and `IsMythic()`.
+- In `FilterCompiler.Analyze`, drop the mythic carve-out: **every build unique** resolves to a
+  **purple type-8 targeting id** if known, else lands in **pending** (unchanged path). No separate
+  mythic bucket; remove `CompiledBuild.Mythics`.
+- **UI:** remove the result-screen **"Mythics" panel** (`MythicLines` / `HasMythics` /
+  `HasNoMythics` in `MainViewModel` + the XAML panel). Its data source is the stale list, so in S14
+  it would show wrong info. Build uniques now appear only in the Uniques list.
+- Both fetchers already treat mythics as ordinary uniques (they only resolve names) — no fetcher
+  change needed beyond deleting the now-wrong `IsMythic` comments.
+
+**Safety guarantee (already true, keep it).** The final **"Hide the rest"** rule masks only
+`Common | Magic | Rare | Legendary` — it **never hides Unique (0x10) or Mythic (0x20)**. So a mythic
+drop is **never filtered away** (keeps its natural beam) regardless of how 3.1 tags it internally.
+Keep `Rarity.Mythic = 0x20` defined (harmless, future-proof).
+
+**Tests.**
+- Replace `IsMythic`/`Mythics` assertions (e.g. `FilterCompilerTests` "Tyrael's Might in b.Mythics").
+- Add: a former-uber unique present in a build now produces a **purple targeting id** (or pending),
+  **not** a mythic carve-out.
+- Add/keep a test asserting the hide-rest mask **excludes** the Unique and Mythic bits (the
+  never-hide-a-mythic guarantee, pinned).
+
+**Done when:** no `IsMythic`/`Mythics` references remain; build uniques handled uniformly; the
+never-hide-a-mythic test is green.
+
+---
+
+## B. Tier recolor — red / pink (red = valuable)
+
+**Principle (Medick).** **Red = high-value / chase**, and red is **reserved** so it stays a strong
+signal. Sharing red across chase categories is intentional. Pink = solid secondary keeper.
+
+**Final palette.**
+
+| Color | Means | Rule(s) |
+|---|---|---|
+| **Red** | Chase / high-value | 3-affix rares & legendaries **+** Ancestral Charms & Seals (shared) |
+| **Pink** | Solid keeper | 2-affix rares & legendaries |
+| Purple | Build uniques | unchanged |
+| Orange / Cyan | Item Power 900+ / 850+ | unchanged (off by default) |
+| Blue | Greater Affixes (off-build) | unchanged |
+| Green | Charms & Seals (basic) | unchanged |
+| White | Codex upgrades | unchanged |
+| — | Non-build uniques & mythics | untouched (natural beam) |
+
+**Change.**
+- Add `FilterColors.Pink` — default **#FF69B4** (hot pink); bump to **#FF1493** (deep pink) if it
+  needs more punch in-game.
+- Point the two affix tiers at the new colors: swap `Analyze(build, FilterColors.Gold,
+  FilterColors.Silver)` → `(…, FilterColors.Red, FilterColors.Pink)` at all call sites
+  (`MainViewModel`, `Tester/Program.cs`, and the tests).
+- **Ancestral Charms & Seals** rule (6a) **stays `Red`** — now shared with the 3-affix tier, by
+  design. Basic charms stay green (6b).
+- Leave every other rule color unchanged (protects red's meaning).
+- Update the **in-app Legend** swatches + labels ("Gold/Silver" → "Red/Pink") and the **README**
+  color descriptions. `FilterColors.Gold`/`Silver` constants may be left defined (unused) or removed
+  as cleanup.
+
+**Shades.** Bake strong defaults (red ≈ existing **#DC0000**, pink ≈ **#FF69B4**); Medick verifies
+the *feel* in-game and we tweak if any shade is off. (Note: red vs pink can read similar to some
+colorblind players — the in-game check covers it.)
+
+**Done when:** filter emits red for the 3-affix tier **and** ancestral charms, pink for the 2-affix
+tier; in-app legend + README match; round-trip + 25-rule cap stay green; Medick confirms shades
+in-game.
+
+---
+
+## C. S14 game-data refresh
+
+**Change.**
+- Refresh the **bundled** `Affixes.enUS.json` + `Uniques.enUS.json` from **josdemmers/Diablo4Companion**
+  (shipped **v5.3.3.0, 2026-06-29**) so new-season names resolve out of the box for a fresh install;
+  update the `_share/MedicK's Might (BETA)/Data` copy too.
+- Verify the in-app **⚙ → Update game data** live path still works (`RUN_CANARY=1` GitHub flow).
+
+**Known, graceful gap.** New S14 uniques' **filter type-8 ids** live in the hardcoded
+`UniqueDatabase.ByName` (sourced from d4data build 3.0.2). Brand-new S14 uniques won't have ids until
+d4data publishes its 3.1 dump — until then a build using one shows it as **pending** (still safe —
+never hidden, surfaced as an amber note). Check whether 3.1 ids are available; if not, document and
+rely on the existing pending-surface.
+
+**Done when:** bundled data updated and spot-checked to contain S14 content (entry counts ≥ prior;
+a couple of known new unique names resolve) **or** the gap is explicitly documented; updater canary
+green.
+
+---
+
+## D. Season-day verification
+
+- **Full xUnit suite green** (updated for A & B).
+- **Live canaries** (`$env:RUN_CANARY=1; dotnet test --filter Category=Canary`): all three tier
+  sources (Maxroll / D4Builds / Mobalytics) still parse on patch day; round-trip + cap green.
+  Specifically re-check the **Mobalytics tier-name whitelist** in case S14 renamed any sections.
+- **Final gate (Medick, in-hand):** import the generated filter in S14 and confirm — a real mythic
+  drop behaves, and the red/pink shades feel right. That in-game export also settles the
+  mythic-encoding unknown for good.
+
+---
+
+## Risks / notes
+
+- **Mythic internal encoding** (does 3.1 export tag mythics `0x20`, or as Unique `0x10`?) is
+  unconfirmed until an in-game export. The never-hide guarantee holds **either way**, so it does not
+  block the work.
+- **No auto-commit** — per house rules, commit only when Medick asks.
+- Build/tests must be **green before any "done"** claim; Medick's in-game validation is the final gate.
+
+---
+
+## Implementation status — 2026-06-30 (built + verified; pending in-game sign-off)
+
+- **A. Mythic 3.0** ✅ Retired `UniqueDatabase.Mythics`/`IsMythic` + `CompiledBuild.Mythics`; every build
+  unique handled uniformly (purple targeting or pending); result-screen Mythics panel removed (now a
+  2-col Uniques | Legend). Safety pinned by `Hide_rest_never_hides_unique_or_mythic_items`.
+- **B. Recolor** ✅ Added `FilterColors.Pink` (#FF69B4). 3-affix → Red (#DC0000), 2-affix → Pink,
+  Ancestral Charms & Seals share Red (red = valuable/chase, by design). In-app legend + option swatches
+  + tooltip + README + Tester updated. Verified by decoding a real import code: `[3+]`=#DC0000,
+  `[2+]`=#FF69B4, `(Anc)`=#DC0000, Build Uniques=purple, Hide=HideAll. Round-trips at 10 rules (<25 cap).
+- **C. Data refresh** ✅ Bundled `Core/Data` + `_share` refreshed from josdemmers/Diablo4Companion
+  (master, same source as the in-app updater): Affixes 891→893, Uniques 299 (content refreshed). Valid
+  JSON, parsed counts confirmed.
+- **D. Verification** ✅ Solution builds 0 warnings/0 errors; 161 unit tests green; live canaries
+  (`RUN_CANARY=1`) green — all three tier sources parse on patch day + the data-updater flow works.
+- **Remaining (human gate):** Medick imports the filter in S14 and confirms (1) red/pink shades feel
+  right, (2) a real mythic drop is never hidden. New tests added: `Former_uber_uniques_are_targeted_
+  like_any_build_unique`, `Hide_rest_never_hides_unique_or_mythic_items`, `Chase_tier_and_ancestral_
+  are_red_keeper_tier_is_pink`, `Rule_names_carry_their_color_label_for_in_game_scanning`. Not committed (house rule).
+
+---
+
+## E. Rule-name color labels — 2026-06-30 (added per request; done + verified)
+
+Each recolor rule's name now carries its color as a suffix so players can scroll the in-game filter
+list and toggle by color (e.g. turn **Charms & Seals (Green)** off at a glance). Suffix format
+(Medick's pick over color-first). Added `FilterColors.NameOf(uint)` + a `Recolor` helper in
+`FilterCompiler.Compile`; ancestral squeezed to **Charms&Seals Anc (Red)** to fit D4's 24-char name
+cap; the Hide rule stays uncolored. Verified by decoding the real output — all 10 names ≤24 chars,
+color intact: `Build Uniques (Purple)` · `Rare/Leg [3+] (Red)` · `Rare/Leg [2+] (Pink)` ·
+`Item Power 900+ (Orange)` · `Item Power 850+ (Cyan)` · `Greater Affixes (Blue)` ·
+`Charms&Seals Anc (Red)` · `Charms & Seals (Green)` · `Codex Upgrades (White)` · `Hide the rest`.
+
+---
+
+## F. Bug fix — catch-all hide rule was leaking items — 2026-06-30
+
+Medick (in-game): unwanted items still dropped through "Hide the rest"; setting Item Power ≥1 fixed
+it. **Root cause:** D4 won't apply a rule that has ONLY a rarity condition (conditions are ANDed, so
+the rarity was matching — the engine just ignores a single-rarity-condition rule). Every other rule
+already pairs rarity with a concrete second condition; the hide rule didn't. **Fix:** added
+`Conditions.ItemPower(1, ItemPowerCap)` to the hide rule. Pinned by
+`Hide_rest_carries_an_item_power_condition_so_d4_actually_applies_it`; the never-hide-Unique/Mythic
+guarantee + round-trip stay green. Pre-existing bug (not introduced by the S14 work). In-game
+confirmation by Medick is the final gate.

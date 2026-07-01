@@ -89,8 +89,8 @@ public static class MobalyticsFetcher
 
                 var entity = ge.TryGetProperty("entity", out var en) ? en : default;
 
-                // unique/mythic gear → its display name. Mythics are kept here too; the compiler
-                // (FilterCompiler.Analyze + UniqueDatabase.IsMythic) splits them into their own category.
+                // unique gear → its display name. S14: mythics are just uniques now, handled
+                // uniformly downstream (the per-item `mythic` flag in the source is ignored).
                 if (entityType == "uniqueItems" && entity.ValueKind == JsonValueKind.Object
                     && entity.TryGetProperty("title", out var ti) && ti.GetString() is { } un && seenUnique.Add(un))
                     uniques.Add(un);

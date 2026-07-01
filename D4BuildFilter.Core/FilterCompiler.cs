@@ -20,7 +20,6 @@ public sealed record CompiledBuild(
     IReadOnlyList<uint> UniqueIds,
     IReadOnlyList<string> UniquesTargeted,
     IReadOnlyList<string> UniquesPending,
-    IReadOnlyList<string> Mythics,
     IReadOnlyList<SlotPool> SlotPools)
 {
     /// <summary>The pool's coarse-affix display names, in pool order.</summary>
@@ -133,10 +132,12 @@ public static class FilterCompiler
         var uniqueIds = new List<uint>();
         var uniquesTargeted = new List<string>();
         var uniquesPending = new List<string>();
-        var mythics = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        // S14 Mythic 3.0: mythic is a quality any unique can have, not a fixed list — so every build
+        // unique is treated uniformly. Known id -> purple per-unique targeting; unknown -> pending
+        // (surfaced, never silently dropped). A unique that drops as / upgrades to mythic is still
+        // never hidden: the "Hide the rest" rule spares the Unique + Mythic rarities.
         foreach (var un in buildUniques)
-            if (UniqueDatabase.IsMythic(un)) mythics.Add(un);   // own category, left untouched (no rule)
-            else if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
+            if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
             else uniquesPending.Add(un);
 
         // Per-slot pools (for the precise per-slot rule mode). Group each variant's slots by the
@@ -181,7 +182,7 @@ public static class FilterCompiler
             .ToList();
 
         return new CompiledBuild(build.Build, color, dim, pool, names,
-            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, mythics.ToList(), slotPools);
+            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, slotPools);
     }
 
     /// <summary>
@@ -200,11 +201,17 @@ public static class FilterCompiler
             opts.StrictEndgame ? conds.Append(Conditions.Ancestral()).ToArray() : conds;
 
         var rules = new List<byte[]>();
+        // Every recolor rule is named "<what> (<Color>)" so a player can scroll the in-game filter
+        // list and toggle by color (e.g. turn "Charms & Seals (Green)" off). D4 caps rule names at
+        // 24 chars (FilterBuilder clamps); the names below stay short enough that the color survives.
+        byte[] Recolor(string name, byte[][] conds, uint color) =>
+            FilterBuilder.MakeRule($"{name} ({FilterColors.NameOf(color)})", Visibility.Recolor, conds, color);
+
         // 1. The build's OWN uniques -> purple (per-unique type-8). Dormant until we have ids.
         if (opts.BuildUniques)
             foreach (var b in builds)
                 if (b.UniqueIds.Count > 0)
-                    rules.Add(FilterBuilder.MakeRule("Build Uniques", Visibility.Recolor,
+                    rules.Add(Recolor("Build Uniques",
                         new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(b.UniqueIds) }, FilterColors.Purple));
         // 2/3. Build-affix tiers (the core): GOLD (>=3 affixes) and SILVER (>=2 affixes). Gold is
         //    emitted first so a 3+ item wins gold over the silver rule (D4 = first match wins).
@@ -226,10 +233,10 @@ public static class FilterCompiler
                 int gold = Math.Min(Strict, affixes.Count);
                 int silver = Math.Min(Loose, affixes.Count);
                 if (opts.GoldTier)
-                    rules.Add(FilterBuilder.MakeRule($"{label} [{gold}+]", Visibility.Recolor, Scope(gold), b.Color));
+                    rules.Add(Recolor($"{label} [{gold}+]", Scope(gold), b.Color));
                 // Silver only if requested AND it's not an exact duplicate of the gold rule just emitted.
                 if (opts.SilverTier && !(opts.GoldTier && silver >= gold))
-                    rules.Add(FilterBuilder.MakeRule($"{label} [{silver}+]", Visibility.Recolor, Scope(silver), b.Dim));
+                    rules.Add(Recolor($"{label} [{silver}+]", Scope(silver), b.Dim));
             }
 
             if (opts.PerSlotRules && b.SlotPools.Count > 0)
@@ -242,37 +249,41 @@ public static class FilterCompiler
         //    tiers so a real build match wins. Orange precedes cyan (first match wins).
         if (opts.ItemPowerTiers)
         {
-            rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerOrange}+", Visibility.Recolor,
+            rules.Add(Recolor($"Item Power {ItemPowerOrange}+",
                 new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerOrange, ItemPowerCap) }, FilterColors.Orange));
-            rules.Add(FilterBuilder.MakeRule($"Item Power {ItemPowerCyan}+", Visibility.Recolor,
+            rules.Add(Recolor($"Item Power {ItemPowerCyan}+",
                 new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerCyan, ItemPowerCap) }, FilterColors.Cyan));
         }
         // 5. Greater Affixes -> blue: any rare/leg with >=1 GA not already matched above.
         if (opts.GreaterAffixes)
-            rules.Add(FilterBuilder.MakeRule("Greater Affixes", Visibility.Recolor,
+            rules.Add(Recolor("Greater Affixes",
                 Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));
         // 6a. Ancestral charms/seals -> red (FIRST so they win over the green catch-all below).
         //     Same Types(Charm, Seal) condition + Ancestral gate. Default on — the rare ancestrals
         //     get visually distinct treatment instead of drowning in the basic-charm green noise.
         if (opts.CharmsSealsAncestral)
-            rules.Add(FilterBuilder.MakeRule("Charms & Seals (Anc)", Visibility.Recolor,
+            rules.Add(Recolor("Charms&Seals Anc",
                 new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }), Conditions.Ancestral() }, FilterColors.Red));
         // 6b. Charms & Seals -> green: surface them by item type, any rarity, so the hide rule
         //     doesn't eat them. Not tier-gated. Sits below the ancestral rule so non-ancestrals
         //     fall through to green; ancestrals already matched red above (first-match wins).
         if (opts.CharmsSeals)
-            rules.Add(FilterBuilder.MakeRule("Charms & Seals", Visibility.Recolor,
+            rules.Add(Recolor("Charms & Seals",
                 new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }, FilterColors.Green));
         // 7. Any remaining Codex-of-Power upgrade -> white (pick up for the aspect, then salvage).
         if (opts.Codex)
-            rules.Add(FilterBuilder.MakeRule("Codex Upgrades", Visibility.Recolor,
+            rules.Add(Recolor("Codex Upgrades",
                 new[] { Conditions.Codex() }, FilterColors.White));
         // 8. Hide the clutter: Common / Magic / Rare / Legendary that nothing above matched.
         //    NOT Unique (build ones purple above; rest fall through to default) and NOT Mythic —
         //    mythics drop untouched with their natural beam + "tink".
         if (opts.HideRest)
             rules.Add(FilterBuilder.MakeRule("Hide the rest", Visibility.HideAll,
-                new[] { Conditions.RarityMask(Rarity.Common | Rarity.Magic | Rarity.Rare | Rarity.Legendary) }));
+                // D4 won't apply a rule that has ONLY a rarity condition — unwanted items leak through.
+                // Pair it with Item Power >= 1 (every other rule already carries a concrete 2nd condition)
+                // so the engine honors the catch-all and actually hides. All gear has item power >= 1.
+                new[] { Conditions.RarityMask(Rarity.Common | Rarity.Magic | Rarity.Rare | Rarity.Legendary),
+                        Conditions.ItemPower(1, ItemPowerCap) }));
 
         var filterBytes = FilterBuilder.MakeFilter(filterName, rules);
         var code = FilterBuilder.ToImportCode(filterBytes);

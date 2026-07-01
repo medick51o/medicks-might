@@ -158,9 +158,8 @@ public static class MaxrollFetcher
 
                     string itemId = item.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
 
-                    // Gear unique (or mythic)? Resolve its display name. Mythics are kept too; the
-                    // compiler (FilterCompiler.Analyze + UniqueDatabase.IsMythic) splits them into
-                    // their own category. (Charms don't resolve here — they're a separate type.)
+                    // Gear unique? Resolve its display name. (Charms don't resolve here — they're a
+                    // separate type.) S14: mythics are just uniques now, handled uniformly downstream.
                     if (itemId.Length > 0)
                     {
                         if (uniques.Resolve(itemId) is { } un) { if (seenUnique.Add(un)) uniqueNames.Add(un); }

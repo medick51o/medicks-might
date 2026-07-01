@@ -1213,14 +1213,11 @@
                              beta.8.2: fixed Height 264 (instead of MaxHeight=300) so the right box is
                              exactly the same height as the left column (240 ListBox + 24 header label
                              = 264). Filter Options below snaps up since no asymmetric row stretch. -->
-                        <!-- Right side: Mythics | Uniques | Legend side-by-side. Medick's reorder —
-                             Uniques (the most-glanced panel) lands in the middle as the visual anchor;
-                             Mythics flanks left (its longer pink subtitle gets full column width to wrap);
-                             Legend on the right where the eye finishes scanning. Subtitles wrap instead
-                             of truncating. -->
+                        <!-- Right side: Uniques | Legend side-by-side. (S14: the separate Mythics panel
+                             was retired — "mythic" is now a quality any unique can have/upgrade to, not
+                             a fixed roster, so a build's uniques are shown as one list.) -->
                         <Grid Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
@@ -1229,22 +1226,8 @@
                                  below them was already doing the panel-title work, the tab pseudo-headers
                                  were just visual noise. Each panel's section label IS the title now. -->
 
-                            <!-- Mythics panel -->
+                            <!-- Uniques panel -->
                             <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                <TextBlock Text="Mythics — always drop, untouched by this filter"
-                                           Style="{StaticResource SectionLabel}"
-                                           TextWrapping="Wrap"
-                                           Foreground="#ff6ec7"
-                                           Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
-                                <ListBox ItemsSource="{Binding MythicLines}" MinHeight="80" MaxHeight="160"
-                                         Visibility="{Binding HasMythics, Converter={StaticResource BoolToVis}}" />
-                                <TextBlock Text="No mythics in this build."
-                                           Foreground="{DynamicResource Text.Muted}" FontSize="{DynamicResource Type.Caption}" FontStyle="Italic" Margin="0,4,0,0"
-                                           Visibility="{Binding HasNoMythics, Converter={StaticResource BoolToVis}}" />
-                            </StackPanel>
-
-                            <!-- Uniques panel (middle = visual anchor) -->
-                            <StackPanel Grid.Column="1" Margin="4,0,4,0">
                                 <TextBlock Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap"
                                            Visibility="{Binding HasPurple, Converter={StaticResource BoolToVis}}">
@@ -1264,7 +1247,7 @@
                             </StackPanel>
 
                             <!-- Legend panel — title now matches the other panels' SectionLabel sizing. -->
-                            <StackPanel Grid.Column="2" Margin="4,0,0,0">
+                            <StackPanel Grid.Column="1" Margin="4,0,0,0">
                                 <TextBlock Text="Legend — what the colors mean"
                                            Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap" />
@@ -1272,11 +1255,10 @@
                                         CornerRadius="{DynamicResource Radius.Control}" Padding="10,8">
                                     <StackPanel>
                                         <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — build uniques" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — 3+ build affixes" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#aaaaaa" Text="● Silver" /><Run Text="  — 2+ build affixes" /></TextBlock>
+                                        <TextBlock Margin="0,1"><Run Foreground="#dc0000" Text="● Red" /><Run Text="  — 3+ affixes · ancestral charms (chase)" /></TextBlock>
+                                        <TextBlock Margin="0,1"><Run Foreground="#ff69b4" Text="● Pink" /><Run Text="  — 2+ build affixes (keeper)" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text="  — IP 900/850" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#dc0000" Text="● Red" /><Run Text="  — Ancestral Charms &amp; Seals" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex upgrades" /></TextBlock>
                                         <TextBlock Margin="0,1" Foreground="{DynamicResource Text.Muted}"><Run Text="◌ Hidden" /><Run Text="  — everything else" /></TextBlock>
@@ -1288,7 +1270,7 @@
 
                     <!-- Filter options — toggles recompile the code live -->
                     <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,10,0,4"
-                               ToolTip="Each toggle is a rule the filter emits. Gold = 3+ build affixes per slot, Silver = 2+ (one roll away). Mythics are never touched." />
+                               ToolTip="Each toggle is a rule the filter emits. Red = 3+ build affixes per slot, Pink = 2+ (one roll away). Mythics are never touched." />
                     <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
                             CornerRadius="{DynamicResource Radius.Control}" Padding="14,10">
                         <StackPanel>
@@ -1300,22 +1282,22 @@
                                  so every checkbox locks to x=32 regardless of how many chips a row
                                  carries. Fixes the Item Power row pushing right because it has 2 chips. -->
                             <UniformGrid Columns="2">
-                                <!-- 3+ → Gold -->
+                                <!-- 3+ → Red (chase) -->
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
                                             HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="{Binding OptGoldTier, Converter={StaticResource ActiveColor}, ConverterParameter=#FFD700}" />
-                                    <CheckBox Grid.Column="1" Content="3+ affixes per slot → Gold (best items)" IsChecked="{Binding OptGoldTier}"
+                                            Background="{Binding OptGoldTier, Converter={StaticResource ActiveColor}, ConverterParameter=#DC0000}" />
+                                    <CheckBox Grid.Column="1" Content="3+ affixes per slot → Red (best items)" IsChecked="{Binding OptGoldTier}"
                                               Foreground="{Binding OptGoldTier, Converter={StaticResource ActiveText}}" />
                                 </Grid>
-                                <!-- 2+ → Silver -->
+                                <!-- 2+ → Pink (keeper) -->
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
                                             HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="{Binding OptSilverTier, Converter={StaticResource ActiveColor}, ConverterParameter=#AAAAAA}" />
-                                    <CheckBox Grid.Column="1" Content="2+ affixes per slot → Silver (one roll away)" IsChecked="{Binding OptSilverTier}"
+                                            Background="{Binding OptSilverTier, Converter={StaticResource ActiveColor}, ConverterParameter=#FF69B4}" />
+                                    <CheckBox Grid.Column="1" Content="2+ affixes per slot → Pink (one roll away)" IsChecked="{Binding OptSilverTier}"
                                               Foreground="{Binding OptSilverTier, Converter={StaticResource ActiveText}}" />
                                 </Grid>
                             </UniformGrid>

@@ -27,7 +27,7 @@ Grab the latest **MedicKs-Might-BETA.zip** from [Releases](../../releases/latest
 - **⟳ Live refresh** — a refresh button (or F5) re-pulls all three tier lists on demand and re-checks every saved build's tier; lists also auto-refresh after 15 minutes and per-source "updated HH:mm" stamps show how fresh each column is.
 - **Paste anything** — a Maxroll/D4Builds/Mobalytics URL, OR a raw affix list copied from Icy Veins / Discord / a screenshot. Universal paste mode handles the rest.
 - **Compiles a precise per-slot loot filter:**
-  - **Gold** (3+ build affixes) and **Silver** (2+) per gear slot — your build's keepers
+  - **Red** (3+ build affixes) and **Pink** (2+) per gear slot — your build's keepers (red = chase / high-value)
   - Weapons grouped by handedness (1H / 2H) so the Barb arsenal fits the 25-rule cap
   - **Purple** — build uniques · **Orange/Cyan** — Item Power tiers (900+/850+) · **Blue** — Greater Affixes · **Green** — charms & seals · **White** — Codex upgrades
   - Mythics never touched (they drop with their natural beam)

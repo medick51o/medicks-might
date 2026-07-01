@@ -88,7 +88,7 @@ else
 // === Compile ===============================================================
 // Analyze the build into its affix pool / unique targeting (the shared Core service
 // the WPF app uses too), then emit both the NORMAL and STRICT ENDGAME filters.
-var build = FilterCompiler.Analyze(resolved, FilterColors.Gold, FilterColors.Silver);
+var build = FilterCompiler.Analyze(resolved, FilterColors.Red, FilterColors.Pink);
 
 Console.WriteLine($"Build: {build.Name}");
 Console.WriteLine($"  affix pool ({build.Pool.Count}): {string.Join(", ", build.PoolNames)}");
@@ -106,9 +106,7 @@ if (build.UniquesTargeted.Count > 0)
     Console.WriteLine($"  build uniques -> PURPLE ({build.UniquesTargeted.Count}): {string.Join(", ", build.UniquesTargeted)}");
 if (build.UniquesPending.Count > 0)
     Console.WriteLine($"  build uniques without an id yet ({build.UniquesPending.Count}) — export to capture: {string.Join(", ", build.UniquesPending)}");
-if (build.Mythics.Count > 0)
-    Console.WriteLine($"  mythics (own category, left untouched) ({build.Mythics.Count}): {string.Join(", ", build.Mythics)}");
-Console.WriteLine($"  GOLD = >={FilterCompiler.Strict} of pool   SECONDARY = >={FilterCompiler.Loose} of pool\n");
+Console.WriteLine($"  RED = >={FilterCompiler.Strict} of pool (chase)   PINK = >={FilterCompiler.Loose} of pool (keeper)\n");
 
 void Emit(FilterOptions opts, string label, string outPath)
 {

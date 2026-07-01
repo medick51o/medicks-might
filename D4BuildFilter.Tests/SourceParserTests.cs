@@ -78,7 +78,7 @@ public class SourceParserTests
         var compiled = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
         var output = FilterCompiler.Compile(new[] { compiled }, new FilterOptions(), "t");
         Assert.True(output.RoundTripOk);
-        Assert.Contains("Tyrael's Might", compiled.Mythics);   // a mythic → its own category, not purple
+        Assert.Contains("Tyrael's Might", compiled.UniquesTargeted);   // S14: targeted like any unique
     }
 
     // ── maxroll guide → planner resolution (tier-list one-click load) ──
