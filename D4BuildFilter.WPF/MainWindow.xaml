@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:D4BuildFilter.WPF"
         xmlns:vm="clr-namespace:D4BuildFilter.WPF.ViewModels"
         mc:Ignorable="d"
-        Title="MedicK's Might (BETA) — Filters Made EZ"
+        Title="MedicK's Might — Filters Made EZ"
         Icon="Assets/mk_logo.png"
         Height="920" Width="1160"
         MinHeight="640" MinWidth="860"
@@ -1521,7 +1521,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center">
-                    <Run Text="MedicK's Might (beta)" />
+                    <Run Text="MedicK's Might v1.0.0" />
                     <Run Text="  •  " />
                     <Run Text="{Binding StatusMessage, Mode=OneWay}" Foreground="#8c8" />
                 </TextBlock>

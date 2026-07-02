@@ -13,7 +13,7 @@
 
 ## Download
 
-Grab the latest **MedicKs-Might-BETA.zip** from [Releases](../../releases/latest), unzip the folder (keep all the files together), then double-click **MedicK's Might.exe**.
+Grab the latest **MedicKs-Might.zip** from [Releases](../../releases/latest), unzip the folder (keep all the files together), then double-click **MedicK's Might.exe**.
 
 > 🛡 Windows may say *"Windows protected your PC"* (unknown publisher) — click **More info → Run anyway**. It's unsigned, not unsafe.
 
@@ -35,6 +35,17 @@ Grab the latest **MedicKs-Might-BETA.zip** from [Releases](../../releases/latest
 - **Talisman & set-bonus recognition** — decoded community filters spell out set names (e.g. *"Talisman: Barbarian Set 01"*) instead of hex blobs.
 - **Round-trip verified import code** — paste straight into Diablo 4's Loot Filter → Import.
 
+## Season 14 notes & known limits
+
+- **25 rules max** is Blizzard's hard import cap, not ours — the app warns when a build would blow
+  it and tells you what to turn off.
+- **Brand-new S14 uniques** purple-target via the 3.1 datamine; an oddball may show as *pending*
+  in the app until its filter id is captured — it still drops visibly (never hidden).
+- **Known in-game bug (not the app):** filtering Seals by talisman set-bonus can misbehave —
+  reported to Blizzard by the community; no filter-side workaround exists.
+- **Pandemonium Fragments / Lair Keys** are currency-like pickups, not gear — no loot filter
+  (anyone's) can target them.
+
 ## How to use
 
 1. Download from [Releases](../../releases/latest) and unzip.
@@ -53,7 +64,7 @@ dotnet build -c Release
 dotnet run --project D4BuildFilter.WPF
 ```
 
-Stack: **.NET 10 · WPF · CommunityToolkit.Mvvm**. Three projects — `Core` (protobuf encoder, fetchers, compiler, affix/unique/talisman DBs), `WPF` (UI), `Tester` (console). **159 xUnit tests** (plus opt-in live canaries: `$env:RUN_CANARY=1; dotnet test --filter Category=Canary`).
+Stack: **.NET 10 · WPF · CommunityToolkit.Mvvm**. Three projects — `Core` (protobuf encoder, fetchers, compiler, affix/unique/talisman DBs), `WPF` (UI), `Tester` (console). **171 xUnit tests** (plus opt-in live canaries: `$env:RUN_CANARY=1; dotnet test --filter Category=Canary`).
 
 ## Credits
 
