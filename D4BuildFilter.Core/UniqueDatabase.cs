@@ -333,6 +333,44 @@ public static class UniqueDatabase
             ["Gravewalker's Hand"] = 0x279d1f,
             ["El'Druin, Sword of Justice"] = 0x27bad5,
             ["Sliver of Hate"] = 0x2806e1,
+
+            // ── S14 backfill (patch 3.1.0.72592, 2026-07-01) — d4data via ThunderEagle/D4LootBench
+            // d4-data.json (formatVersion 4), additive-only merge of every display name we lacked.
+            // Includes CLEAN-name aliases for the six mojibake/NBSP-drift entries above (Mjölnic,
+            // Sunstained, Bane of Ahjad-Den, Kilt of Blackwing, Galvanic Azurite, Coop de Grâce) —
+            // scrapers emit the clean spellings, so these finally purple-target. "(Crucible)"
+            // entries are 3.1's new weapon-variant items under their own ids. Dev junk excluded
+            // ("(DEBUG)…", "[ph_…]", "(DNS)"). Known conflict NOT applied: Eaglehorn (ours
+            // 0x15f732 vs 3.1 first-variant 0x08c816) — keep the curated id until an in-game
+            // export proves otherwise.
+            ["Halo"] = 0x08d02f,
+            ["Mjölnic Ryng"] = 0x1ec38b,
+            ["Sunstained War-Crozier"] = 0x1ee2b3,
+            ["Bane of Ahjad-Den"] = 0x1fc162,
+            ["Kilt of Blackwing"] = 0x2410e1,
+            ["Galvanic Azurite"] = 0x2410ed,
+            ["Coop de Grâce"] = 0x274088,
+            ["Ramaladni's Magnum Opus (Crucible)"] = 0x27b52b,
+            ["Sabre of Tsasgal (Crucible)"] = 0x27b52d,
+            ["Doombringer (Crucible)"] = 0x27b52f,
+            ["Azurewrath (Crucible)"] = 0x27b531,
+            ["Supplication (Crucible)"] = 0x27b533,
+            ["Griswold's Opus (Crucible)"] = 0x27b535,
+            ["The Third Blade (Crucible)"] = 0x27b53b,
+            ["Shard of Verathiel (Crucible)"] = 0x27b53d,
+            ["Waxing Gibbous (Crucible)"] = 0x27b53f,
+            ["The Butcher's Cleaver (Crucible)"] = 0x27b541,
+            ["Thousand-Eye Reaver (Crucible)"] = 0x27b543,
+            ["Fields of Crimson (Crucible)"] = 0x27b545,
+            ["The Grandfather (Crucible)"] = 0x27b547,
+            ["Sanguivor, Blade of Zir (Crucible)"] = 0x27b549,
+            ["Red Sermon (Crucible)"] = 0x27b54b,
+            ["Shattered Vow (Crucible)"] = 0x27b54d,
+            ["Rustbitten Dirk (Crucible)"] = 0x27b54f,
+            ["Condemnation (Crucible)"] = 0x27b551,
+            ["Asheara's Khanjar (Crucible)"] = 0x27b553,
+            ["The Mortacrux (Crucible)"] = 0x27b555,
+            ["The Umbracrux (Crucible)"] = 0x27b557,
         };
 
     public static bool TryGet(string name, out uint id) => ByName.TryGetValue(name, out id);

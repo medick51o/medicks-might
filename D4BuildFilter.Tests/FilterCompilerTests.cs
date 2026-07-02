@@ -64,6 +64,18 @@ public class FilterCompilerTests
     }
 
     [Fact]
+    public void S14_backfilled_uniques_resolve_to_type8_ids()
+    {
+        // 3.1.0.72592 backfill (d4data via D4LootBench, 2026-07-01): clean-name aliases for the six
+        // mojibake-drift entries (scrapers emit clean names, the old keys had baked-in Ã/Â bytes)
+        // plus the new S14 "(Crucible)" weapon variants under their own ids.
+        Assert.True(UniqueDatabase.TryGet("Mjölnic Ryng", out _));
+        Assert.True(UniqueDatabase.TryGet("Kilt of Blackwing", out _));
+        Assert.True(UniqueDatabase.TryGet("The Grandfather (Crucible)", out var id));
+        Assert.Equal(0x27b547u, id);
+    }
+
+    [Fact]
     public void Hide_rest_carries_an_item_power_condition_so_d4_actually_applies_it()
     {
         // Bug (S14, in-game): a catch-all HIDE rule with ONLY a rarity condition doesn't apply —

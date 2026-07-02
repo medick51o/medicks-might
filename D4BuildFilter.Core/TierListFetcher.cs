@@ -93,6 +93,18 @@ public static class TierListFetcher
     private static readonly Regex MobaTierSection = new(
         @"""name"":""(?<name>God Tier|S|A|B|C|D|Support)"",""color"":""tier-[a-z]"",.*?""ugDataItems"":\[(?<items>[^\]]*)\]",
         RegexOptions.Compiled | RegexOptions.Singleline);
+
+    // Loose twin of MobaTierSection: same anchors, ANY section name. Drift tripwire — the section
+    // canary enumerates these and fails loud if the live page carries a section the whitelist
+    // above would silently drop (a renamed "God Tier", a new "S+", …).
+    private static readonly Regex MobaAnySection = new(
+        @"""name"":""(?<name>[^""]{1,40})"",""color"":""tier-[a-z]"",.*?""ugDataItems"":\[",
+        RegexOptions.Compiled | RegexOptions.Singleline);
+
+    /// <summary>Every tier-section name on a Mobalytics tier-list page, WITHOUT the known-name
+    /// whitelist <see cref="ParseMobalytics"/> applies. Canary fuel, not a parse path.</summary>
+    public static IReadOnlyList<string> EnumerateMobaSectionNames(string html) =>
+        MobaAnySection.Matches(html).Select(m => m.Groups["name"].Value).Distinct().ToList();
     // Slashes appear as `/` in the raw HTML embed and as plain `/` in already-decoded JSON
     // (or in test fixtures). The (?:\\u002F|/) alternation tolerates both.
     // The icon is captured loosely and the CLASS is derived from the build slug (preferred) or the

@@ -45,4 +45,36 @@ public class ScraperCanaryTests
         Assert.True(list.Builds.Count >= 30,
             $"Only {list.Builds.Count} Mobalytics builds parsed — page shape likely drifted.");
     }
+
+    [Fact]
+    public void Moba_section_enumeration_surfaces_unknown_sections()
+    {
+        // Offline guard for the tripwire itself: a renamed/new section MUST be enumerated even
+        // though ParseMobalytics' name whitelist would silently drop its builds.
+        const string html =
+            @"""name"":""God Tier"",""color"":""tier-e"",""description"":null,""ugDataItems"":[]," +
+            @"""name"":""S+"",""color"":""tier-s"",""description"":null,""ugDataItems"":[]";
+        var names = TierListFetcher.EnumerateMobaSectionNames(html);
+        Assert.Contains("God Tier", names);
+        Assert.Contains("S+", names);
+    }
+
+    [CanaryFact]
+    public async Task Mobalytics_tier_sections_all_recognized()
+    {
+        // S14 recon's #1 hardening item: ParseMobalytics whitelists exact section names, so a
+        // RENAMED or NEW section (say "God Tier" -> "S+") vanishes with zero error. Enumerate the
+        // live page's sections loosely and fail LOUD on anything the whitelist doesn't know.
+        var html = await BrowserFetch.GetStringAsync(TierListFetcher.MobalyticsUrlFor(MobalyticsList.Endgame));
+        var names = TierListFetcher.EnumerateMobaSectionNames(html);
+        Assert.True(names.Count >= 4, $"only {names.Count} tier sections enumerated — page shape drifted");
+        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "God Tier", "S", "A", "B", "C", "D", "Support" };
+        var unknown = names.Where(n => !known.Contains(n)).ToList();
+        Assert.True(unknown.Count == 0,
+            $"Mobalytics carries tier section(s) the parser silently drops: {string.Join(", ", unknown)}");
+        // And the core trio must EXIST — a vanished known section is drift too (God/Support/C/D are
+        // content-dependent and may legitimately be absent; S/A/B never are).
+        foreach (var core in new[] { "S", "A", "B" })
+            Assert.Contains(names, n => n.Equals(core, StringComparison.OrdinalIgnoreCase));
+    }
 }

@@ -22,6 +22,30 @@ if (args.Length >= 1 && args[0] == "decode")
     return;
 }
 
+// SURVEY MODE: `dotnet run -- survey` — live tier-section drift survey across all 11 lists on
+// the 3 sources. Prints each list's build count + section letters and WARNS on any section the
+// Mobalytics whitelist would silently drop (the canary's interactive sibling; born 2026-07-01,
+// ~30h into S14, for release-week drift watching).
+if (args.Length >= 1 && args[0] == "survey")
+{
+    Console.WriteLine("=== TIER SECTION LIVE SURVEY ===\n");
+    Console.WriteLine("MOBALYTICS:");
+    await SurveyMobalytics(MobalyticsList.Endgame, "Endgame");
+    await SurveyMobalytics(MobalyticsList.Leveling, "Leveling");
+    await SurveyMobalytics(MobalyticsList.Pushing, "Pushing");
+    Console.WriteLine("\nMAXROLL:");
+    await SurveyMaxroll(MaxrollList.Endgame, "Endgame");
+    await SurveyMaxroll(MaxrollList.Bossing, "Bossing");
+    await SurveyMaxroll(MaxrollList.Leveling, "Leveling");
+    await SurveyMaxroll(MaxrollList.Push, "Push");
+    await SurveyMaxroll(MaxrollList.Speedfarm, "Speedfarm");
+    Console.WriteLine("\nD4BUILDS:");
+    await SurveyD4Builds(D4BuildsList.Endgame, "Endgame");
+    await SurveyD4Builds(D4BuildsList.Leveling, "Leveling");
+    await SurveyD4Builds(D4BuildsList.Tower, "Tower");
+    return;
+}
+
 // FETCH MODE: `dotnet run -- fetch <maxroll-url-or-id | path-to-planner.json>`
 // pulls a build from maxroll (or reads a saved planner response), resolves each
 // item's affixes to names, overwrites build_resolved.json, then falls through to
@@ -120,3 +144,35 @@ void Emit(FilterOptions opts, string label, string outPath)
 Emit(new FilterOptions(), "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
 Emit(new FilterOptions { StrictEndgame = true }, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");
 Emit(new FilterOptions { PerSlotRules = true }, "PER-SLOT (precise, no cross-slot false positives)", @"C:\Sync\Projects\D4BuildFilter\last_code_perslot.txt");
+
+// ── survey helpers ─────────────────────────────────────────────────────────
+async Task SurveyMobalytics(MobalyticsList kind, string label)
+{
+    var html = await BrowserFetch.GetStringAsync(TierListFetcher.MobalyticsUrlFor(kind));
+    var sections = TierListFetcher.EnumerateMobaSectionNames(html);
+    var parsed = TierListFetcher.ParseMobalytics(html);
+    var tiers = parsed.Builds.Select(b => b.Tier).Distinct().OrderBy(t => t).ToList();
+    Console.WriteLine($"  {label}: {parsed.Builds.Count} builds | Sections: {string.Join(", ", tiers)}");
+    // Warn on any section name the parser's whitelist would silently drop (compare against the
+    // KNOWN set, not the parsed tiers — "God Tier" parses to "God", which is fine, not drift).
+    var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "God Tier", "S", "A", "B", "C", "D", "Support" };
+    var unknown = sections.Where(n => !known.Contains(n)).ToList();
+    if (unknown.Count > 0)
+        Console.WriteLine($"    WARNING: section(s) the parser silently drops: {string.Join(", ", unknown)}");
+}
+
+async Task SurveyMaxroll(MaxrollList kind, string label)
+{
+    var list = await TierListFetcher.FetchMaxrollAsync(kind);
+    var sections = list.Builds.Select(b => b.Tier).Distinct().OrderBy(t => t).ToList();
+    Console.WriteLine($"  {label}: {list.Builds.Count} builds | Sections: {string.Join(", ", sections)}");
+}
+
+async Task SurveyD4Builds(D4BuildsList kind, string label)
+{
+    var list = await TierListFetcher.FetchD4BuildsAsync(kind);
+    var sections = list.Builds.Select(b => b.Tier).Distinct().OrderBy(t => t).ToList();
+    Console.WriteLine(list.Builds.Count == 0
+        ? $"  {label}: EMPTY"
+        : $"  {label}: {list.Builds.Count} builds | Sections: {string.Join(", ", sections)}");
+}

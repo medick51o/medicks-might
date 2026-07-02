@@ -109,13 +109,16 @@ public class MobalyticsTierTests
         var byTier = tl.Builds.GroupBy(b => b.Tier).ToDictionary(g => g.Key, g => g.Count());
         _out.WriteLine($"total: {tl.Builds.Count}");
         foreach (var kv in byTier) _out.WriteLine($"  [{kv.Key}] {kv.Value}");
+        // Assert STRUCTURE, not tier content: hard-pinning "God" went stale the day S14 reset the
+        // meta (no God-ranked builds ~30h in — captured fixture proved it). The core letter trio is
+        // always populated; everything parsed must be a tier we know; and the list must not thin.
         var tierSet = tl.Builds.Select(b => b.Tier).Distinct().OrderBy(t => t).ToList();
-        Assert.Contains("God", tierSet);
         Assert.Contains("S", tierSet);
         Assert.Contains("A", tierSet);
         Assert.Contains("B", tierSet);
-        Assert.Contains("C", tierSet);
-        Assert.Contains("Support", tierSet);
+        var known = new[] { "God", "S", "A", "B", "C", "D", "Support" };
+        Assert.All(tierSet, t => Assert.Contains(t, known));
+        Assert.True(tl.Builds.Count >= 30, $"only {tl.Builds.Count} builds parsed from the fixture");
     }
 
     [Fact]

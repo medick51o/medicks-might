@@ -194,3 +194,51 @@ already pairs rarity with a concrete second condition; the hide rule didn't. **F
 `Hide_rest_carries_an_item_power_condition_so_d4_actually_applies_it`; the never-hide-Unique/Mythic
 guarantee + round-trip stay green. Pre-existing bug (not introduced by the S14 work). In-game
 confirmation by Medick is the final gate.
+
+---
+
+## G. Day-2 (30h) sweep — 2026-07-01: data drops landed, uniques backfilled, tripwire armed
+
+The S14 datamine wave landed overnight, faster than the ~3-week estimate:
+- **d4data rebuilt for 3.1.0.72592** (2026-07-01 04:28Z) and **D4LootBench shipped Season-14
+  d4-data.json** (formatVersion 4, 771 unique entries) — the validated snoId==type-8 lineage.
+- **UniqueDatabase backfill (+28):** every missing display name merged additively — incl. clean-name
+  aliases that close ALL SIX mojibake-drift entries from the June-10 audit, and 21 new **"(Crucible)"**
+  weapon-variant items (S14 system; ids 0x27b52b–0x27b557). Excluded dev junk; Eaglehorn id conflict
+  deliberately NOT applied (ours 0x15f732 kept until an in-game export decides).
+- **Bundled game data re-refreshed** to Diablo4Companion's v3.1.0.72592 files (committed upstream
+  2026-07-01 12:20Z; content changed, counts steady at 893/299). Core/Data + _share updated.
+- **Mobalytics section tripwire (recon's #1 hardening item):** `TierListFetcher.EnumerateMobaSectionNames`
+  (loose twin of the whitelist regex) + an offline unit test + a live canary that fails LOUD if the
+  page ever carries a section the parser would silently drop.
+- **Verification:** 170 tests / 0 failed WITH live canaries (new section canary green against the
+  live page at ~30h into S14); solution builds 0 warnings / 0 errors. 30h recon fleet (wf `wc02osofj`)
+  out for meta/hotfix/competitor drift — synthesis folds in on return.
+- **Open questions for the fleet / in-game export:** what "(Crucible)" is mechanically (if it's the
+  mythic-crafted variant, purple targeting may want name→[baseId, crucibleId] multi-mapping); the
+  Eaglehorn id; official-notes confirmation of the wire format.
+
+---
+
+## H. Final gate checklist — Medick, one in-game pass (THE beta blocker)
+
+One import session settles everything still open. In S14, with a filter generated from the current
+build (Desktop shortcut runs it):
+
+- [ ] **(a) Import accepted** by the 3.1.0 client — proves the wire format survived the patch.
+- [ ] **(b) Red (3+) vs Pink (2+)** render distinctly and feel right in real loot (tweak shades if not).
+- [ ] **(c) Junk actually hides** — the Item-Power≥1 hide fix working in the wild.
+- [ ] **(d) A Unique/Mythic drop is never hidden** — natural beam intact.
+- [ ] **(e) 25-rule cap behavior** — load a fat build (Barb), confirm the cap warning guides correctly.
+- [ ] **(f) EXPORT one filter and paste it back** — decoding it settles: wire-format details, how a
+      "(Crucible)" item is tagged (decides the multi-mapping question), and the Eaglehorn id if one
+      drops. `dotnet run --project D4BuildFilter.Tester -- decode <code>` does the rest.
+
+Post-gate (Medick's calls, locked 2026-07-01): **friends beta only** (public parked) · **merge
+webapp-convergence + s14-readiness lineage → master** · version bump · rebuild the publish zip
+(whole publish folder — native DLLs + Assets/Data) · Desktop zip + private GH release → crew.
+
+30h fleet verdict (overseer unsatisfied after 3 rounds — over report hygiene, not the repo): all
+repo-touching findings re-verified correct; hotfix 3.1.0a (XP/login) has zero filter impact; bundle
+confirmed current vs v5.3.4.0-era master; stale God-tier fixture test fixed (fixture captured live,
+assertion made structural); section canary now also guards the S/A/B core trio.
