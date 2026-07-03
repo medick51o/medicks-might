@@ -9,9 +9,12 @@ public sealed record ResolvedSlot(string Slot, IReadOnlyList<string> Affixes);
 
 /// <summary>One build variant (a maxroll "profile") reduced to its desirable affix wishlist
 /// plus the gear uniques it equips (display names). <paramref name="Slots"/> keeps the per-slot
-/// breakdown when the source provides it (null = flat list only, e.g. pasted builds).</summary>
+/// breakdown when the source provides it (null = flat list only, e.g. pasted builds).
+/// <paramref name="TalismanSets"/> = the charm SETS this variant equips (SetItemBonusDatabase
+/// display names, e.g. "Talisman: Barbarian Set 05"), extracted from set-charm item ids — feeds
+/// the build-scoped Charms &amp; Seals rules. Null when the source carries no talisman data.</summary>
 public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes, IReadOnlyList<string> Uniques,
-    IReadOnlyList<ResolvedSlot>? Slots = null);
+    IReadOnlyList<ResolvedSlot>? Slots = null, IReadOnlyList<string>? TalismanSets = null);
 
 /// <summary>A whole maxroll build resolved to affix names, ready for the AffixMapper/encoder.
 /// Serializes (camelCase) to the same shape the Tester reads from build_resolved.json.
@@ -147,6 +150,7 @@ public static class MaxrollFetcher
             var uniqueNames = new List<string>();
             var resolvedSlots = new List<ResolvedSlot>();
             var seenUnique = new HashSet<string>(StringComparer.Ordinal);
+            var talismanSets = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
             if (profile.TryGetProperty("items", out var slotMap) && slotMap.ValueKind == JsonValueKind.Object)
             {
                 foreach (var slot in slotMap.EnumerateObject())
@@ -162,7 +166,14 @@ public static class MaxrollFetcher
                     // separate type.) S14: mythics are just uniques now, handled uniformly downstream.
                     if (itemId.Length > 0)
                     {
-                        if (uniques.Resolve(itemId) is { } un) { if (seenUnique.Add(un)) uniqueNames.Add(un); }
+                        // Set-charms name their set in the id ("Talisman_Charm_Set_Barb_05_03") —
+                        // collect the SETS (S14 display names, e.g. "Bul-Kathos' Pride") so the
+                        // Charms & Seals rules can scope to the build.
+                        if (TalismanSetCharm.Match(itemId) is { Success: true } tm &&
+                            TalismanSetDatabase.TryGetByPlannerToken(tm.Groups["cls"].Value,
+                                int.Parse(tm.Groups["num"].Value), out var tset))
+                            talismanSets.Add(tset.Name);
+                        else if (uniques.Resolve(itemId) is { } un) { if (seenUnique.Add(un)) uniqueNames.Add(un); }
                         else if (LooksLikeGearUnique(itemId)) unknownUniqueIds.Add(itemId);
                     }
 
@@ -182,7 +193,8 @@ public static class MaxrollFetcher
                         resolvedSlots.Add(new ResolvedSlot(label, slotAffixes));
                 }
             }
-            variants.Add(new ResolvedVariant(vName, affixes, uniqueNames, resolvedSlots));
+            variants.Add(new ResolvedVariant(vName, affixes, uniqueNames, resolvedSlots,
+                talismanSets.Count > 0 ? talismanSets.ToList() : null));
         }
         return new ResolvedBuild(build, cls, variants,
             unknownNids.Select(n => n.ToString()).ToList(), unknownUniqueIds.ToList());
@@ -191,6 +203,10 @@ public static class MaxrollFetcher
     /// <summary>A maxroll item id that SHOULD have resolved via Uniques.enUS.json: gear uniques
     /// carry "_Unique_" ("Chest_Unique_Barb_100"). Charm/seal/talisman ids can carry the token too
     /// but are intentionally absent from the lookup (their own filter category, not a data gap).</summary>
+    // Set-charm ids carry their set: "Talisman_Charm_Set_Barb_05_03" → class token "Barb", set 05.
+    private static readonly Regex TalismanSetCharm = new(
+        @"^Talisman_Charm_Set_(?<cls>[A-Za-z]+)_(?<num>\d+)_", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static bool LooksLikeGearUnique(string itemId) =>
         itemId.Contains("_Unique_", StringComparison.OrdinalIgnoreCase)
         && !itemId.Contains("Charm", StringComparison.OrdinalIgnoreCase)

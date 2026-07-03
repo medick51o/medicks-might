@@ -735,6 +735,35 @@ public partial class MainViewModel : ObservableObject
     /// (BooleanToVisibilityConverter doesn't support inversion or compound conditions).</summary>
     public bool HasNoUniques => !HasPurple && !HasPending;
 
+    // ── v1.0.1: per-class talisman-set checkboxes (build's sets pre-checked, unchecked = hidden) ──
+    public ObservableCollection<TalismanSetOption> TalismanSetOptions { get; } = new();
+    public bool HasTalismanSetOptions => TalismanSetOptions.Count > 0;
+
+    /// <summary>Footer build stamp: assembly version ("-dev" suffix on work-in-progress builds)
+    /// plus the exe's build time — answers "am I running the latest build?" at a glance
+    /// (Medick's ask, 2026-07-02, after a dev build and the v1.0.0 release looked identical).</summary>
+    public string AppVersionLabel { get; } = ComputeVersionLabel();
+
+    private static string ComputeVersionLabel()
+    {
+        var asm = System.Reflection.Assembly.GetEntryAssembly();
+        var info = asm is null ? null
+            : ((System.Reflection.AssemblyInformationalVersionAttribute?)System.Attribute
+                .GetCustomAttribute(asm, typeof(System.Reflection.AssemblyInformationalVersionAttribute)))
+                ?.InformationalVersion;
+        var ver = string.IsNullOrWhiteSpace(info) ? "?" : info!;
+        var plus = ver.IndexOf('+');                        // strip any build-metadata suffix
+        if (plus > 0) ver = ver[..plus];
+        string built = "";
+        try
+        {
+            if (Environment.ProcessPath is { } exe)
+                built = $"  •  built {System.IO.File.GetLastWriteTime(exe):MMM d, h:mm tt}";
+        }
+        catch { /* cosmetic only — never let the footer break startup */ }
+        return $"MedicK's Might v{ver}{built}";
+    }
+
     // ── Result: the compiled filter + the user's option toggles ──
     [ObservableProperty] private string importCode = "";
     [ObservableProperty] private string filterInfo = "";
@@ -829,6 +858,11 @@ public partial class MainViewModel : ObservableObject
     {
         StrictEndgame = StrictEndgame,
         PerSlotRules = OptPerSlot,
+        // v1.0.1: null while no build offers sets (legacy catch-all); otherwise exactly the
+        // checked boxes — empty means "user unchecked everything" (charm rules omitted → hidden).
+        TalismanSets = TalismanSetOptions.Count > 0
+            ? TalismanSetOptions.Where(o => o.IsChecked).Select(o => o.Set).ToList()
+            : null,
         GoldTier = OptGoldTier,
         BuildUniques = OptBuildUniques,
         SilverTier = OptSilverTier,
@@ -998,6 +1032,20 @@ public partial class MainViewModel : ObservableObject
 
         var build = _resolved with { Variants = selected };
         var compiled = FilterCompiler.Analyze(build, FilterColors.Red, FilterColors.Pink);
+
+        // v1.0.1: refresh the per-class set checkboxes BEFORE compiling (CurrentOptions reads them).
+        // The build's sets come pre-checked; a user's manual choices survive recompiles (merged by
+        // set id). Toggling a box calls back into this method — the ctor writes the field directly
+        // and same-value setter writes don't re-fire, so there is no loop.
+        var priorChecks = TalismanSetOptions.ToDictionary(o => o.Set.Id, o => o.IsChecked);
+        var buildSets = new HashSet<string>(compiled.TalismanSets, StringComparer.OrdinalIgnoreCase);
+        TalismanSetOptions.Clear();
+        foreach (var s in TalismanSetDatabase.ForClass(_resolved.Class))
+            TalismanSetOptions.Add(new TalismanSetOption(s,
+                priorChecks.TryGetValue(s.Id, out var was) ? was : buildSets.Contains(s.Name),
+                Recompile));
+        OnPropertyChanged(nameof(HasTalismanSetOptions));
+
         var title = string.IsNullOrWhiteSpace(FilterTitle) ? BrandName : FilterTitle.Trim();
         var output = FilterCompiler.Compile(new[] { compiled }, CurrentOptions, "Filter", title);
 

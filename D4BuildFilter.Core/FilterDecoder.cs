@@ -10,6 +10,9 @@ public sealed class DecodedCondition
     public ulong? Count { get; set; }           // field 6: greater-affix count
     public ulong? Max { get; set; }             // field 5: item-power range max (type 0)
     public List<uint> GreaterAffixOf { get; } = new(); // field 3: affix ids that must roll as Greater Affixes
+    /// <summary>Type-9 only (S14): field-3 per-item refinement — the set id plus its selected
+    /// member item ids, exactly as the 3.1 in-game editor emits them.</summary>
+    public List<(uint SetId, List<uint> Items)> SetItems { get; } = new();
     public List<string> Unknown { get; } = new(); // any field we don't recognize (discovery aid)
 }
 
@@ -77,6 +80,22 @@ public static class FilterDecoder
             {
                 case { Field: 1, WireType: 0 }: c.Type = (int)fld.VarintValue; break;
                 case { Field: 2, WireType: 5 }: c.Ids.Add(fld.Fixed32Value); break;
+                case { Field: 3, WireType: 2 } when c.Type == 9:
+                    // S14 type-9 refinement: sub-message { 1: set id, 2: member item id ×N } — the
+                    // in-game editor's per-item selection (field 1 arrives before field 3, so the
+                    // type is already known here).
+                    {
+                        uint setId = 0;
+                        var members = new List<uint>();
+                        foreach (var sub in ProtobufReader.Read(fld.Bytes))
+                            switch (sub)
+                            {
+                                case { Field: 1, WireType: 5 }: setId = sub.Fixed32Value; break;
+                                case { Field: 2, WireType: 5 }: members.Add(sub.Fixed32Value); break;
+                            }
+                        c.SetItems.Add((setId, members));
+                    }
+                    break;
                 case { Field: 3, WireType: 2 }:
                     // per-affix "must roll as a Greater Affix" marker: sub-message { 1: id, 2: id }
                     // (real filters repeat the affix id in both fields — see bmbernie's RE notes).
@@ -132,6 +151,7 @@ public static class FilterDecoder
                         : $"ids=[{string.Join(",", c.Ids.Select(id => "0x" + id.ToString("x6")))}]");
                 }
                 if (c.GreaterAffixOf.Count > 0) parts.Add($"gaRequired=[{string.Join(",", c.GreaterAffixOf.Select(id => "0x" + id.ToString("x6")))}]");
+                if (c.SetItems.Count > 0) parts.Add($"setItems=[{string.Join("; ", c.SetItems.Select(s => $"0x{s.SetId:x6}: {s.Items.Count} item(s)"))}]");
                 if (c.Type == 0)
                 {
                     if (c.MaskOrCount is { } lo) parts.Add($"minPower={lo}");

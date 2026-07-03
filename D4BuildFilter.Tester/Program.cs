@@ -46,6 +46,37 @@ if (args.Length >= 1 && args[0] == "survey")
     return;
 }
 
+// PROBE MODE: `dotnet run -- probe-seals` — one-off in-game diagnostic for the type-9
+// TalismanSetBonus condition (2026-07-02, the "every seal shows green" report). Import the code
+// in D4 and read the colors: GREEN = class-set charms addressable · BLUE = seals via generic
+// sets · PINK = not reachable by set-targeting (needs a fallback). Recolor-only: hides nothing.
+if (args.Length >= 1 && args[0] == "probe-seals")
+{
+    var charmSeal = new[] { ItemTypes.Charm, ItemTypes.Seal };
+    var barbSets = SetItemBonusDatabase.ByName
+        .Where(kv => kv.Key.Contains("Barbarian", StringComparison.OrdinalIgnoreCase))
+        .Select(kv => kv.Value).ToList();
+    var genericSets = SetItemBonusDatabase.ByName
+        .Where(kv => kv.Key.Contains("Generic", StringComparison.OrdinalIgnoreCase))
+        .Select(kv => kv.Value).ToList();
+    var probe = new List<byte[]>
+    {
+        FilterBuilder.MakeRule("BarbSets (Green)", Visibility.Recolor,
+            new[] { Conditions.Types(charmSeal), Conditions.TalismanSetBonus(barbSets) }, FilterColors.Green),
+        FilterBuilder.MakeRule("GenericSets (Blue)", Visibility.Recolor,
+            new[] { Conditions.Types(charmSeal), Conditions.TalismanSetBonus(genericSets) }, FilterColors.Blue),
+        FilterBuilder.MakeRule("OtherCharmSeal (Pink)", Visibility.Recolor,
+            new[] { Conditions.Types(charmSeal) }, FilterColors.Pink),
+    };
+    var probeBytes = FilterBuilder.MakeFilter("MK SEAL PROBE", probe);
+    var probeCode = FilterBuilder.ToImportCode(probeBytes);
+    var rt = FilterDecoder.Decode(probeCode).Rules.Count == probe.Count;
+    Console.WriteLine($"=== MK SEAL PROBE: {probe.Count} rules, round-trip {(rt ? "OK" : "MISMATCH")} ===");
+    Console.WriteLine($"  barb sets: {barbSets.Count}  generic sets: {genericSets.Count}");
+    Console.WriteLine(probeCode);
+    return;
+}
+
 // FETCH MODE: `dotnet run -- fetch <maxroll-url-or-id | path-to-planner.json>`
 // pulls a build from maxroll (or reads a saved planner response), resolves each
 // item's affixes to names, overwrites build_resolved.json, then falls through to
@@ -114,7 +145,15 @@ else
 // the WPF app uses too), then emit both the NORMAL and STRICT ENDGAME filters.
 var build = FilterCompiler.Analyze(resolved, FilterColors.Red, FilterColors.Pink);
 
+// v1.0.1: mirror the app — scope the Charms & Seals rules to the build's own sets when known
+// (the app's checkbox panel does the same with the build's sets pre-checked).
+var talismanScope = build.TalismanSets.Count > 0
+    ? TalismanSetDatabase.All.Where(s => build.TalismanSets.Contains(s.Name, StringComparer.OrdinalIgnoreCase)).ToList()
+    : null;
+
 Console.WriteLine($"Build: {build.Name}");
+if (build.TalismanSets.Count > 0)
+    Console.WriteLine($"  charm sets -> scoped ({build.TalismanSets.Count}): {string.Join(", ", build.TalismanSets)}");
 Console.WriteLine($"  affix pool ({build.Pool.Count}): {string.Join(", ", build.PoolNames)}");
 if (build.Dropped.Count > 0)
 {
@@ -141,9 +180,9 @@ void Emit(FilterOptions opts, string label, string outPath)
     File.WriteAllText(outPath, output.ImportCode);
 }
 
-Emit(new FilterOptions(), "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
-Emit(new FilterOptions { StrictEndgame = true }, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");
-Emit(new FilterOptions { PerSlotRules = true }, "PER-SLOT (precise, no cross-slot false positives)", @"C:\Sync\Projects\D4BuildFilter\last_code_perslot.txt");
+Emit(new FilterOptions { TalismanSets = talismanScope }, "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
+Emit(new FilterOptions { StrictEndgame = true, TalismanSets = talismanScope }, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");
+Emit(new FilterOptions { PerSlotRules = true, TalismanSets = talismanScope }, "PER-SLOT (precise, no cross-slot false positives)", @"C:\Sync\Projects\D4BuildFilter\last_code_perslot.txt");
 
 // ── survey helpers ─────────────────────────────────────────────────────────
 async Task SurveyMobalytics(MobalyticsList kind, string label)

@@ -7,9 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>D4BuildFilter</AssemblyName>
-    <!-- Official release version (v1.0.0 = S14 "Death Awakening" launch, 2026-07-01). Flows into
-         the exe's file/product version so a friend's file-properties screenshot documents it. -->
-    <Version>1.0.0</Version>
+    <!-- Version flows into the exe metadata AND the in-app footer stamp (with build time), so
+         anyone can tell at a glance which build they're running (Medick's ask, 2026-07-02).
+         "-dev" marks work-in-progress builds; drop the suffix when cutting a release. -->
+    <Version>1.0.1-dev</Version>
     <!-- Embeds the MK monogram into the exe's PE resources so the taskbar / Explorer / Alt-Tab
          use it (the Window.Icon=Assets/mk_logo.png only sets the running window's title-bar icon). -->
     <ApplicationIcon>Assets\mk.ico</ApplicationIcon>

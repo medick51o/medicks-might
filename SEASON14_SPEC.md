@@ -242,3 +242,30 @@ webapp-convergence + s14-readiness lineage → master** · version bump · rebui
 repo-touching findings re-verified correct; hotfix 3.1.0a (XP/login) has zero filter impact; bundle
 confirmed current vs v5.3.4.0-era master; stale God-tier fixture test fixed (fixture captured live,
 assertion made structural); section canary now also guards the S/A/B core trio.
+
+---
+
+## I. v1.0.1 — Build-scoped Charms & Seals (the checkbox panel) — 2026-07-02
+
+Medick's in-game report: the green Charms & Seals rule showed EVERY seal (unscoped type-only
+catch-all; the fetcher deliberately discarded all talisman data). He then hand-built the correct
+rule in the 3.1 in-game editor and exported it — that export is the pinned ground truth.
+
+- **Wire:** type-9 TalismanSetBonus with per-item refinement (field3 `{1:set, 2:item×N}`) —
+  encoder overload + decoder surface (`SetItems`), byte-pinned to the export; `ItemPowerAny()`
+  filler mirrors the editor's shape.
+- **Data:** `TalismanSetDatabase` — all 45 S14 sets (8 classes × 5 + 5 generics) with display
+  names + member charms, GENERATED from d4data 3.1.0.72592 (D4LootBench, formatVersion 4);
+  Sescheron's Fury cross-validated against the export. No scraping, no agents — data was on disk.
+- **Fetcher:** Maxroll set-charm ids (`Talisman_Charm_Set_Barb_05_NN`) → per-variant
+  `ResolvedVariant.TalismanSets` (display names).
+- **Compiler:** `FilterOptions.TalismanSets` — null = legacy catch-all (paste builds), empty =
+  rules omitted (all unchecked → hidden), non-empty = green + ancestral-red both scope to the
+  selection in the export shape; one rule each (25-cap honored).
+- **UI (Medick's wireframe):** "Charm sets" checkbox panel at the bottom of Filter options — the
+  class's 5 sets + 5 generics, unchecked by default, the BUILD's sets pre-checked (his call:
+  defer to the build data); user choices survive recompiles; unchecked = hidden. Footer now
+  shows `v<version>[-dev] • built <timestamp>` (the version-visibility ask).
+- **Verified:** 181/181 incl. live canaries, zero skips; the live WW Barb auto-scopes to
+  Berserker's Crucible + Sescheron's Fury (reconciling the original Crucible-charm screenshot).
+  Preliminary in-game glow sighting positive; the confirmed pass gates the v1.0.1 release.

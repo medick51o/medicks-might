@@ -1402,6 +1402,29 @@
                                      surface (settings.json flag / hidden chord) can rebind it. -->
 
                             </UniformGrid>
+
+                            <!-- ── v1.0.1: per-class talisman-set checkboxes (Medick's wireframe:
+                                 "insert charms in here"). The build's sets come pre-checked;
+                                 unchecked sets are hidden by the compiled filter. Collapsed until
+                                 a build offers sets (paste builds keep the legacy catch-all). -->
+                            <StackPanel Visibility="{Binding HasTalismanSetOptions, Converter={StaticResource BoolToVis}}">
+                                <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
+                                <TextBlock Style="{StaticResource SectionLabel}" Margin="0,0,0,4"
+                                           Text="Charm sets — checked = shown (green · ancestral red) · unchecked = hidden"
+                                           ToolTip="All of your class's talisman sets plus the generic small sets. The sets your build calls for come pre-checked. Checked sets pack into one green rule (plus one ancestral-red rule); unchecked sets are hidden by the filter." />
+                                <ItemsControl ItemsSource="{Binding TalismanSetOptions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}"
+                                                      Margin="0,3,18,3"
+                                                      Foreground="{Binding IsChecked, Converter={StaticResource ActiveText}}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                             <!-- beta.8.3: the 2-paragraph explainer here moved into tooltips on
                                  "Filter options" header + "Precise per-slot rules" checkbox above —
                                  frees ~50px of vertical so the Copy button fits above the fold. -->
@@ -1521,7 +1544,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center">
-                    <Run Text="MedicK's Might v1.0.0" />
+                    <Run Text="{Binding AppVersionLabel, Mode=OneWay}" />
                     <Run Text="  •  " />
                     <Run Text="{Binding StatusMessage, Mode=OneWay}" Foreground="#8c8" />
                 </TextBlock>

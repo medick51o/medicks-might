@@ -157,6 +157,45 @@ public class SourceParserTests
     }
 
     [Fact]
+    public void Maxroll_extracts_the_builds_talisman_sets()
+    {
+        // S14 seal-scoping fix (root cause of "every seal shows green"): set-charm ids literally
+        // name their set — Talisman_Charm_Set_Barb_05_03 -> "Talisman: Barbarian Set 05" — but the
+        // fetcher used to drop ALL talisman items, so the compiler could never scope the green rule.
+        var inner = """
+        {"profiles":[{"name":"Main","items":{"0":"1","1":"2","2":"3","3":"4"}}],
+         "items":{
+           "1":{"id":"Talisman_Charm_Set_Barb_05_03","explicits":[]},
+           "2":{"id":"Talisman_Charm_Set_Barb_05_01","explicits":[]},
+           "3":{"id":"Talisman_Seal_Legendary","explicits":[]},
+           "4":{"id":"Chest_Unique_Barb_100","explicits":[]}}}
+        """;
+        var raw = $$"""{"name":"Set Test","class":"Barbarian","data":{{System.Text.Json.JsonSerializer.Serialize(inner)}}}""";
+
+        var dir = Path.Combine(Path.GetTempPath(), $"medicksmight_talis_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var affixPath = Path.Combine(dir, "affixes.json");
+            File.WriteAllText(affixPath, """[{"IdSnoList":["100"],"DescriptionClean":"Maximum Life"}]""");
+            var uniquePath = Path.Combine(dir, "uniques.json");
+            File.WriteAllText(uniquePath, """[{"IdNameItem":"Chest_Unique_Barb_100","Name":"Shroud of Test"}]""");
+
+            var rb = MaxrollFetcher.Parse(raw, NameLookup.FromFile(affixPath), UniqueLookup.FromFile(uniquePath));
+
+            var v = rb.Variants[0];
+            Assert.NotNull(v.TalismanSets);
+            Assert.Equal(new[] { "Bul-Kathos' Pride" }, v.TalismanSets);  // S14 display name; deduped, seal ignored
+            Assert.Contains("Shroud of Test", v.Uniques);                          // gear unique untouched
+            Assert.Equal(0, rb.UnknownDataCount);                                  // charms are NOT data gaps
+        }
+        finally
+        {
+            try { Directory.Delete(dir, recursive: true); } catch { /* best-effort temp cleanup */ }
+        }
+    }
+
+    [Fact]
     public void Sources_that_carry_names_directly_report_no_data_gaps()
     {
         // Paste / d4builds / Mobalytics never resolve ids against the local data, so the

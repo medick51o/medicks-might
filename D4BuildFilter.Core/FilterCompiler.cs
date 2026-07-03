@@ -20,7 +20,8 @@ public sealed record CompiledBuild(
     IReadOnlyList<uint> UniqueIds,
     IReadOnlyList<string> UniquesTargeted,
     IReadOnlyList<string> UniquesPending,
-    IReadOnlyList<SlotPool> SlotPools)
+    IReadOnlyList<SlotPool> SlotPools,
+    IReadOnlyList<string> TalismanSets)
 {
     /// <summary>The pool's coarse-affix display names, in pool order.</summary>
     public IEnumerable<string> PoolNames => Pool.Select(id => Names[id]);
@@ -68,6 +69,11 @@ public sealed record FilterOptions
     /// <summary>Hide everything else (Common/Magic/Rare/Legendary the rules above didn't match).
     /// Never touches Unique or Mythic.</summary>
     public bool HideRest { get; init; } = true;
+    /// <summary>v1.0.1 talisman-set scoping (the per-class checkbox list). Null = legacy catch-all
+    /// Charms &amp; Seals rules (paste builds / older callers); empty = user unchecked everything
+    /// (both charm rules omitted, charms fall to the hide rule); non-empty = both rules scope to
+    /// exactly these sets, in the condition shape the 3.1 in-game editor itself exports.</summary>
+    public IReadOnlyList<TalismanSet>? TalismanSets { get; init; } = null;
 }
 
 /// <summary>
@@ -140,6 +146,13 @@ public static class FilterCompiler
             if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
             else uniquesPending.Add(un);
 
+        // The build's talisman SETS (S14 display names), aggregated across the kept variants —
+        // drives which per-class set checkboxes come pre-checked in the UI.
+        var talismanSets = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var v in build.Variants)
+            if (v.TalismanSets is { } ts)
+                foreach (var t in ts) talismanSets.Add(t);
+
         // Per-slot pools (for the precise per-slot rule mode). Group each variant's slots by the
         // item-type id SET they resolve to (so Ring 1 + Ring 2 merge), unioning the build's desired
         // affix ids per group. Weapon slots merge BY HANDEDNESS into "1H Weapons" / "2H Weapons" (a
@@ -182,7 +195,8 @@ public static class FilterCompiler
             .ToList();
 
         return new CompiledBuild(build.Build, color, dim, pool, names,
-            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, slotPools);
+            dropped.ToList(), uniqueIds, uniquesTargeted, uniquesPending, slotPools,
+            talismanSets.ToList());
     }
 
     /// <summary>
@@ -258,18 +272,27 @@ public static class FilterCompiler
         if (opts.GreaterAffixes)
             rules.Add(Recolor("Greater Affixes",
                 Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));
-        // 6a. Ancestral charms/seals -> red (FIRST so they win over the green catch-all below).
-        //     Same Types(Charm, Seal) condition + Ancestral gate. Default on — the rare ancestrals
-        //     get visually distinct treatment instead of drowning in the basic-charm green noise.
-        if (opts.CharmsSealsAncestral)
+        // 6a/6b. Charms & Seals. v1.0.1: when a talisman-set selection is present (the per-class
+        //     checkbox list), BOTH rules scope to exactly the checked sets — in the condition shape
+        //     the 3.1 in-game editor itself exports (bare ItemPower + type-9 sets with per-item
+        //     refinement; pinned to a real hand-built rule). Unchecked sets get no rule at all and
+        //     fall to "Hide the rest". Null selection = the legacy catch-all (paste builds).
+        //     Ancestral red first so it wins over green (first-match wins).
+        var setScope = opts.TalismanSets is { } tsel
+            ? tsel.Select(s => (s.Id, (IReadOnlyList<uint>)s.Items.Select(i => i.Id).ToList())).ToList()
+            : null;
+        if (opts.CharmsSealsAncestral && setScope is not { Count: 0 })
             rules.Add(Recolor("Charms&Seals Anc",
-                new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }), Conditions.Ancestral() }, FilterColors.Red));
-        // 6b. Charms & Seals -> green: surface them by item type, any rarity, so the hide rule
-        //     doesn't eat them. Not tier-gated. Sits below the ancestral rule so non-ancestrals
-        //     fall through to green; ancestrals already matched red above (first-match wins).
-        if (opts.CharmsSeals)
+                setScope is null
+                    ? new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }), Conditions.Ancestral() }
+                    : new[] { Conditions.ItemPowerAny(), Conditions.TalismanSetBonus(setScope), Conditions.Ancestral() },
+                FilterColors.Red));
+        if (opts.CharmsSeals && setScope is not { Count: 0 })
             rules.Add(Recolor("Charms & Seals",
-                new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }, FilterColors.Green));
+                setScope is null
+                    ? new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }
+                    : new[] { Conditions.ItemPowerAny(), Conditions.TalismanSetBonus(setScope) },
+                FilterColors.Green));
         // 7. Any remaining Codex-of-Power upgrade -> white (pick up for the aspect, then salvage).
         if (opts.Codex)
             rules.Add(Recolor("Codex Upgrades",

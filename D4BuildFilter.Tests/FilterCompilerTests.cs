@@ -51,6 +51,56 @@ public class FilterCompilerTests
     }
 
     [Fact]
+    public void Analyze_aggregates_talisman_sets_from_variants()
+    {
+        var rb = new ResolvedBuild("t", "Barbarian", new[]
+        {
+            new ResolvedVariant("v1", new[] { "Strength" }, System.Array.Empty<string>(),
+                TalismanSets: new[] { "Sescheron's Fury" }),
+            new ResolvedVariant("v2", new[] { "Strength" }, System.Array.Empty<string>(),
+                TalismanSets: new[] { "Sescheron's Fury", "Mastery" }),
+        });
+        var b = FilterCompiler.Analyze(rb, FilterColors.Red, FilterColors.Pink);
+        Assert.Equal(new[] { "Mastery", "Sescheron's Fury" }, b.TalismanSets);   // deduped, sorted
+    }
+
+    [Fact]
+    public void Scoped_charm_rules_mirror_the_in_game_shape()
+    {
+        // v1.0.1 (Medick's checkbox design): checked sets pack into ONE green rule + ONE ancestral
+        // red rule, in the exact condition shape his hand-built 3.1 rule exports — bare ItemPower +
+        // type-9 set(s) with per-item refinement. Unchecked sets aren't listed (→ hidden).
+        var sesch = TalismanSetDatabase.ById[0x22fb15u];
+        var o = FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions { TalismanSets = new[] { sesch } }, "t");
+        var dec = FilterDecoder.Decode(o.ImportCode);
+
+        var green = dec.Rules.Single(r => r.Name == "Charms & Seals (Green)");
+        Assert.Contains(green.Conditions, c => c.Type == 0 && c.MaskOrCount is null && c.Max is null);
+        var t9 = green.Conditions.Single(c => c.Type == 9);
+        Assert.Equal(new[] { 0x22fb15u }, t9.Ids.ToArray());
+        var (setId, items) = Assert.Single(t9.SetItems);
+        Assert.Equal(0x22fb15u, setId);
+        Assert.Equal(5, items.Count);
+
+        var anc = dec.Rules.Single(r => r.Name.Contains("Anc"));
+        Assert.Contains(anc.Conditions, c => c.Type == 9);
+        Assert.Contains(anc.Conditions, c => c.Type == 2);      // ancestral gate intact
+        Assert.True(o.RoundTripOk);
+    }
+
+    [Fact]
+    public void Empty_talisman_selection_omits_the_charm_rules()
+    {
+        // All boxes unchecked = the charm rules vanish entirely (charms fall to the hide rule).
+        var o = FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions { TalismanSets = System.Array.Empty<TalismanSet>() }, "t");
+        var dec = FilterDecoder.Decode(o.ImportCode);
+        Assert.DoesNotContain(dec.Rules, r => r.Name.Contains("Charms"));
+        Assert.Equal(8, o.RuleCount);   // the 10 defaults minus green minus ancestral-red
+    }
+
+    [Fact]
     public void Hide_rest_never_hides_unique_or_mythic_items()
     {
         // S14 safety net: "mythic" is now a quality on uniques. The catch-all hide rule must only

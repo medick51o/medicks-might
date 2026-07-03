@@ -94,6 +94,10 @@ public static class Conditions
     public static byte[] ItemPower(uint min, uint max) =>
         Wire.Efb(4, Wire.Concat(Wire.Efv(1, 0), Wire.Efv(4, min), Wire.Efv(5, max)));
 
+    /// <summary>Bare Item-Power condition (type 0, no bounds) — the filler condition the 3.1
+    /// in-game editor emits on set-scoped rules; mirrors the hand-built export byte-for-byte.</summary>
+    public static byte[] ItemPowerAny() => Wire.Efb(4, Wire.Efv(1, 0));
+
     /// <summary>Match specific Unique item(s) by id (per-unique targeting). Real filter rules
     /// "Equipable Uniques"/"Ancestral Uniques" = type 8 + repeated fixed32 ids.</summary>
     public static byte[] Uniques(IEnumerable<uint> ids)
@@ -111,6 +115,22 @@ public static class Conditions
     {
         var inner = Wire.Efv(1, 9);
         foreach (var id in ids) inner = Wire.Concat(inner, Wire.Ef32(2, id));
+        return Wire.Efb(4, inner);
+    }
+
+    /// <summary>S14 (3.1) form: set(s) WITH per-item refinement. Emits field2 (the set id) plus a
+    /// field3 sub-message <c>{1: set id, 2: item id ×N}</c> per set — byte-matching the 3.1
+    /// in-game editor's own export (pinned by test against a real hand-built rule, 2026-07-02).</summary>
+    public static byte[] TalismanSetBonus(IEnumerable<(uint SetId, IReadOnlyList<uint> Items)> sets)
+    {
+        var inner = Wire.Efv(1, 9);
+        foreach (var (setId, items) in sets)
+        {
+            inner = Wire.Concat(inner, Wire.Ef32(2, setId));
+            var sub = Wire.Ef32(1, setId);
+            foreach (var it in items) sub = Wire.Concat(sub, Wire.Ef32(2, it));
+            inner = Wire.Concat(inner, Wire.Efb(3, sub));
+        }
         return Wire.Efb(4, inner);
     }
 

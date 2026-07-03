@@ -57,6 +57,46 @@ public class DecoderTests
         Assert.Equal(ids, cond.Ids.ToArray());
     }
 
+    [Fact] // S14 (3.1): type-9 with per-item refinement — pinned BYTE-FOR-BYTE to Medick's in-game export
+    public void TalismanSetBonus_with_items_matches_the_in_game_export_bytes()
+    {
+        // Ground truth: the "Charms & Seals (Green)" rule hand-built in the 3.1 editor and exported
+        // (2026-07-02): Sescheron's Fury (= "Talisman: Barbarian Set 01", 0x22fb15) + its five
+        // member charms. field2 carries the set; field3 is a sub-message {1: set, 2: item ×N}.
+        var expected = new byte[]
+        {
+            0x22, 0x27,                        // rule-level condition wrapper (field 4, 39 bytes)
+            0x08, 0x09,                        // type = 9
+            0x15, 0x15, 0xfb, 0x22, 0x00,      // field2 fixed32: set 0x22fb15
+            0x1a, 0x1e,                        // field3 (30 bytes): { set, items… }
+            0x0d, 0x15, 0xfb, 0x22, 0x00,      //   f1: set 0x22fb15
+            0x15, 0xb5, 0x06, 0x25, 0x00,      //   f2: item 0x2506b5
+            0x15, 0x9a, 0x06, 0x25, 0x00,      //   f2: item 0x25069a
+            0x15, 0xb8, 0x06, 0x25, 0x00,      //   f2: item 0x2506b8
+            0x15, 0xcd, 0x06, 0x25, 0x00,      //   f2: item 0x2506cd
+            0x15, 0xa8, 0x06, 0x25, 0x00,      //   f2: item 0x2506a8
+        };
+        var items = new uint[] { 0x2506b5, 0x25069a, 0x2506b8, 0x2506cd, 0x2506a8 };
+        var actual = Conditions.TalismanSetBonus(new[] { (0x22fb15u, (IReadOnlyList<uint>)items) });
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact] // S14: decoder surfaces the per-item refinement instead of mis-filing it as a GA marker
+    public void Decoder_surfaces_talisman_set_items()
+    {
+        var items = new uint[] { 0x2506b5, 0x25069a, 0x2506b8, 0x2506cd, 0x2506a8 };
+        var rule = FilterBuilder.MakeRule("Green", Visibility.Recolor,
+            new[] { Conditions.TalismanSetBonus(new[] { (0x22fb15u, (IReadOnlyList<uint>)items) }) },
+            FilterColors.Green);
+        var f = FilterDecoder.Decode(FilterBuilder.MakeFilter("X", new[] { rule }));
+        var cond = f.Rules.Single().Conditions.Single(c => c.Type == 9);
+        Assert.Equal(new[] { 0x22fb15u }, cond.Ids.ToArray());          // field2 set list
+        var (setId, memberItems) = Assert.Single(cond.SetItems);        // field3 refinement
+        Assert.Equal(0x22fb15u, setId);
+        Assert.Equal(items, memberItems.ToArray());
+        Assert.Empty(cond.GreaterAffixOf);                              // no more mislabeling
+    }
+
     [Fact] // Decoder labels type-9 ids with friendly SetItemBonusDatabase names
     public void Describe_emits_friendly_talisman_set_names()
     {
