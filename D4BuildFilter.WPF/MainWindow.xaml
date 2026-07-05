@@ -27,6 +27,10 @@
         <local:FavoriteStarBrushConverter x:Key="FavStarBrush" />
         <local:AllTrueToVisibilityConverter x:Key="AllTrueToVis" />
         <local:SourceToBrushConverter x:Key="SourceBrush" />
+        <local:EmptyStringToVisibilityConverter x:Key="EmptyToVis" />
+        <local:RecipeIconConverter x:Key="RecipeIcon" />
+        <local:IconKeyToPathConverter x:Key="IconKey" />
+        <local:BoolToOpacityConverter x:Key="BoolToOpacity" />
         <local:StringEqualsConverter x:Key="StrEq" />
 
         <Style TargetType="TextBlock">
@@ -515,6 +519,9 @@
                 <Button Content="Artwork" Style="{StaticResource NavTab}" Tag="{Binding IsArtworkTab}"
                         Command="{Binding SelectTabCommand}" CommandParameter="Artwork"
                         ToolTip="Gallery mode — just the warlord, full strength" />
+                <Button Content="Crafting Coach" Style="{StaticResource NavTab}" Tag="{Binding IsCoachTab}"
+                        Command="{Binding SelectTabCommand}" CommandParameter="Coach"
+                        ToolTip="The Horadric Cube, decoded — follow along and do an actual craft" />
             </StackPanel>
         </Border>
 
@@ -626,6 +633,314 @@
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Caution.Fg}"
                                HorizontalAlignment="Center" Margin="0,14,0,0" FontSize="{DynamicResource Type.BodySm}"
                                TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" />
+                </StackPanel>
+
+                <!-- ══════ Crafting Coach (v1.0.2 wing — CRAFTING_COACH_SPEC.md) ══════
+                     A follow-along, second-screen Horadric Cube coach. Landing = goal cards +
+                     dust decoder; picking a craft enters a big-type step flow. Content mirrors
+                     the verified S14 recipe research; honest ranges, no invented percentages. -->
+                <StackPanel HorizontalAlignment="Stretch" Margin="0,24,0,0" MaxWidth="900"
+                            Visibility="{Binding IsCoachTab, Converter={StaticResource BoolToVis}}">
+                    <TextBlock FontSize="26" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}" Text="Crafting Coach" />
+                    <TextBlock FontSize="14" Foreground="{DynamicResource Text.Muted}" Margin="0,2,0,0"
+                               Text="the Horadric Cube, decoded — follow along on this screen, craft on the other" />
+                    <TextBlock FontSize="11" Foreground="{DynamicResource Text.Muted}" FontStyle="Italic" Margin="0,2,0,0"
+                               Text="Recipes verified: S14 patch 3.1.x" />
+                    <TextBlock FontSize="14" Foreground="#8c8" Margin="0,10,0,0" TextWrapping="Wrap"
+                               Text="{Binding Coach.BuildLine, Mode=OneWay}" />
+
+                    <!-- ── LANDING: goal cards ── -->
+                    <StackPanel Visibility="{Binding Coach.IsLanding, Converter={StaticResource BoolToVis}}">
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}"
+                                   Text="What do you want to do?" Margin="0,18,0,8" />
+                        <ItemsControl ItemsSource="{Binding Coach.Crafts}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Margin="0,0,10,10" Padding="16,12" HorizontalContentAlignment="Left"
+                                            IsEnabled="{Binding Enabled}"
+                                            Command="{Binding DataContext.Coach.PickCraftCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Image Source="{Binding Icon, Mode=OneWay}" Width="30" Height="30" Margin="0,0,8,0"
+                                                       VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"
+                                                       Visibility="{Binding Icon, Converter={StaticResource StringToVis}}" />
+                                                <TextBlock FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding Emoji, Mode=OneWay}"
+                                                           Margin="0,0,8,0" Visibility="{Binding Icon, Converter={StaticResource EmptyToVis}}" />
+                                                <TextBlock FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding GoalTitle, Mode=OneWay}" />
+                                            </StackPanel>
+                                            <TextBlock FontSize="12" Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap"
+                                                       Text="{Binding GoalBlurb, Mode=OneWay}" Margin="0,3,0,0" />
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource Text.Muted}" FontStyle="Italic"
+                                                       Text="coming soon" Margin="0,3,0,0"
+                                                       Visibility="{Binding ComingSoon, Converter={StaticResource BoolToVis}}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Button Content="🧪 Open the Cube Sandbox — rehearse any craft on a pretend item"
+                                Margin="0,4,10,4" Padding="16,10" FontSize="15" FontWeight="SemiBold"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Command="{Binding Coach.OpenSandboxCommand}" />
+
+                        <!-- dust decoder -->
+                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}"
+                                   Text="What's all this dust? — mat decoder" Margin="0,16,0,8" />
+                        <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
+                                CornerRadius="{DynamicResource Radius.Card}" Padding="16,12" Effect="{DynamicResource Elevation.Card}">
+                            <ItemsControl ItemsSource="{Binding Coach.DustTiers}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,3" LastChildFill="True">
+                                            <!-- the in-game item card art; the emoji glyph stands in where art is missing -->
+                                            <Grid DockPanel.Dock="Left" Width="30" Margin="0,0,10,0">
+                                                <Image Source="{Binding Icon, Mode=OneWay}" Height="42" VerticalAlignment="Center"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                                       Visibility="{Binding Icon, Converter={StaticResource StringToVis}}" />
+                                                <TextBlock Text="{Binding Glyph, Mode=OneWay}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Visibility="{Binding Icon, Converter={StaticResource EmptyToVis}}" />
+                                            </Grid>
+                                            <TextBlock FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center">
+                                                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}" />
+                                                <Run Text=" — " Foreground="{DynamicResource Text.Muted}" /><Run Text="{Binding Blurb, Mode=OneWay}" Foreground="{DynamicResource Text.Muted}" />
+                                            </TextBlock>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- ── FLOW: the follow-along coach ── -->
+                    <StackPanel Visibility="{Binding Coach.IsCoaching, Converter={StaticResource BoolToVis}}">
+                        <DockPanel Margin="0,16,0,8" LastChildFill="True">
+                            <Button DockPanel.Dock="Left" Content="◂ all crafts" Padding="10,4"
+                                    Command="{Binding Coach.BackToGoalsCommand}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Image Source="{Binding Coach.SelectedCraft.Icon, Mode=OneWay}" Width="28" Height="28" Margin="0,0,8,0"
+                                       VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"
+                                       Visibility="{Binding Coach.SelectedCraft.Icon, Converter={StaticResource StringToVis}}" />
+                                <TextBlock FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}" VerticalAlignment="Center"
+                                           Text="{Binding Coach.SelectedCraft.GoalTitle, Mode=OneWay}" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- persistent recipe strip: item >>> mats >>> cube >>> result -->
+                        <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
+                                CornerRadius="{DynamicResource Radius.Card}" Padding="16,12" Effect="{DynamicResource Elevation.Card}">
+                            <TextBlock FontSize="16" TextWrapping="Wrap" TextAlignment="Center">
+                                <Run Text="{Binding Coach.SelectedCraft.StripItem, Mode=OneWay}" FontWeight="SemiBold" />
+                                <Run Text="   +   " Foreground="{DynamicResource Text.Muted}" />
+                                <Run Text="{Binding Coach.SelectedCraft.StripMats, Mode=OneWay}" Foreground="#8c8" />
+                                <Run Text="   →  🧪  →   " Foreground="{DynamicResource Text.Muted}" />
+                                <Run Text="{Binding Coach.SelectedCraft.StripResult, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}" />
+                            </TextBlock>
+                        </Border>
+
+                        <!-- the current step — big type, one thing at a time -->
+                        <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
+                                CornerRadius="{DynamicResource Radius.Card}" Padding="20,16" Margin="0,10,0,0" Effect="{DynamicResource Elevation.Card}">
+                            <StackPanel>
+                                <TextBlock FontSize="12" Foreground="{DynamicResource Accent.Primary}" FontWeight="SemiBold"
+                                           Text="{Binding Coach.StepLabel, Mode=OneWay}" />
+                                <TextBlock FontSize="24" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,10"
+                                           Text="{Binding Coach.CurrentStep.Title, Mode=OneWay}" />
+                                <ItemsControl ItemsSource="{Binding Coach.CurrentStep.Lines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock FontSize="16" TextWrapping="Wrap" Margin="0,4" Text="{Binding Mode=OneWay}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock FontSize="14" FontStyle="Italic" Foreground="{DynamicResource Accent.Primary}" TextWrapping="Wrap"
+                                           Margin="0,10,0,0" Text="{Binding Coach.CurrentStep.Tip, Mode=OneWay}" />
+                            </StackPanel>
+                        </Border>
+
+                        <DockPanel Margin="0,12,0,0" LastChildFill="False">
+                            <Button DockPanel.Dock="Left" Content="◂ back" Padding="14,8" FontSize="14"
+                                    Command="{Binding Coach.PrevStepCommand}" />
+                            <Button DockPanel.Dock="Right" Content="next step ▸" Padding="18,8" FontSize="14" FontWeight="SemiBold"
+                                    Command="{Binding Coach.NextStepCommand}" />
+                        </DockPanel>
+                    </StackPanel>
+
+                    <!-- ── SANDBOX: rehearse any craft on a simulated item ── -->
+                    <StackPanel Visibility="{Binding Coach.IsSandbox, Converter={StaticResource BoolToVis}}">
+                        <DockPanel Margin="0,16,0,8" LastChildFill="True">
+                            <Button DockPanel.Dock="Left" Content="◂ back to coach" Padding="10,4"
+                                    Command="{Binding Coach.BackToGoalsCommand}" />
+                            <TextBlock FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Accent.Primary}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Text="🧪 The Cube — Sandbox" />
+                        </DockPanel>
+
+                        <!-- the pretend item: four switches -->
+                        <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
+                                CornerRadius="{DynamicResource Radius.Card}" Padding="16,10" Effect="{DynamicResource Elevation.Card}">
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Your pretend item:" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource Accent.Primary}" Margin="0,0,12,0" />
+                                <ComboBox ItemsSource="{Binding Coach.Sandbox.RarityOptions}" SelectedItem="{Binding Coach.Sandbox.SelectedRarity}"
+                                          Width="120" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                <TextBlock Text="⭐ GAs:" FontSize="14" VerticalAlignment="Center" Margin="0,0,4,0" />
+                                <ComboBox ItemsSource="{Binding Coach.Sandbox.GaOptions}" SelectedItem="{Binding Coach.Sandbox.GreaterAffixes}"
+                                          Width="55" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                <CheckBox Content="850+ Item Power" IsChecked="{Binding Coach.Sandbox.Power850Plus}"
+                                          FontSize="14" VerticalAlignment="Center" Margin="0,0,14,0" />
+                                <CheckBox Content="open affix slot" IsChecked="{Binding Coach.Sandbox.OpenSlot}"
+                                          FontSize="14" VerticalAlignment="Center" />
+                            </WrapPanel>
+                        </Border>
+                        <TextBlock FontSize="12" FontStyle="Italic" Foreground="{DynamicResource Text.Muted}" Margin="2,4,0,8"
+                                   Text="Flip the switches to set your item. Recipes it can't use are dimmed. Pick a recipe to see its materials and the honest result." />
+
+                        <!-- RECIPES list (grouped, game style) + detail panel -->
+                        <Grid MinHeight="430">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="300" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- left: the categorized recipe list -->
+                            <Border Grid.Column="0" Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}"
+                                    BorderThickness="1" CornerRadius="{DynamicResource Radius.Card}" Padding="4,6" Margin="0,0,10,0"
+                                    Effect="{DynamicResource Elevation.Card}">
+                                <ListBox ItemsSource="{Binding Coach.Sandbox.RecipesView}"
+                                         SelectedItem="{Binding Coach.Sandbox.SelectedRecipe, Mode=TwoWay}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="row" Background="Transparent" BorderThickness="1"
+                                                                BorderBrush="Transparent" CornerRadius="4" Padding="8,7" Margin="2,1">
+                                                            <ContentPresenter />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="row" Property="Background" Value="#332020" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="row" Property="Background" Value="#7A1E1E" />
+                                                                <Setter TargetName="row" Property="BorderBrush" Value="#DC0000" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.GroupStyle>
+                                        <GroupStyle>
+                                            <GroupStyle.HeaderTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold" Margin="6,10,0,4"
+                                                               Foreground="{DynamicResource Accent.Primary}" />
+                                                </DataTemplate>
+                                            </GroupStyle.HeaderTemplate>
+                                        </GroupStyle>
+                                    </ListBox.GroupStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Opacity="{Binding Eligible, Converter={StaticResource BoolToOpacity}}">
+                                                <Image Source="{Binding Name, Converter={StaticResource RecipeIcon}}" Width="26" Height="26"
+                                                       Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="15" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource Text.Primary}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+
+                            <!-- right: the selected recipe's detail (game's REQUIRED MATERIALS panel) -->
+                            <Border Grid.Column="1" Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}"
+                                    BorderThickness="1" CornerRadius="{DynamicResource Radius.Card}" Padding="22,18"
+                                    Effect="{DynamicResource Elevation.Card}" DataContext="{Binding Coach.Sandbox.SelectedRecipe}">
+                                <StackPanel>
+                                    <!-- recipe title -->
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="{Binding Name, Converter={StaticResource RecipeIcon}}" Width="34" Height="34"
+                                               Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="22" FontWeight="Bold"
+                                                       Foreground="{DynamicResource Text.Primary}" />
+                                            <TextBlock Text="{Binding Category, Mode=OneWay}" FontSize="12"
+                                                       Foreground="{DynamicResource Text.Muted}" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- ineligible banner: why the current pretend item can't use this -->
+                                    <Border Margin="0,12,0,0" Padding="12,8" CornerRadius="4" Background="#3A1414" BorderBrush="#C64545" BorderThickness="1"
+                                            Visibility="{Binding Requirement, Converter={StaticResource StringToVis}}">
+                                        <TextBlock FontSize="13" Foreground="#F0A0A0" TextWrapping="Wrap">
+                                            <Run Text="Your pretend item can't use this — " /><Run Text="{Binding Requirement, Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
+                                    </Border>
+
+                                    <!-- what it does (honest outcome lines) -->
+                                    <ItemsControl ItemsSource="{Binding Outcome}" Margin="0,14,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock FontSize="15" TextWrapping="Wrap" Margin="0,3" Text="{Binding Mode=OneWay}"
+                                                           Foreground="{DynamicResource Text.Primary}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- REQUIRED MATERIALS (game-style rows: icon + name + ×qty) -->
+                                    <TextBlock Text="REQUIRED MATERIALS" FontSize="12" FontWeight="Bold" Margin="0,18,0,2"
+                                               Foreground="{DynamicResource Accent.Primary}" />
+                                    <Border Height="1" Background="{DynamicResource Border.Strong}" Margin="0,0,0,6" />
+                                    <ItemsControl ItemsSource="{Binding Materials}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Image Grid.Column="0" Source="{Binding Key, Converter={StaticResource IconKey}}"
+                                                           Width="42" Height="42" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="15"
+                                                                   Foreground="{DynamicResource Text.Primary}" VerticalAlignment="Center" />
+                                                        <TextBlock Text=" (optional)" FontSize="13" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center"
+                                                                   Visibility="{Binding Optional, Converter={StaticResource BoolToVis}}" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Quantity, StringFormat='×{0}'}" FontSize="17" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource Accent.Primary}" VerticalAlignment="Center" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <!-- multi-item recipes (no dust): declare their count -->
+                                    <TextBlock FontSize="14" FontStyle="Italic" Foreground="{DynamicResource Text.Muted}" Margin="0,2,0,0" TextWrapping="Wrap"
+                                               Text="{Binding MultiNote, Mode=OneWay}"
+                                               Visibility="{Binding MultiNote, Converter={StaticResource StringToVis}}" />
+
+                                    <!-- the LOCKS-FOREVER style warning -->
+                                    <Border Margin="0,14,0,0" Padding="12,9" CornerRadius="4" Background="#3A2A10" BorderBrush="#C68A2E" BorderThickness="1"
+                                            Visibility="{Binding Warning, Converter={StaticResource StringToVis}}">
+                                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#F0C674" TextWrapping="Wrap"
+                                                   Text="{Binding Warning, Mode=OneWay}" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- ══════ Your Saved Builds ══════
@@ -1257,6 +1572,7 @@
                                         <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — build uniques" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#dc0000" Text="● Red" /><Run Text="  — 3+ affixes · ancestral charms (chase)" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ff69b4" Text="● Pink" /><Run Text="  — 2+ build affixes (keeper)" /></TextBlock>
+                                        <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — cube bases (2-affix magic)" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text="  — IP 900/850" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
                                         <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
@@ -1270,7 +1586,7 @@
 
                     <!-- Filter options — toggles recompile the code live -->
                     <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,10,0,4"
-                               ToolTip="Each toggle is a rule the filter emits. Red = 3+ build affixes per slot, Pink = 2+ (one roll away). Mythics are never touched." />
+                               ToolTip="Each toggle is a rule the filter emits. Red = 3+ affix legendaries, Pink = 3+ affix rares. Mythics are never touched." />
                     <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
                             CornerRadius="{DynamicResource Radius.Control}" Padding="14,10">
                         <StackPanel>
@@ -1278,28 +1594,63 @@
                             <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}"
                                       Foreground="{Binding OptPerSlot, Converter={StaticResource ActiveText}}" Margin="0,0,0,6"
                                       ToolTip="ON: each gear slot gets its own rule, scoped to that item type (a boots rule only matches boots). OFF: matches by affix COUNT across ALL slots, which can show false 'keeps' (e.g. boots that rolled chest/ring stats)." />
+                            <!-- v1.0.2: Leveling mode (off by default; strict endgame is the standard). Adds a
+                                 silver 2+ affix-rare tier and forces coarse combined rules to fit the 25-cap. -->
+                            <CheckBox Content="Leveling — also show 2+ affix rares (Silver)" IsChecked="{Binding OptLeveling}"
+                                      Foreground="{Binding OptLeveling, Converter={StaticResource ActiveText}}" Margin="0,0,0,2"
+                                      ToolTip="OFF (default): endgame — only 3+ affix items (Red legendaries / Pink rares). ON: adds a Silver tier for 2+ affix rares so you can gear up while leveling. To fit the 25-rule limit it uses coarse combined rules (not per-slot), so it shows a lot — best with a leveling build loaded, not recommended for endgame." />
+                            <TextBlock Text="Leveling shows a LOT (coarse, combined rules, not per-slot). Load a leveling build before turning it on; not recommended for endgame."
+                                       FontSize="{DynamicResource Type.Caption}" Foreground="#E0A030" FontStyle="Italic" TextWrapping="Wrap"
+                                       Margin="0,0,0,6" Visibility="{Binding OptLeveling, Converter={StaticResource BoolToVis}}" />
                             <!-- beta.8.1: every row uses a 2-col Grid (32px chip slot | checkbox+label)
                                  so every checkbox locks to x=32 regardless of how many chips a row
                                  carries. Fixes the Item Power row pushing right because it has 2 chips. -->
                             <UniformGrid Columns="2">
-                                <!-- 3+ → Red (chase) -->
-                                <Grid Margin="0,3,14,3">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
-                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="{Binding OptGoldTier, Converter={StaticResource ActiveColor}, ConverterParameter=#DC0000}" />
-                                    <CheckBox Grid.Column="1" Content="3+ affixes per slot → Red (best items)" IsChecked="{Binding OptGoldTier}"
-                                              Foreground="{Binding OptGoldTier, Converter={StaticResource ActiveText}}" />
-                                </Grid>
-                                <!-- 2+ → Pink (keeper) -->
-                                <Grid Margin="0,3,14,3">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
-                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="{Binding OptSilverTier, Converter={StaticResource ActiveColor}, ConverterParameter=#FF69B4}" />
-                                    <CheckBox Grid.Column="1" Content="2+ affixes per slot → Pink (one roll away)" IsChecked="{Binding OptSilverTier}"
-                                              Foreground="{Binding OptSilverTier, Converter={StaticResource ActiveText}}" />
-                                </Grid>
+                                <!-- 3+ → Red (chase). v1.0.2: rarity sub-toggles refine the mask INSIDE
+                                     this rule (rare/leg/ancestral) — regenerate the code as the
+                                     character progresses; the rule count never changes. -->
+                                <StackPanel>
+                                    <Grid Margin="0,3,14,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Background="{Binding OptGoldTier, Converter={StaticResource ActiveColor}, ConverterParameter=#DC0000}" />
+                                        <CheckBox Grid.Column="1" Content="3+ affix legendaries → Red (best items)" IsChecked="{Binding OptGoldTier}"
+                                                  Foreground="{Binding OptGoldTier, Converter={StaticResource ActiveText}}" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="32,0,0,0" IsEnabled="{Binding OptGoldTier}">
+                                        <CheckBox Content="Show rares" IsChecked="{Binding OptRedRares}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
+                                                  Foreground="{Binding OptRedRares, Converter={StaticResource ActiveText}}" />
+                                        <CheckBox Content="Show legendaries" IsChecked="{Binding OptRedLegendaries}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
+                                                  Foreground="{Binding OptRedLegendaries, Converter={StaticResource ActiveText}}" />
+                                        <CheckBox Content="Ancestral only" IsChecked="{Binding OptRedAncestralOnly}" FontSize="{DynamicResource Type.Caption}"
+                                                  Foreground="{Binding OptRedAncestralOnly, Converter={StaticResource ActiveText}}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding RedTierSummary, Mode=OneWay}" FontSize="{DynamicResource Type.Caption}"
+                                               Foreground="{DynamicResource Text.Muted}" FontStyle="Italic" Margin="32,0,14,3" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <!-- 2+ → Pink (keeper) + its own rarity sub-toggles (e.g. late-game:
+                                     Rares off, Legendaries on — "at least it rolls four affixes"). -->
+                                <StackPanel>
+                                    <Grid Margin="0,3,14,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Background="{Binding OptSilverTier, Converter={StaticResource ActiveColor}, ConverterParameter=#FF69B4}" />
+                                        <CheckBox Grid.Column="1" Content="3+ affix rares → Pink (keeper)" IsChecked="{Binding OptSilverTier}"
+                                                  Foreground="{Binding OptSilverTier, Converter={StaticResource ActiveText}}" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="32,0,0,0" IsEnabled="{Binding OptSilverTier}">
+                                        <CheckBox Content="Show rares" IsChecked="{Binding OptPinkRares}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
+                                                  Foreground="{Binding OptPinkRares, Converter={StaticResource ActiveText}}" />
+                                        <CheckBox Content="Show legendaries" IsChecked="{Binding OptPinkLegendaries}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
+                                                  Foreground="{Binding OptPinkLegendaries, Converter={StaticResource ActiveText}}" />
+                                        <CheckBox Content="Ancestral only" IsChecked="{Binding OptPinkAncestralOnly}" FontSize="{DynamicResource Type.Caption}"
+                                                  Foreground="{Binding OptPinkAncestralOnly, Converter={StaticResource ActiveText}}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding PinkTierSummary, Mode=OneWay}" FontSize="{DynamicResource Type.Caption}"
+                                               Foreground="{DynamicResource Text.Muted}" FontStyle="Italic" Margin="32,0,14,3" TextWrapping="Wrap" />
+                                </StackPanel>
                             </UniformGrid>
 
                             <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
@@ -1377,6 +1728,16 @@
                                      outline chip (#6b625a). Visually consistent — "this row has no chip
                                      color of its own; it changes filter behavior" reads the same for all 3. -->
                                 <!-- Hide everything else -->
+                                <!-- Cube bases (v1.0.2): 2-on-build-affix MAGIC items = Horadric Add-Affix fodder -->
+                                <Grid Margin="0,3,14,3">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Background="{Binding OptCubeBases, Converter={StaticResource ActiveColor}, ConverterParameter=#FFD700}" />
+                                    <CheckBox Grid.Column="1" Content="Cube bases (GA blues) → Gold" IsChecked="{Binding OptCubeBases}"
+                                              Foreground="{Binding OptCubeBases, Converter={StaticResource ActiveText}}"
+                                              ToolTip="For the crafting crowd: Magic items with BOTH affixes on your build AND at least one Greater Affix — the blues actually worth stopping for as Horadric Cube bases. Off by default (speedfarmers, keep blasting). If gold never fires for you, GA blues may simply not drop — tell Medick." />
+                                </Grid>
                                 <Grid Margin="0,3,14,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
@@ -1386,16 +1747,10 @@
                                               Foreground="{Binding OptHideRest, Converter={StaticResource ActiveText}}"
                                               ToolTip="Hide commons/magics/rares/legendaries the rules above didn't match. Uniques and mythics always drop." />
                                 </Grid>
-                                <!-- Strict endgame (Ancestral only) -->
-                                <Grid Margin="0,3,14,3">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0" Width="14" Height="14" CornerRadius="{DynamicResource Radius.Control}"
-                                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                                            Background="Transparent" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" />
-                                    <CheckBox Grid.Column="1" Content="Strict endgame (Ancestral only)" IsChecked="{Binding StrictEndgame}"
-                                              Foreground="{Binding StrictEndgame, Converter={StaticResource ActiveText}}"
-                                              ToolTip="Gate the build-affix tiers to Ancestral (top item-power) gear — great for T6+, hides everything else while leveling." />
-                                </Grid>
+                                <!-- v1.0.2: the "Strict" preset checkbox was removed — strict IS the
+                                     standard now (Red 3+ legendaries / Pink 3+ rares are the defaults).
+                                     The looser 2+ rares moved to the opt-in "Leveling" checkbox up by
+                                     "Precise per-slot rules." -->
                                 <!-- The "Show pending affixes (dev)" toggle that used to live here was
                                      removed for ship — internal dev diagnostic, not user info. The
                                      ShowPendingAffixes VM property is preserved so a future power-user
@@ -1409,9 +1764,15 @@
                                  a build offers sets (paste builds keep the legacy catch-all). -->
                             <StackPanel Visibility="{Binding HasTalismanSetOptions, Converter={StaticResource BoolToVis}}">
                                 <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
-                                <TextBlock Style="{StaticResource SectionLabel}" Margin="0,0,0,4"
-                                           Text="Charm sets — checked = shown (green · ancestral red) · unchecked = hidden"
-                                           ToolTip="All of your class's talisman sets plus the generic small sets. The sets your build calls for come pre-checked. Checked sets pack into one green rule (plus one ancestral-red rule); unchecked sets are hidden by the filter." />
+                                <DockPanel Margin="0,0,0,4" LastChildFill="True">
+                                    <Button DockPanel.Dock="Right" Content="Unselect all" Padding="8,2" Margin="6,0,0,0" FontSize="12"
+                                            Command="{Binding UncheckAllCharmSetsCommand}" />
+                                    <Button DockPanel.Dock="Right" Content="Select all" Padding="8,2" FontSize="12"
+                                            Command="{Binding CheckAllCharmSetsCommand}" />
+                                    <TextBlock Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
+                                               Text="Charm sets — checked = shown (green · ancestral red) · unchecked = hidden"
+                                               ToolTip="All of your class's talisman sets plus the generic small sets. The sets your build calls for come pre-checked. Checked sets pack into one green rule (plus one ancestral-red rule); unchecked sets are hidden by the filter." />
+                                </DockPanel>
                                 <ItemsControl ItemsSource="{Binding TalismanSetOptions}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -1424,6 +1785,73 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                            </StackPanel>
+
+                            <!-- ── v1.0.2: unique-charm show-list (Medick's list): every S14 unique
+                                 charm, ALL pre-checked to drop visible in its natural color. Uncheck
+                                 any to hide it (build uniques still go purple above). Scrolls, since
+                                 there are ~110. Build-independent, so always shown. -->
+                            <StackPanel Visibility="{Binding HasUniqueCharmOptions, Converter={StaticResource BoolToVis}}">
+                                <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
+                                <DockPanel Margin="0,0,0,4" LastChildFill="True">
+                                    <Button DockPanel.Dock="Right" Content="Unselect all" Padding="8,2" Margin="6,0,0,0" FontSize="12"
+                                            Command="{Binding UncheckAllUniqueCharmsCommand}" />
+                                    <Button DockPanel.Dock="Right" Content="Select all" Padding="8,2" FontSize="12"
+                                            Command="{Binding CheckAllUniqueCharmsCommand}" />
+                                    <TextBlock Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
+                                               Text="Unique charms — all shown by default; uncheck any to hide"
+                                               ToolTip="Every S14 unique charm. All checked = they all drop visible in their natural color (your build's uniques still show purple). Uncheck the ones you don't want to hide them. Seals aren't listed here — they stay hidden." />
+                                </DockPanel>
+                                <TextBlock FontSize="12" FontStyle="Italic" Foreground="{DynamicResource Text.Muted}"
+                                           TextWrapping="Wrap" Margin="0,0,0,6"
+                                           Text="Checked charms drop on the ground in their normal color. Unchecked charms are hidden by the 'Hide the rest' rule at the bottom. Your build's own unique charms always show purple, from the 'Build Uniques' rule near the top of the filter." />
+                                <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding UniqueCharmOptions}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}"
+                                                          Margin="0,3,18,3" Width="210"
+                                                          Foreground="{Binding IsChecked, Converter={StaticResource ActiveText}}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+
+                            <!-- ── v1.0.2: unique-item hide-list (Medick's list): every regular unique,
+                                 ALL pre-checked. Uniques drop by default, so this is a hide-list —
+                                 unchecking one adds it to the "Hide Uniques" rule. Scrolls (~329). -->
+                            <StackPanel Visibility="{Binding HasUniqueItemOptions, Converter={StaticResource BoolToVis}}">
+                                <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
+                                <DockPanel Margin="0,0,0,4" LastChildFill="True">
+                                    <Button DockPanel.Dock="Right" Content="Unselect all" Padding="8,2" Margin="6,0,0,0" FontSize="12"
+                                            Command="{Binding UncheckAllUniquesCommand}" />
+                                    <Button DockPanel.Dock="Right" Content="Select all" Padding="8,2" FontSize="12"
+                                            Command="{Binding CheckAllUniquesCommand}" />
+                                    <TextBlock Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
+                                               Text="Uniques — all shown by default; uncheck any to hide"
+                                               ToolTip="Every regular unique in the game. All checked = they all drop as normal. Uncheck ones you never want to see and they get hidden. Your build's own uniques still show purple no matter what, and a Mythic version of any unique is never hidden." />
+                                </DockPanel>
+                                <TextBlock FontSize="12" FontStyle="Italic" Foreground="{DynamicResource Text.Muted}"
+                                           TextWrapping="Wrap" Margin="0,0,0,6"
+                                           Text="Checked uniques drop as normal. Unchecked ones are hidden by a 'Hide Uniques' rule. Your build's own uniques always show purple, and Mythic versions are never hidden." />
+                                <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding UniqueItemOptions}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked}"
+                                                          Margin="0,3,18,3" Width="210"
+                                                          Foreground="{Binding IsChecked, Converter={StaticResource ActiveText}}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
                             </StackPanel>
                             <!-- beta.8.3: the 2-paragraph explainer here moved into tooltips on
                                  "Filter options" header + "Precise per-slot rules" checkbox above —

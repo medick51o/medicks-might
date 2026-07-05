@@ -81,9 +81,10 @@ public class PerSlotTests
     }
 
     [Fact]
-    public void Per_slot_emits_gold_3plus_and_silver_2plus_tiers_for_a_rich_slot()
+    public void Per_slot_emits_both_tiers_for_a_rich_slot()
     {
-        // A slot with >=3 ideal affixes produces two distinct rules: Gold [3+] and Silver [2+].
+        // A slot with >=3 ideal affixes produces two distinct rules: the red tier and the pink tier.
+        // v1.0.2: both are 3+ by default (Red = legendaries, Pink = rares), so the mins are both 3.
         var rb = new ResolvedBuild("t", "Barbarian", new[]
         {
             new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(),
@@ -94,27 +95,30 @@ public class PerSlotTests
         var both = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = true }, "t");
         var goldOnly = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = false }, "t");
 
-        Assert.Equal(goldOnly.RuleCount + 1, both.RuleCount);   // Silver adds exactly one rule for this one slot
+        Assert.Equal(goldOnly.RuleCount + 1, both.RuleCount);   // the pink tier adds exactly one rule for this slot
 
         var mins = FilterDecoder.Decode(both.ImportCode).Rules
             .SelectMany(r => r.Conditions).Where(c => c.Type == 6).Select(c => (uint)c.MaskOrCount!.Value).ToList();
-        Assert.Contains(3u, mins);   // Gold tier
-        Assert.Contains(2u, mins);   // Silver tier
+        Assert.Contains(3u, mins);        // both tiers 3+
+        Assert.DoesNotContain(2u, mins);  // no 2+ tier by default (strict standard)
     }
 
     [Fact]
     public void Per_slot_silver_is_skipped_when_it_would_duplicate_gold()
     {
-        // A slot with only 2 ideal affixes: Gold [2+] and Silver [2+] would be identical, so only one fires.
+        // A slot with only 2 ideal affixes: when both tiers share a rarity mask AND collapse to the
+        // same 2+ bar, the pink rule would be identical to the red one, so only one fires. (The
+        // strict default splits the masks, so force them equal here to exercise the dedup.)
         var rb = new ResolvedBuild("t", "Barbarian", new[]
         {
             new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(),
                 new[] { new ResolvedSlot("Boots", new[] { "Strength", "Maximum Life" }) }),
         });
         var b = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
+        var same = new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = true, RedRares = true, PinkLegendaries = true };
 
-        var both = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = true }, "t");
-        var goldOnly = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true, GoldTier = true, SilverTier = false }, "t");
+        var both = FilterCompiler.Compile(new[] { b }, same, "t");
+        var goldOnly = FilterCompiler.Compile(new[] { b }, same with { SilverTier = false }, "t");
 
         Assert.Equal(goldOnly.RuleCount, both.RuleCount);   // no duplicate Silver rule added
     }

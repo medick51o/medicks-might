@@ -34,9 +34,13 @@ public sealed record FilterOutput(string Label, string ImportCode, int RuleCount
 /// Defaults reproduce the full recommended filter; the WPF app binds toggles to these.</summary>
 public sealed record FilterOptions
 {
-    /// <summary>Gate the build-affix + greater-affix tiers to Ancestral (top item-power) gear —
-    /// great for T6+ farming, hides everything while leveling.</summary>
-    public bool StrictEndgame { get; init; }
+    /// <summary>Affix bar per tier (v1.0.2 strict v3). Red default 3+ — and stays 3+ even under
+    /// strict, because the Occultist enchant makes a 3-of-4 legendary one reroll from perfect.
+    /// v1.0.2: strict IS the standard now — Red = 3+ legendaries, Pink = 3+ rares (the rarity split
+    /// lives in the RedRares/PinkLegendaries defaults below). The looser 2+ tier moved to the opt-in
+    /// <see cref="Leveling"/> silver rule; there is no separate "strict" mode toggle anymore.</summary>
+    public int RedMinAffixes { get; init; } = 3;
+    public int PinkMinAffixes { get; init; } = 3;
     /// <summary>The build's own uniques → purple.</summary>
     public bool BuildUniques { get; init; } = true;
     /// <summary>GOLD tier: rare/legendary carrying ≥3 of the slot's (or, in combined mode, the
@@ -66,6 +70,22 @@ public sealed record FilterOptions
     public bool CharmsSealsAncestral { get; init; } = true;
     /// <summary>Codex-of-Power upgrades → white.</summary>
     public bool Codex { get; init; } = true;
+    /// <summary>v1.0.2 (Medick): show EVERY unique charm in its natural color via a Show rule right
+    /// above the hide. Unique charms are keepers; this rescues them before the talisman-aware hide
+    /// sweeps them. Seals aren't charms, so they still fall to the hide. One rule (id-list, no cost
+    /// per extra charm). Default on.</summary>
+    public bool ShowUniqueCharms { get; init; } = true;
+    /// <summary>v1.0.2 (Medick's per-charm list): the specific unique-charm ids to SHOW. Null (or a
+    /// full set) = show every unique charm by type — one tiny rule that also auto-covers charms a
+    /// future patch adds before we catalog them. A subset = the app's checkbox panel with some
+    /// unchecked → show exactly the checked ids. Empty = all unchecked (no show rule; unique charms
+    /// fall to the hide). Only consulted when <see cref="ShowUniqueCharms"/> is on.</summary>
+    public IReadOnlyList<uint>? UniqueCharms { get; init; } = null;
+    /// <summary>v1.0.2 (Medick): the unique ITEM ids to HIDE — the boxes the player UNCHECKED in the
+    /// "Uniques" list. Regular uniques SHOW by default (the hide rule spares Unique), so this is a
+    /// hide-list — the mirror image of the charm show-list. Null/empty = hide none. The emitted rule
+    /// is gated on Unique rarity, so a MYTHIC version of any unique is never hidden.</summary>
+    public IReadOnlyList<uint>? HideUniques { get; init; } = null;
     /// <summary>Hide everything else (Common/Magic/Rare/Legendary the rules above didn't match).
     /// Never touches Unique or Mythic.</summary>
     public bool HideRest { get; init; } = true;
@@ -74,6 +94,28 @@ public sealed record FilterOptions
     /// (both charm rules omitted, charms fall to the hide rule); non-empty = both rules scope to
     /// exactly these sets, in the condition shape the 3.1 in-game editor itself exports.</summary>
     public IReadOnlyList<TalismanSet>? TalismanSets { get; init; } = null;
+    /// <summary>Per-tier rarity masks. Defaults ARE the standard strict split (v1.0.2): Red =
+    /// legendaries only, Pink = rares only, both at 3+ affixes. These change the rarity BITMASK
+    /// inside the existing red/pink rules — never the rule count, so the 25-cap is untouched. Both
+    /// rarities off = that tier is omitted entirely. AncestralOnly ANDs an Ancestral gate onto just
+    /// its own tier.</summary>
+    public bool RedRares { get; init; } = false;
+    public bool RedLegendaries { get; init; } = true;
+    public bool RedAncestralOnly { get; init; } = false;
+    public bool PinkRares { get; init; } = true;
+    public bool PinkLegendaries { get; init; } = false;
+    public bool PinkAncestralOnly { get; init; } = false;
+    /// <summary>v1.0.2 (Medick): LEVELING mode. Off by default. On = adds a SILVER tier for 2+ affix
+    /// RARES (gearing-up loot) AND forces combined (non-per-slot) tiers so the extra tier fits the
+    /// 25-rule cap. Coarse by design — best with a leveling build loaded; endgame stays precise
+    /// per-slot with just the 3+ Red/Pink tiers.</summary>
+    public bool Leveling { get; init; } = false;
+    /// <summary>v1.0.2 (Horadric research + the founder's field report): a MAGIC item with BOTH
+    /// affixes on-build is a premium Add-Affix crafting base — players keep them, and the hide
+    /// rule was eating them. Shows them gold (the legacy tier color, reborn for crafting).
+    /// OPT-IN by founder call: looting blues is an enthusiast move, so the default stays quiet
+    /// and the Crafting Coach teaches players to flip it on when they're ready to craft.</summary>
+    public bool CubeBases { get; init; } = false;
 }
 
 /// <summary>
@@ -91,12 +133,30 @@ public static class FilterCompiler
     /// <summary>Dim tier: "one reroll from great" — at least this many pool affixes.</summary>
     public const int Loose = 2;
 
+    /// <summary>Plain-words narration of a tier's scope for the UI — "what will this tier actually
+    /// highlight?" answered on screen, live, instead of in a tooltip. Includes the affix THRESHOLD,
+    /// so the strict button's bar-raise (Red 3+→4+, Pink 2→3) is visible the moment it's clicked.</summary>
+    public static string DescribeTierScope(bool tierOn, int minAffixes, bool rares,
+        bool legendaries, bool ancestralOnly)
+    {
+        if (!tierOn || (!rares && !legendaries)) return "off — highlights nothing";
+        var what = rares && legendaries ? "rares + legendaries"
+            : rares ? "rares only" : "legendaries only";
+        var anc = ancestralOnly ? ", ancestral tier only" : "";
+        return $"highlights {minAffixes}+ affix {what}{anc}";
+    }
+
     /// <summary>Item-power color tiers (orange = top band, cyan = high band). The numeric
     /// "Item Power Range" condition takes [min,max]; we use an open-ended upper bound so each
     /// tier means "this power and up". Tune the thresholds after an in-game check.</summary>
     public const uint ItemPowerOrange = 900;
     public const uint ItemPowerCyan = 850;
     public const uint ItemPowerCap = 4000;
+    /// <summary>Upper bound for full-range (min-1) rules — the charm rules and the "Hide the rest"
+    /// catch-all. Reads "1 to 900" in the in-game editor (Medick's preference; a bare 0 min "acts
+    /// strange"). 900 is the practical item-power ceiling; the open-ended tier rules keep
+    /// <see cref="ItemPowerCap"/> since they mean "this power and up".</summary>
+    public const uint ItemPowerMax = 900;
 
     /// <summary>
     /// Reduce a resolved build to its filterable affix pool + targetable uniques.
@@ -210,9 +270,9 @@ public static class FilterCompiler
         string label, string filterName = "D4BuildFilter")
     {
         const uint RareLeg = Rarity.Rare | Rarity.Legendary;
-
-        byte[][] Tier(params byte[][] conds) =>
-            opts.StrictEndgame ? conds.Append(Conditions.Ancestral()).ToArray() : conds;
+        // v1.0.2 per-tier rarity masks (defaults = the classic Rare|Legendary blob).
+        uint redMask = (opts.RedRares ? Rarity.Rare : 0) | (opts.RedLegendaries ? Rarity.Legendary : 0);
+        uint pinkMask = (opts.PinkRares ? Rarity.Rare : 0) | (opts.PinkLegendaries ? Rarity.Legendary : 0);
 
         var rules = new List<byte[]>();
         // Every recolor rule is named "<what> (<Color>)" so a player can scroll the in-game filter
@@ -227,6 +287,20 @@ public static class FilterCompiler
                 if (b.UniqueIds.Count > 0)
                     rules.Add(Recolor("Build Uniques",
                         new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(b.UniqueIds) }, FilterColors.Purple));
+        // 1b. Codex-of-Power upgrades -> white, HIGH priority (Medick's methodology, v1.0.2): a codex
+        //     upgrade is a permanent, account-wide aspect unlock — worth more than any single 3+ item
+        //     or GA drop. Emitted ABOVE the affix / GA / item-power tiers (first-match wins) so a
+        //     legendary that is BOTH a 3+ item AND a codex upgrade reads as White (codex), not Red —
+        //     the player never grabs a "red" and belatedly notices it was the unlock.
+        if (opts.Codex)
+            rules.Add(Recolor("Codex Upgrades", new[] { Conditions.Codex() }, FilterColors.White));
+        // 1c. Hide Uniques (Medick's list): the specific uniques the player UNCHECKED in the app's
+        //     "Uniques" list. Uniques show by default, so this is a hide-list (mirror of the charm
+        //     show-list). Gated on Unique rarity so a MYTHIC version of any unique is NEVER hidden;
+        //     sits below Build Uniques so an unchecked BUILD unique still shows purple.
+        if (opts.HideUniques is { Count: > 0 } hideUniques)
+            rules.Add(FilterBuilder.MakeRule("Hide Uniques", Visibility.HideAll,
+                new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(hideUniques) }));
         // 2/3. Build-affix tiers (the core): GOLD (>=3 affixes) and SILVER (>=2 affixes). Gold is
         //    emitted first so a 3+ item wins gold over the silver rule (D4 = first match wins).
         //  • PER-SLOT mode: each tier becomes one rule PER gear slot = ItemType(slot) AND that slot's
@@ -241,22 +315,44 @@ public static class FilterCompiler
         {
             void Emit(string label, IReadOnlyList<uint> affixes, IReadOnlyList<uint>? typeIds)
             {
-                byte[][] Scope(int min) => typeIds is null
-                    ? Tier(Conditions.RarityMask(RareLeg), Conditions.Affixes(affixes, min))
-                    : Tier(Conditions.Types(typeIds), Conditions.RarityMask(RareLeg), Conditions.Affixes(affixes, min));
-                int gold = Math.Min(Strict, affixes.Count);
-                int silver = Math.Min(Loose, affixes.Count);
-                if (opts.GoldTier)
-                    rules.Add(Recolor($"{label} [{gold}+]", Scope(gold), b.Color));
-                // Silver only if requested AND it's not an exact duplicate of the gold rule just emitted.
-                if (opts.SilverTier && !(opts.GoldTier && silver >= gold))
-                    rules.Add(Recolor($"{label} [{silver}+]", Scope(silver), b.Dim));
+                // v1.0.2: per-tier rarity masks + optional per-tier ancestral gate — refinement
+                // INSIDE the existing rules (the rule count never grows; the 25-cap stays safe).
+                byte[][] Scope(int min, uint mask, bool ancestralOnly)
+                {
+                    var conds = typeIds is null
+                        ? new List<byte[]> { Conditions.RarityMask(mask), Conditions.Affixes(affixes, min) }
+                        : new List<byte[]> { Conditions.Types(typeIds), Conditions.RarityMask(mask), Conditions.Affixes(affixes, min) };
+                    if (ancestralOnly) conds.Add(Conditions.Ancestral());
+                    return conds.ToArray();
+                }
+                // Per-tier affix bars come straight from the options (strict v3: the UI preset
+                // raises Pink to 3; Red stays 3 — enchant logic). [N+] rule names self-document.
+                int gold = Math.Min(opts.RedMinAffixes, affixes.Count);
+                int silver = Math.Min(opts.PinkMinAffixes, affixes.Count);
+                if (opts.GoldTier && redMask != 0)
+                    rules.Add(Recolor($"{label} [{gold}+]", Scope(gold, redMask, opts.RedAncestralOnly), b.Color));
+                // Pink only when requested AND not an exact duplicate of the red rule just emitted
+                // (same threshold AND same mask AND same ancestral gate).
+                bool duplicatesRed = opts.GoldTier && redMask != 0 && silver >= gold
+                    && pinkMask == redMask && opts.PinkAncestralOnly == opts.RedAncestralOnly;
+                if (opts.SilverTier && pinkMask != 0 && !duplicatesRed)
+                    rules.Add(Recolor($"{label} [{silver}+]", Scope(silver, pinkMask, opts.PinkAncestralOnly), b.Dim));
             }
 
-            if (opts.PerSlotRules && b.SlotPools.Count > 0)
+            // Leveling forces COMBINED tiers (coarse) so the extra silver tier fits the 25-cap;
+            // endgame keeps precise per-slot. Either way Red (3+ leg) + Pink (3+ rare) emit here.
+            if (opts.PerSlotRules && b.SlotPools.Count > 0 && !opts.Leveling)
                 foreach (var sp in b.SlotPools) Emit(sp.Label, sp.AffixIds, sp.ItemTypeIds);
             else
                 Emit("Rare/Leg", b.Pool, null);
+            // v1.0.2 LEVELING silver: 2+ affix RARES for gearing up — one combined rule BELOW the 3+
+            // tiers (a 3+ rare hits Pink first). Rares only (Medick's spec), silver color. Skipped
+            // when its bar wouldn't sit under Pink's (tiny pools), so it never duplicates a tier.
+            if (opts.Leveling && b.Pool.Count > 0
+                && Math.Min(2, b.Pool.Count) < Math.Min(opts.PinkMinAffixes, b.Pool.Count))
+                rules.Add(Recolor("Leveling [2+]",
+                    new[] { Conditions.RarityMask(Rarity.Rare), Conditions.Affixes(b.Pool, Math.Min(2, b.Pool.Count)) },
+                    FilterColors.Silver));
         }
         // 4. Item-power tiers (the numeric "Item Power Range" condition: type 0, field4=min, field5=max).
         //    Top band -> orange, high band -> cyan. "Affixes conquer all": these sit BELOW the build
@@ -271,13 +367,14 @@ public static class FilterCompiler
         // 5. Greater Affixes -> blue: any rare/leg with >=1 GA not already matched above.
         if (opts.GreaterAffixes)
             rules.Add(Recolor("Greater Affixes",
-                Tier(Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1)), FilterColors.Blue));
+                new[] { Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1) }, FilterColors.Blue));
         // 6a/6b. Charms & Seals. v1.0.1: when a talisman-set selection is present (the per-class
-        //     checkbox list), BOTH rules scope to exactly the checked sets — in the condition shape
-        //     the 3.1 in-game editor itself exports (bare ItemPower + type-9 sets with per-item
-        //     refinement; pinned to a real hand-built rule). Unchecked sets get no rule at all and
-        //     fall to "Hide the rest". Null selection = the legacy catch-all (paste builds).
-        //     Ancestral red first so it wins over green (first-match wins).
+        //     checkbox list), BOTH rules scope to exactly the checked sets via the type-9 set
+        //     condition (per-item refinement; pinned to Medick's hand-built 3.1 export). v1.0.2
+        //     (Medick, in-game): the paired Item Power floor is 1 (not the game's bare min-0, which
+        //     he found "acts strange") — every talisman has power >= 1, so scoping is unchanged.
+        //     Unchecked sets get no rule at all and fall to "Hide the rest". Null selection = the
+        //     legacy catch-all (paste builds). Ancestral red first so it wins over green (first-match).
         var setScope = opts.TalismanSets is { } tsel
             ? tsel.Select(s => (s.Id, (IReadOnlyList<uint>)s.Items.Select(i => i.Id).ToList())).ToList()
             : null;
@@ -285,28 +382,60 @@ public static class FilterCompiler
             rules.Add(Recolor("Charms&Seals Anc",
                 setScope is null
                     ? new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }), Conditions.Ancestral() }
-                    : new[] { Conditions.ItemPowerAny(), Conditions.TalismanSetBonus(setScope), Conditions.Ancestral() },
+                    : new[] { Conditions.ItemPower(1, ItemPowerMax), Conditions.TalismanSetBonus(setScope), Conditions.Ancestral() },
                 FilterColors.Red));
         if (opts.CharmsSeals && setScope is not { Count: 0 })
             rules.Add(Recolor("Charms & Seals",
                 setScope is null
                     ? new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }
-                    : new[] { Conditions.ItemPowerAny(), Conditions.TalismanSetBonus(setScope) },
+                    : new[] { Conditions.ItemPower(1, ItemPowerMax), Conditions.TalismanSetBonus(setScope) },
                 FilterColors.Green));
-        // 7. Any remaining Codex-of-Power upgrade -> white (pick up for the aspect, then salvage).
-        if (opts.Codex)
-            rules.Add(Recolor("Codex Upgrades",
-                new[] { Conditions.Codex() }, FilterColors.White));
-        // 8. Hide the clutter: Common / Magic / Rare / Legendary that nothing above matched.
-        //    NOT Unique (build ones purple above; rest fall through to default) and NOT Mythic —
-        //    mythics drop untouched with their natural beam + "tink".
+        // 6c. Cube bases (v1.0.2, Horadric research + the founder's persona spec): the bar for a
+        //     blue being worth a STOP is both affixes on-build AND >=1 Greater Affix — plain
+        //     2-roll blues aren't worth a speedfarmer's time. Gold = the crafting color. Opt-in.
+        //     (GA-on-Magic is contested in the datamine; the armed users are the field experiment.)
+        if (opts.CubeBases)
+            foreach (var b in builds)
+                if (b.Pool.Count > 0)
+                    rules.Add(Recolor("Cube Bases", new[] {
+                        Conditions.RarityMask(Rarity.Magic),
+                        Conditions.Affixes(b.Pool, Math.Min(2, b.Pool.Count)),
+                        Conditions.GreaterAffix(1) }, FilterColors.Gold));
+        // 7. (Codex Upgrades moved UP to step 1b — Medick's methodology: a codex unlock outranks any
+        //    3+ / GA drop, so it must win first-match over the affix tiers.)
+        // 7b. Show ALL unique charms in their traditional color (Medick, in-game): unique charms are
+        //     keepers he always wants to see, so rescue them ABOVE the hide with a Show rule
+        //     (Charm-type AND Unique-rarity). Seals are a different item type, so they aren't matched
+        //     here and still fall to the hide. IMPORTANT: the Charm type id is the d4data + fnuecke
+        //     cross-checked 0x0022ed05 — NOT D4Filter.cs's ItemTypes.Charm, whose Charm/Seal labels
+        //     are reversed (harmless where both ids are used together, but wrong for a charm-only rule).
+        if (opts.ShowUniqueCharms)
+        {
+            var sel = opts.UniqueCharms;
+            if (sel is null || sel.Count >= UniqueCharmDatabase.All.Count)
+                // All (or unspecified) → show EVERY unique charm by type. One tiny rule, and it
+                // auto-covers charms a future patch adds before we catalog them.
+                rules.Add(FilterBuilder.MakeRule("Unique Charms", Visibility.Show,
+                    new[] { Conditions.Types(new[] { ItemTypeDatabase.ByName["Charm"] }),
+                            Conditions.RarityMask(Rarity.Unique) }));
+            else if (sel.Count > 0)
+                // Curated subset (some unchecked in the app's panel) → show exactly the checked ids.
+                rules.Add(FilterBuilder.MakeRule("Unique Charms", Visibility.Show,
+                    new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(sel) }));
+            // sel empty (every box unchecked) → no show rule; unique charms fall to the hide.
+        }
+        // 8. Hide the clutter: Common / Magic / Rare / Legendary AND Talismans (charms & seals) that
+        //    nothing above matched. v1.0.2 (Medick, in-game): without the Talisman bit, every charm
+        //    that wasn't the build's selected set leaked through and kept showing. NOT Unique (build
+        //    ones go purple above; the rest fall through to default) and NOT Mythic — mythics drop
+        //    untouched with their natural beam + "tink".
         if (opts.HideRest)
             rules.Add(FilterBuilder.MakeRule("Hide the rest", Visibility.HideAll,
                 // D4 won't apply a rule that has ONLY a rarity condition — unwanted items leak through.
                 // Pair it with Item Power >= 1 (every other rule already carries a concrete 2nd condition)
-                // so the engine honors the catch-all and actually hides. All gear has item power >= 1.
-                new[] { Conditions.RarityMask(Rarity.Common | Rarity.Magic | Rarity.Rare | Rarity.Legendary),
-                        Conditions.ItemPower(1, ItemPowerCap) }));
+                // so the engine honors the catch-all and actually hides. All gear + talismans have power >= 1.
+                new[] { Conditions.RarityMask(Rarity.Common | Rarity.Magic | Rarity.Rare | Rarity.Legendary | Rarity.Talisman),
+                        Conditions.ItemPower(1, ItemPowerMax) }));
 
         var filterBytes = FilterBuilder.MakeFilter(filterName, rules);
         var code = FilterBuilder.ToImportCode(filterBytes);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -127,6 +128,79 @@ public sealed class ActiveTextConverter : IValueConverter
         return Application.Current?.TryFindResource(key) as Brush
                ?? (value is true ? FallbackOn : FallbackOff);
     }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Inverse of StringToVisibilityConverter: visible only when the bound string is EMPTY.
+/// Used to fall back to an emoji glyph wherever a game-art icon is missing (e.g. Pandemonium
+/// Fragments, whose icon isn't in the source bucket).</summary>
+public sealed class EmptyStringToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => string.IsNullOrWhiteSpace(value as string) ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Cube recipe name → its in-game recipe icon under Assets/Cube (fetched one-time from
+/// the maxroll Horadric Cube resource page; art © Blizzard Entertainment). Focused/Chaotic share
+/// the reroll art and the two 3-uniques recipes share the unique-reroll art — the game groups
+/// them the same way. Unknown names return null (Image renders nothing).</summary>
+public sealed class RecipeIconConverter : IValueConverter
+{
+    private static readonly Dictionary<string, string> Map = new()
+    {
+        ["Add Affix"] = "recipe-add-affix",
+        ["Focused Reroll"] = "recipe-reroll-affix",
+        ["Chaotic Reroll"] = "recipe-reroll-affix",
+        ["Remove Affix"] = "recipe-remove-affix",
+        ["Transfigure"] = "recipe-transfigure",
+        ["Upgrade to Legendary"] = "recipe-upgrade-to-legendary",
+        ["Upgrade to Unique"] = "recipe-upgrade-to-unique",
+        ["Upgrade to Mythic"] = "recipe-amalgamation",
+        ["3-to-1 Transmutation"] = "recipe-3-to-1",
+        ["Recycle Uniques"] = "recipe-unique-reroll",
+        ["Unique Power Reroll"] = "recipe-unique-reroll",
+    };
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is string name && Map.TryGetValue(name, out var file) ? $"/Assets/Cube/{file}.png" : null;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Cube material Key (e.g. "coarse-dust") → its bundled icon path. Only returns a path for
+/// keys we actually ship art for, so a material without a bundled icon (its art isn't in the source)
+/// renders no Image and the row still shows its name and ×quantity. Update the set when new icons
+/// are added under Assets/Cube.</summary>
+public sealed class IconKeyToPathConverter : IValueConverter
+{
+    // Only keys whose PNG is actually bundled under Assets/Cube. Pandemonium Fragments is added
+    // once its icon is confirmed present (its art wasn't in the first source); until then the row
+    // shows name + ×quantity with no image.
+    private static readonly HashSet<string> Bundled = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "raw-dust", "coarse-dust", "refined-dust", "pure-dust", "enhanced-dust",
+        "volatile-dust", "attuned-dust", "tuning-prism", "horadric-resin",
+    };
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is string key && Bundled.Contains(key) ? $"/Assets/Cube/{key}.png" : null;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Bright (1.0) when true, dimmed (0.4) when false — used to fade ineligible recipe rows in
+/// the Cube Sandbox list, the way the in-game recipe screen greys out recipes you can't run.</summary>
+public sealed class BoolToOpacityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? 1.0 : 0.4;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => Binding.DoNothing;

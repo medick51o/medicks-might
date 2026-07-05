@@ -27,9 +27,12 @@ Grab the latest **MedicKs-Might.zip** from [Releases](../../releases/latest), un
 - **⟳ Live refresh** — a refresh button (or F5) re-pulls all three tier lists on demand and re-checks every saved build's tier; lists also auto-refresh after 15 minutes and per-source "updated HH:mm" stamps show how fresh each column is.
 - **Paste anything** — a Maxroll/D4Builds/Mobalytics URL, OR a raw affix list copied from Icy Veins / Discord / a screenshot. Universal paste mode handles the rest.
 - **Compiles a precise per-slot loot filter:**
-  - **Red** (3+ build affixes) and **Pink** (2+) per gear slot — your build's keepers (red = chase / high-value)
+  - **Red** (3+ affix legendaries) and **Pink** (3+ affix rares) per gear slot: the strict standard, with 2-affix clutter hidden
+  - **Leveling** (opt-in): adds **Silver** for 2+ affix rares so you can gear up on the way to endgame
+  - **Gold** (opt-in): cube bases, magic items with both affixes on-build **and** a Greater Affix (the blues worth cubing)
   - Weapons grouped by handedness (1H / 2H) so the Barb arsenal fits the 25-rule cap
-  - **Purple** — build uniques · **Orange/Cyan** — Item Power tiers (900+/850+) · **Blue** — Greater Affixes · **Green** — charms & seals · **White** — Codex upgrades
+  - **White** Codex upgrades ranked top (a permanent aspect unlock beats any single drop) · **Purple** build uniques · **Orange/Cyan** Item Power (900+/850+) · **Blue** Greater Affixes · **Green** charms & seals
+  - **Pick what you see:** checkbox lists for every unique and unique charm (all on by default, uncheck to hide, with select-all/none) plus per-class talisman sets
   - Mythics never touched (they drop with their natural beam)
   - Everything else hidden
 - **Talisman & set-bonus recognition** — decoded community filters spell out set names (e.g. *"Talisman: Barbarian Set 01"*) instead of hex blobs.

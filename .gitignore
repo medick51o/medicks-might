@@ -12,6 +12,9 @@ _discord_landing.png
 
 # Tester scratch outputs
 last_code_perslot.txt
+last_code_leveling.txt
+_tmp/
+_tmpfix_moba.html
 
 # Local launchers / scratch (machine-specific)
 D4 Filter Launcher.cmd

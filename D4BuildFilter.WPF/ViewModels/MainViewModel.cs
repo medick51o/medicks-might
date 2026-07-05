@@ -20,7 +20,7 @@ public enum AppState
 /// <summary>Top-nav destinations (the web-app shell). Browse = tier lists, Compile = the URL/paste
 /// form, Favorites = saved builds, Artwork = gallery mode (chrome only — the warlord art at full
 /// strength). The Result view is shown on top after a compile.</summary>
-public enum InputTab { Browse, Compile, Favorites, Artwork }
+public enum InputTab { Browse, Compile, Favorites, Artwork, Coach }
 
 public partial class MainViewModel : ObservableObject
 {
@@ -45,12 +45,17 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsCompileTab))]
     [NotifyPropertyChangedFor(nameof(IsFavTab))]
     [NotifyPropertyChangedFor(nameof(IsArtworkTab))]
+    [NotifyPropertyChangedFor(nameof(IsCoachTab))]
     private InputTab activeTab = InputTab.Browse;
 
     public bool IsBrowseTab => ActiveTab == InputTab.Browse;
     public bool IsCompileTab => ActiveTab == InputTab.Compile;
     public bool IsFavTab => ActiveTab == InputTab.Favorites;
     public bool IsArtworkTab => ActiveTab == InputTab.Artwork;
+    public bool IsCoachTab => ActiveTab == InputTab.Coach;
+
+    /// <summary>The Crafting Coach wing (v1.0.2) — see CRAFTING_COACH_SPEC.md.</summary>
+    public CoachViewModel Coach { get; } = new();
 
     /// <summary>Switch the top-nav tab. Also returns to the Input state, so the nav works from the
     /// result page (clicking Browse/Compile/Favorites takes you back to that view).</summary>
@@ -62,6 +67,7 @@ public partial class MainViewModel : ObservableObject
             "Compile"   => InputTab.Compile,
             "Favorites" => InputTab.Favorites,
             "Artwork"   => InputTab.Artwork,
+            "Coach"     => InputTab.Coach,
             _           => InputTab.Browse,
         };
         State = AppState.Input;
@@ -429,6 +435,14 @@ public partial class MainViewModel : ObservableObject
             "Sorcerer", "Spiritborn", "Paladin", "Warlock",
         }.Select(c => new ClassFilterVM(c, RefreshAllTierViews)).ToList();
 
+        // v1.0.2: the unique-charm show-list — every S14 unique charm, ALL pre-checked. Build-
+        // independent (same catalog for every class), so it's populated once here; the ctor writes
+        // the field directly so this doesn't fire Recompile. Unchecking a charm recompiles live.
+        foreach (var c in UniqueCharmDatabase.All)
+            UniqueCharmOptions.Add(new UniqueCharmOption(c, isChecked: true, Recompile));
+        foreach (var u in UniqueItemDatabase.All)
+            UniqueItemOptions.Add(new UniqueItemOption(u, isChecked: true, Recompile));
+
         MaxrollTabs = new[]
         {
             new TierTabVM("Endgame",    nameof(MaxrollList.Endgame),   true),
@@ -739,6 +753,33 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<TalismanSetOption> TalismanSetOptions { get; } = new();
     public bool HasTalismanSetOptions => TalismanSetOptions.Count > 0;
 
+    // ── v1.0.2: unique-charm checkboxes (Medick's list — every S14 unique charm, ALL pre-checked to
+    // show; uncheck any to hide it). Build-independent, so populated once in the ctor. ──
+    public ObservableCollection<UniqueCharmOption> UniqueCharmOptions { get; } = new();
+    public bool HasUniqueCharmOptions => UniqueCharmOptions.Count > 0;
+
+    // ── v1.0.2: unique ITEM checkboxes (Medick's list — every regular unique, ALL pre-checked). A
+    // hide-list: uniques drop by default, so unchecking one adds it to the "Hide Uniques" rule. ──
+    public ObservableCollection<UniqueItemOption> UniqueItemOptions { get; } = new();
+    public bool HasUniqueItemOptions => UniqueItemOptions.Count > 0;
+
+    // ── v1.0.2 QoL (Medick): Select all / Unselect all for the checkbox lists. Flip every box with
+    // the recompile suppressed, then compile once (hundreds would otherwise recompile per flip). ──
+    [RelayCommand] private void CheckAllUniqueCharms() => BulkApply(() => { foreach (var o in UniqueCharmOptions) o.IsChecked = true; });
+    [RelayCommand] private void UncheckAllUniqueCharms() => BulkApply(() => { foreach (var o in UniqueCharmOptions) o.IsChecked = false; });
+    [RelayCommand] private void CheckAllCharmSets() => BulkApply(() => { foreach (var o in TalismanSetOptions) o.IsChecked = true; });
+    [RelayCommand] private void UncheckAllCharmSets() => BulkApply(() => { foreach (var o in TalismanSetOptions) o.IsChecked = false; });
+    [RelayCommand] private void CheckAllUniques() => BulkApply(() => { foreach (var o in UniqueItemOptions) o.IsChecked = true; });
+    [RelayCommand] private void UncheckAllUniques() => BulkApply(() => { foreach (var o in UniqueItemOptions) o.IsChecked = false; });
+
+    private void BulkApply(Action flip)
+    {
+        _suppressRecompile = true;
+        flip();
+        _suppressRecompile = false;
+        Recompile();
+    }
+
     /// <summary>Footer build stamp: assembly version ("-dev" suffix on work-in-progress builds)
     /// plus the exe's build time — answers "am I running the latest build?" at a glance
     /// (Medick's ask, 2026-07-02, after a dev build and the v1.0.0 release looked identical).</summary>
@@ -822,7 +863,7 @@ public partial class MainViewModel : ObservableObject
     // PasteHash moved to Core.PasteStore.Hash so the paste identity can be computed server-side too.
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
-    [ObservableProperty] private bool strictEndgame;
+    [ObservableProperty] private bool optLeveling;
     [ObservableProperty] private bool optPerSlot = true;   // recommended default (falls back to combined w/o slot data)
     [ObservableProperty] private bool optGoldTier = true;  // 3+ affixes per slot → gold ("best items")
     [ObservableProperty] private bool optSilverTier = true; // 2+ affixes per slot → silver ("one roll away")
@@ -842,7 +883,10 @@ public partial class MainViewModel : ObservableObject
     // can't act on this info; it's for us to track DB gaps. Medick explicitly flagged it as noise.
     [ObservableProperty] private bool showPendingAffixes;
 
-    partial void OnStrictEndgameChanged(bool value) => Recompile();
+    /// <summary>v1.0.2 (Medick): LEVELING mode. Off by default — strict IS the standard now (Red 3+
+    /// legendaries, Pink 3+ rares). On = adds the SILVER 2+ affix-rare tier and forces combined
+    /// tiers so it fits the 25-rule cap. Coarse by design; best with a leveling build loaded.</summary>
+    partial void OnOptLevelingChanged(bool value) => Recompile();
     partial void OnOptPerSlotChanged(bool value) => Recompile();
     partial void OnOptGoldTierChanged(bool value) => Recompile();
     partial void OnOptSilverTierChanged(bool value) => Recompile();
@@ -854,18 +898,54 @@ public partial class MainViewModel : ObservableObject
     partial void OnOptCodexChanged(bool value) => Recompile();
     partial void OnOptHideRestChanged(bool value) => Recompile();
 
+    // ── v1.0.2: per-tier rarity refinement. Defaults ARE the strict standard: Red = legendaries
+    //    only, Pink = rares only (both 3+). These flip bits inside the existing red/pink rules; the
+    //    rule count never changes, so a player can hand-tune (e.g. add rares back to Red) freely. ──
+    [ObservableProperty] private bool optRedRares = false;        // strict standard: Red = legendaries only
+    [ObservableProperty] private bool optRedLegendaries = true;
+    [ObservableProperty] private bool optRedAncestralOnly = false;
+    [ObservableProperty] private bool optPinkRares = true;
+    [ObservableProperty] private bool optPinkLegendaries = false; // strict standard: Pink = rares only
+    [ObservableProperty] private bool optPinkAncestralOnly = false;
+    partial void OnOptRedRaresChanged(bool value) => Recompile();
+    partial void OnOptRedLegendariesChanged(bool value) => Recompile();
+    partial void OnOptRedAncestralOnlyChanged(bool value) => Recompile();
+    partial void OnOptPinkRaresChanged(bool value) => Recompile();
+    partial void OnOptPinkLegendariesChanged(bool value) => Recompile();
+    partial void OnOptPinkAncestralOnlyChanged(bool value) => Recompile();
+
+    // v1.0.2 cube-bases rule (Horadric research): 2-on-build-affix MAGIC items = craft fodder.
+    // Opt-in by founder call — the Crafting Coach is the on-ramp that tells players to enable it.
+    [ObservableProperty] private bool optCubeBases = false;
+    partial void OnOptCubeBasesChanged(bool value) => Recompile();
+
     private FilterOptions CurrentOptions => new()
     {
-        StrictEndgame = StrictEndgame,
+        PinkMinAffixes = 3,                       // strict standard: both tiers at 3+
         PerSlotRules = OptPerSlot,
+        Leveling = OptLeveling,                   // adds the silver 2+ rare tier + forces combined
+
         // v1.0.1: null while no build offers sets (legacy catch-all); otherwise exactly the
         // checked boxes — empty means "user unchecked everything" (charm rules omitted → hidden).
         TalismanSets = TalismanSetOptions.Count > 0
             ? TalismanSetOptions.Where(o => o.IsChecked).Select(o => o.Set).ToList()
             : null,
+        // v1.0.2: the checked unique charms (all by default). The compiler collapses a full set to
+        // the compact type-based show-all rule; a subset becomes an id-list; empty = none shown.
+        UniqueCharms = UniqueCharmOptions.Where(o => o.IsChecked).Select(o => o.Charm.Id).ToList(),
+        // v1.0.2 hide-list: the UNCHECKED uniques get hidden (uniques show by default). All checked
+        // (default) → empty → no hide rule, so nothing changes for the normal player.
+        HideUniques = UniqueItemOptions.Where(o => !o.IsChecked).Select(o => o.Item.Id).ToList(),
         GoldTier = OptGoldTier,
         BuildUniques = OptBuildUniques,
         SilverTier = OptSilverTier,
+        RedRares = OptRedRares,
+        RedLegendaries = OptRedLegendaries,
+        RedAncestralOnly = OptRedAncestralOnly,
+        PinkRares = OptPinkRares,
+        PinkLegendaries = OptPinkLegendaries,
+        PinkAncestralOnly = OptPinkAncestralOnly,
+        CubeBases = OptCubeBases,
         ItemPowerTiers = OptItemPowerTiers,
         GreaterAffixes = OptGreaterAffixes,
         CharmsSeals = OptCharmsSeals,
@@ -1019,8 +1099,33 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>Analyze + compile from the currently-selected variants. Re-runs whenever the
     /// user toggles a variant checkbox. Pure/synchronous (no network) so it's fine on the UI thread.</summary>
+    /// <summary>Live plain-words scope lines under the tier toggles (v1.0.2 UX): the UI narrates
+    /// what each tier will highlight, so no toggle's effect hides in a tooltip. Both tiers are 3+
+    /// under the strict standard; the looser 2+ rares live in the opt-in Leveling silver tier.</summary>
+    public string RedTierSummary => "Red " + FilterCompiler.DescribeTierScope(
+        OptGoldTier, FilterCompiler.Strict,
+        OptRedRares, OptRedLegendaries, OptRedAncestralOnly)
+        + (OptGoldTier && !OptRedRares
+            ? "  (keep 'Show rares' off. it's off by design: turning it on paints your 3+ rares Red instead of Pink, and Pink stops working)"
+            : "");
+    public string PinkTierSummary => "Pink " + FilterCompiler.DescribeTierScope(
+        OptSilverTier, FilterCompiler.Strict,
+        OptPinkRares, OptPinkLegendaries, OptPinkAncestralOnly)
+        + (OptSilverTier && !OptPinkLegendaries
+            ? "  (keep 'Show legendaries' off. it's off by design: Red already covers legendaries, so it does nothing here)"
+            : "");
+
     private void Recompile()
     {
+        // Bulk toggles (Select all / Unselect all) flip many checkboxes at once; each would call
+        // back in here, so they raise _suppressRecompile and recompile ONCE at the end.
+        if (_suppressRecompile) return;
+
+        // Every toggle that can change a tier's scope funnels through here — refresh the
+        // narration lines first so the UI always tells the truth about the code below it.
+        OnPropertyChanged(nameof(RedTierSummary));
+        OnPropertyChanged(nameof(PinkTierSummary));
+
         if (_resolved is null) return;
 
         var selected = Variants.Where(v => v.IsSelected).Select(v => v.Variant).ToList();
@@ -1032,6 +1137,10 @@ public partial class MainViewModel : ObservableObject
 
         var build = _resolved with { Variants = selected };
         var compiled = FilterCompiler.Analyze(build, FilterColors.Red, FilterColors.Pink);
+
+        // Crafting Coach greets with the loaded build (the coach's whole hook is build context).
+        Coach.BuildLine = $"Coaching for your {_resolved.Class} — {_resolved.Build}. " +
+            "Gold-glowing blues from your filter are perfect practice pieces.";
 
         // v1.0.1: refresh the per-class set checkboxes BEFORE compiling (CurrentOptions reads them).
         // The build's sets come pre-checked; a user's manual choices survive recompiles (merged by
@@ -1074,7 +1183,8 @@ public partial class MainViewModel : ObservableObject
             : $"⚠ {output.RuleCount} rules — filter is corrupted, regenerate before importing";
         CapWarning = output.RuleCount > MaxRules
             ? $"⚠ {output.RuleCount} rules — Diablo 4 rejects filters over {MaxRules} on import. "
-              + "Turn off a tier (Gold 3+ or Silver 2+), or deselect some variants, to get back under the limit."
+              + "Turn off 'Precise per-slot rules' (combined mode uses far fewer), re-check some Uniques, "
+              + "or turn off a tier to get back under the limit."
             : "";
 
         StatusMessage = "";

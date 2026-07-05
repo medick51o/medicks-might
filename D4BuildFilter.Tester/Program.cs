@@ -169,7 +169,7 @@ if (build.UniquesTargeted.Count > 0)
     Console.WriteLine($"  build uniques -> PURPLE ({build.UniquesTargeted.Count}): {string.Join(", ", build.UniquesTargeted)}");
 if (build.UniquesPending.Count > 0)
     Console.WriteLine($"  build uniques without an id yet ({build.UniquesPending.Count}) — export to capture: {string.Join(", ", build.UniquesPending)}");
-Console.WriteLine($"  RED = >={FilterCompiler.Strict} of pool (chase)   PINK = >={FilterCompiler.Loose} of pool (keeper)\n");
+Console.WriteLine($"  STANDARD (strict): RED = 3+ legendaries · PINK = 3+ rares   |   LEVELING adds SILVER 2+ rares\n");
 
 void Emit(FilterOptions opts, string label, string outPath)
 {
@@ -180,8 +180,9 @@ void Emit(FilterOptions opts, string label, string outPath)
     File.WriteAllText(outPath, output.ImportCode);
 }
 
-Emit(new FilterOptions { TalismanSets = talismanScope }, "NORMAL", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
-Emit(new FilterOptions { StrictEndgame = true, TalismanSets = talismanScope }, "STRICT ENDGAME (Ancestral-only)", @"C:\Sync\Projects\D4BuildFilter\last_code_strict.txt");
+Emit(new FilterOptions { TalismanSets = talismanScope }, "STANDARD (strict: Red 3+ leg / Pink 3+ rare)", @"C:\Sync\Projects\D4BuildFilter\last_code.txt");
+Emit(new FilterOptions { Leveling = true, TalismanSets = talismanScope },
+    "LEVELING (+ Silver 2+ rares, combined)", @"C:\Sync\Projects\D4BuildFilter\last_code_leveling.txt");
 Emit(new FilterOptions { PerSlotRules = true, TalismanSets = talismanScope }, "PER-SLOT (precise, no cross-slot false positives)", @"C:\Sync\Projects\D4BuildFilter\last_code_perslot.txt");
 
 // ── survey helpers ─────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@
     <!-- Version flows into the exe metadata AND the in-app footer stamp (with build time), so
          anyone can tell at a glance which build they're running (Medick's ask, 2026-07-02).
          "-dev" marks work-in-progress builds; drop the suffix when cutting a release. -->
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <!-- Embeds the MK monogram into the exe's PE resources so the taskbar / Explorer / Alt-Tab
          use it (the Window.Icon=Assets/mk_logo.png only sets the running window's title-bar icon). -->
     <ApplicationIcon>Assets\mk.ico</ApplicationIcon>
@@ -36,6 +36,10 @@
     <!-- Inter font (SIL OFL) — bundled so the app uses the same web-grade type as the future
          website (web/style.css also loads Inter) for pixel-parity across the desktop->web jump. -->
     <Resource Include="Assets\Fonts\*.ttf" />
+    <!-- Horadric Cube game art (mat cards + recipe icons) for the Crafting Coach wing — one-time
+         fetch from maxroll's cube page/planner CDN; art © Blizzard Entertainment, covered by the
+         footer's non-affiliation disclaimer. -->
+    <Resource Include="Assets\Cube\*.png" />
   </ItemGroup>
 
 </Project>
