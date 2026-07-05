@@ -10,7 +10,7 @@
     <!-- Version flows into the exe metadata AND the in-app footer stamp (with build time), so
          anyone can tell at a glance which build they're running (Medick's ask, 2026-07-02).
          "-dev" marks work-in-progress builds; drop the suffix when cutting a release. -->
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <!-- Embeds the MK monogram into the exe's PE resources so the taskbar / Explorer / Alt-Tab
          use it (the Window.Icon=Assets/mk_logo.png only sets the running window's title-bar icon). -->
     <ApplicationIcon>Assets\mk.ico</ApplicationIcon>

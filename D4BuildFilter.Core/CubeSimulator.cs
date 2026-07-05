@@ -27,7 +27,7 @@ public sealed record CubeSimResult(
     /// <summary>The materials as one plain line ("1× Coarse + 5× Raw Primordial Dust"), for the
     /// "Consumed:" caption and anywhere a single string reads better than rows.</summary>
     public string MatsLine => Materials.Count == 0
-        ? "no dust — items only"
+        ? "no dust, items only"
         : string.Join(" + ", Materials.Select(m => $"{m.Quantity}× {m.Name}{(m.Optional ? " (optional)" : "")}"));
 }
 
@@ -63,7 +63,7 @@ public static class CubeSimulator
             return false;
         }
         string gaKept = it.GreaterAffixes > 0 ? "Your ⭐ Greater Affix stays untouched." : "";
-        string gaLost = it.GreaterAffixes > 0 ? "Your ⭐ Greater Affix does NOT carry — nothing does." : "Nothing carries over.";
+        string gaLost = it.GreaterAffixes > 0 ? "Your ⭐ Greater Affix does NOT carry: nothing does." : "Nothing carries over.";
 
         var results = new List<CubeSimResult>();
         void Add(string name, string category, IReadOnlyList<CubeMat> mats, bool eligible,
@@ -81,11 +81,11 @@ public static class CubeSimulator
         Add("Add Affix", GearModification, new[] { Coarse(1), Raw(5), Prism(optional: true) },
             Is("Common", "Magic", "Rare", "Legendary") && it.OpenSlot,
             !Is("Common", "Magic", "Rare", "Legendary") ? "Common/Magic/Rare/Legendary only"
-                : "needs an open affix slot (this item is full — Remove Affix can open one on Magic/Rare)",
+                : "needs an open affix slot (this item is full: Remove Affix can open one on Magic/Rare)",
             new List<string>
             {
                 "Same item, +1 regular affix rolled from the slot's possible pool.",
-                "You can't pick which affix — a dud can be rerolled afterwards.",
+                "You can't pick which affix: a dud can be rerolled afterwards.",
                 "Cannot create a ⭐ Greater Affix.",
                 "A Tuning Prism (optional) narrows the affix category.",
             });
@@ -116,10 +116,10 @@ public static class CubeSimulator
             new List<string>
             {
                 "Removes a RANDOM affix (a Tuning Prism, optional, narrows which one).",
-                "Opens a slot for Add Affix — the remove-then-add loop is how crafters sculpt a base.",
+                "Opens a slot for Add Affix: the remove-then-add loop is how crafters sculpt a base.",
             },
             warning: it.GreaterAffixes > 0
-                ? "Removal targets a RANDOM affix — it can hit your ⭐ Greater Affix. A Tuning Prism (optional) narrows which affix is chosen."
+                ? "Removal targets a RANDOM affix: it can hit your ⭐ Greater Affix. A Tuning Prism (optional) narrows which affix is chosen."
                 : "");
 
         Add("Transfigure", GearModification, new[] { Volatile(1), Prism(optional: true) },
@@ -130,7 +130,7 @@ public static class CubeSimulator
                 "Grants a random powerful modification (an extra affix, or a stat pushed toward a ⭐).",
                 "A Tuning Prism (optional) narrows the outcomes.",
             },
-            "Very high chance the item becomes UNMODIFIABLE afterwards — no more crafting or enchanting. Treat it as near-permanent.");
+            "Very high chance the item becomes UNMODIFIABLE afterwards: no more crafting or enchanting. Treat it as near-permanent.");
 
         // ── Item Transmutation (game order) ──
         Add("Unique Power Reroll", ItemTransmutation, new[] { Attuned(1), Raw(100) },
@@ -138,7 +138,7 @@ public static class CubeSimulator
             "Uniques and Mythics only",
             new List<string>
             {
-                "Rerolls the unique power's VALUES — the power itself stays the same.",
+                "Rerolls the unique power's VALUES: the power itself stays the same.",
                 "S14 widened this: non-Ancestral uniques qualify too.",
             });
 
@@ -175,7 +175,7 @@ public static class CubeSimulator
             "Rare items only",
             new List<string>
             {
-                "A new LEGENDARY for the same slot — ALL affixes reroll, plus a legendary aspect.",
+                "A new LEGENDARY for the same slot: ALL affixes reroll, plus a legendary aspect.",
                 gaLost,
                 "Upgrade for item POWER and the slot, not to keep stats.",
             });
@@ -185,7 +185,7 @@ public static class CubeSimulator
             Is("Unique") ? "needs 850+ Item Power" : "needs a Unique at 850+ Item Power",
             new List<string>
             {
-                "A random MYTHIC for the same slot — always Ancestral, affixes max-rolled, +30% unique power.",
+                "A random MYTHIC for the same slot: always Ancestral, affixes max-rolled, +30% unique power.",
                 gaLost,
                 "S14's headline gamble: any qualifying unique is fodder.",
             });

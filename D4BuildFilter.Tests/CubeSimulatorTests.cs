@@ -113,6 +113,6 @@ public class CubeSimulatorTests
         var add = Recipe(Item("Magic"), "Add Affix");
         Assert.Equal("1× Coarse Primordial Dust + 5× Raw Primordial Dust + 1× Tuning Prism (optional)", add.MatsLine);
         // recipes with no dust say so rather than showing an empty bundle
-        Assert.Equal("no dust — items only", Recipe(Item("Rare"), "3-to-1 Transmutation").MatsLine);
+        Assert.Equal("no dust, items only", Recipe(Item("Rare"), "3-to-1 Transmutation").MatsLine);
     }
 }
