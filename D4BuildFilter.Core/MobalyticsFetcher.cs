@@ -42,7 +42,7 @@ public static class MobalyticsFetcher
         var build = docData.GetProperty("data");
 
         string name = build.TryGetProperty("name", out var n) ? n.GetString() ?? "Mobalytics Build" : "Mobalytics Build";
-        string cls = ClassFromTags(docData);
+        string cls = TalismanSetDatabase.NormalizeClassName(ClassFromTags(docData));
 
         // variant id -> title, from childrenVariants anywhere in the document
         var variantTitles = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -76,7 +76,11 @@ public static class MobalyticsFetcher
         var affixes = new List<string>();
         var uniques = new List<string>();
         var resolvedSlots = new List<ResolvedSlot>();
+        var talismanSets = new List<string>();
+        var unknownTalismanSets = new List<string>();
         var seenUnique = new HashSet<string>(StringComparer.Ordinal);
+        var seenSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenUnknownSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var gb = FindFirst(variant, "genericBuilder");
         if (gb is { } gbEl && gbEl.TryGetProperty("slots", out var slots) && slots.ValueKind == JsonValueKind.Array)
@@ -85,7 +89,28 @@ public static class MobalyticsFetcher
             {
                 if (!slot.TryGetProperty("gameEntity", out var ge) || ge.ValueKind != JsonValueKind.Object) continue;
                 string entityType = ge.TryGetProperty("type", out var et) ? et.GetString() ?? "" : "";
-                if (entityType is not ("aspects" or "uniqueItems")) continue;
+                if (entityType is not ("aspects" or "uniqueItems" or "charms")) continue;
+
+                // v1.0.5: equipped charm slots (gameSlotSlug "season-*-charm-N") carry the charm's
+                // ITEM name directly on gameEntity.title ("Phoba of the Crucible") — resolve it to
+                // its SET via the catalog. Cataloged unique charms ("Endurant Faith") are governed
+                // by unique-charm checkboxes; every other unmatched title is recorded as unsafe drift.
+                if (entityType == "charms")
+                {
+                    string cn = ge.TryGetProperty("title", out var charmTitle)
+                        ? charmTitle.GetString()?.Trim() ?? ""
+                        : "";
+                    if (cn.Length > 0 && TalismanSetDatabase.TryGetByItemName(cn, out var set))
+                    {
+                        if (seenSet.Add(set.Name)) talismanSets.Add(set.Name);
+                    }
+                    else if (cn.Length == 0 || !UniqueCharmDatabase.TryGetByName(cn, out _))
+                    {
+                        string unknown = cn.Length > 0 ? cn : "(unnamed charm)";
+                        if (seenUnknownSet.Add(unknown)) unknownTalismanSets.Add(unknown);
+                    }
+                    continue;   // charm slots carry charmStats, not gearStats — nothing else to read
+                }
 
                 var entity = ge.TryGetProperty("entity", out var en) ? en : default;
 
@@ -114,7 +139,9 @@ public static class MobalyticsFetcher
                     resolvedSlots.Add(new ResolvedSlot(slotName, slotAffixes));
             }
         }
-        return new ResolvedVariant(name, affixes, uniques, resolvedSlots);
+        return new ResolvedVariant(name, affixes, uniques, resolvedSlots,
+            talismanSets.Count > 0 ? talismanSets : null,
+            unknownTalismanSets.Count > 0 ? unknownTalismanSets : null);
     }
 
     private static string SlugToName(string slug) => slug.Replace('-', ' ').Trim();

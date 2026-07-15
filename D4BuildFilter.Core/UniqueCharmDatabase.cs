@@ -127,5 +127,11 @@ public static class UniqueCharmDatabase
 
     public static readonly IReadOnlyDictionary<uint, UniqueCharm> ById =
         All.ToDictionary(c => c.Id);
+
+    public static readonly IReadOnlyDictionary<string, UniqueCharm> ByName =
+        All.ToDictionary(c => c.Name, (IEqualityComparer<string>)StringComparer.OrdinalIgnoreCase);
+
+    public static bool TryGetByName(string name, out UniqueCharm charm) =>
+        ByName.TryGetValue(name.Trim(), out charm!);
 }
 

@@ -31,36 +31,6 @@ public static class ItemTypes
     public const uint Seal = 0x0022ed05;
 }
 
-/// <summary>Rule highlight colors. D4's color field is ARGB: the uint32 is 0xAARRGGBB,
-/// which Wire writes little-endian so the on-wire bytes are B,G,R,A. (Verified in-game:
-/// packing R and B the other way made gold render as cyan and red as blue.)</summary>
-public static class FilterColors
-{
-    public static uint Make(byte r, byte g, byte b, byte a = 255)
-        => ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
-
-    public static readonly uint Cyan = Make(0, 255, 255);
-    public static readonly uint Green = Make(0, 200, 0);
-    public static readonly uint Orange = Make(255, 140, 0);
-    public static readonly uint Gold = Make(255, 215, 0);     // legacy tier color (pre-S14); kept but unused
-    public static readonly uint Silver = Make(170, 170, 170); // legacy tier color (pre-S14); kept but unused
-    public static readonly uint White = Make(255, 255, 255);
-    public static readonly uint Purple = Make(160, 32, 240);
-    public static readonly uint Red = Make(220, 0, 0);        // S14: 3-affix "chase" tier + ancestral charms
-    public static readonly uint Pink = Make(255, 105, 180);   // S14: 2-affix "keeper" tier (#FF69B4 hot pink)
-    public static readonly uint Blue = Make(34, 81, 232);   // rootsxo's "Greater Affixes" blue (#2251E8)
-
-    public const uint Default = 0xFFFF0000;
-
-    /// <summary>Human color name for a rule-name suffix, so players can scroll the in-game filter
-    /// list and toggle by color (e.g. "Charms &amp; Seals (Green)"). Unknown colors return "".</summary>
-    public static string NameOf(uint color) =>
-        color == Red ? "Red" : color == Pink ? "Pink" : color == Purple ? "Purple" :
-        color == Orange ? "Orange" : color == Cyan ? "Cyan" : color == Blue ? "Blue" :
-        color == Green ? "Green" : color == White ? "White" :
-        color == Gold ? "Gold" : color == Silver ? "Silver" : "";
-}
-
 /// <summary>Builders for individual rule conditions. Each returns the encoded bytes
 /// of one condition (a field-4 entry inside a rule).</summary>
 public static class Conditions

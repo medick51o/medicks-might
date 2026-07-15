@@ -1,12 +1,51 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
 namespace D4BuildFilter.WPF;
+
+/// <summary>Resolves a class name (e.g. "Barbarian") to its icon Canvas for use as a
+/// VisualBrush.Visual / OpacityMask, tinted at use-site to the class color. v1.0.5: prefers the
+/// LICENSED "&lt;name&gt;Icon" set (ClassIcons.xaml, game-icons.net CC BY 3.0) and falls back to
+/// the original hand-drawn emblems (ClassEmblems.xaml). All are x:Shared="False", so every lookup
+/// returns a fresh instance (a Visual used in a VisualBrush must not already be parented).</summary>
+public sealed class NameToEmblemConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is string name
+            ? (Application.Current?.TryFindResource(name + "Icon")
+               ?? Application.Current?.TryFindResource(name)
+               ?? Binding.DoNothing)
+            : Binding.DoNothing;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>Resolves a class name to its full-color CREST Canvas from ClassCrests.xaml (resource key
+/// is name + "Crest") — the richer badge treatment. x:Shared="False" yields a fresh instance per chip.</summary>
+public sealed class NameToCrestConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is string name ? (Application.Current?.TryFindResource(name + "Crest") ?? Binding.DoNothing) : Binding.DoNothing;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
+
+/// <summary>true → a down chevron (section expanded), false → a right chevron (collapsed). Used in
+/// the collapsible filter-option section headers so the open/closed state reads at a glance.</summary>
+public sealed class BoolToChevronConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is true ? "▾" : "▸";   // ▾ expanded · ▸ collapsed
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => Binding.DoNothing;
+}
 
 /// <summary>Visible when the bound string is non-empty (e.g. a loading/error note), else collapsed.</summary>
 public sealed class StringToVisibilityConverter : IValueConverter
@@ -98,18 +137,6 @@ public sealed class SourceToBrushConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => Binding.DoNothing;
-}
-
-/// <summary>Multi-binding visibility: visible only when EVERY bound boolean is true. Used to gate
-/// the "Not yet filterable" diagnostic on (ShowPendingAffixes AND HasDropped) — both must be true
-/// or we collapse. BooleanToVisibilityConverter only handles single inputs.</summary>
-public sealed class AllTrueToVisibilityConverter : IMultiValueConverter
-{
-    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-        => values.All(v => v is true) ? Visibility.Visible : Visibility.Collapsed;
-
-    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
-        => Array.Empty<object>();
 }
 
 /// <summary>Options-panel label text: bright when the toggle is ON, grayed when OFF — so the

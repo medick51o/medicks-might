@@ -49,10 +49,11 @@ try {
     Start-Sleep -Milliseconds 2500
 
     $auto = [System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
-    # Nav shell defaults to the Browse tab; the sample button lives on the Compile tab, so switch first.
-    [void](Invoke-ButtonByName $auto "Compile")
+    # Nav shell defaults to the Browse tab; the sample button lives on the "Paste a build" tab (was
+    # "Compile" pre-v1.0.4), so switch first.
+    [void](Invoke-ButtonByName $auto "Paste a build")
     Start-Sleep -Milliseconds 800
-    $clicked = Invoke-ButtonByName $auto "Load sample build (offline)"
+    $clicked = Invoke-ButtonByName $auto "Try it with a sample build"
     if (-not $clicked) {
         # fall back to any button whose name contains 'sample'
         $all = $auto.FindAll([System.Windows.Automation.TreeScope]::Descendants,

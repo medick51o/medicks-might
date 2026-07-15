@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="D4BuildFilter.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Bundled affix name data (interim: a copy of Diablo4Companion's Affixes.enUS.json).
          Copied next to the app and transitively into the Tester output. -->
     <Content Include="Data\Affixes.enUS.json">
@@ -15,6 +19,7 @@
     <Content Include="Data\Uniques.enUS.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <EmbeddedResource Include="Data\BuildTagOverrides.json" />
   </ItemGroup>
 
 </Project>

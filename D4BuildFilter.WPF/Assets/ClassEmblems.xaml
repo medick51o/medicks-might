@@ -1,0 +1,101 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- v1.0.4: ORIGINAL monochrome class emblems (hand-authored geometry, NOT sourced from Blizzard,
+       Maxroll, Mobalytics, D4Builds, or any wiki — legally clean; see _design/MODERNIZATION_NOTES.md
+       and _design/CLASS_ART_BRIEF.md). 64x64 space; #FFFFFF is a placeholder — the browse row tints
+       each per class by using the emblem as an OpacityMask over a class-colored rectangle
+       (NameToEmblemConverter). Inner detail = EvenOdd ("F0") holes so tinting stays a single color.
+       Render-verified at 24/28/32/40px tinted-on-dark. x:Shared="False" for per-chip instances. -->
+
+  <!-- BARBARIAN — horned warhelm with a T-slit visor cutout -->
+  <Canvas x:Key="Barbarian" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 32,12
+      C 22,12 15,20 15,32 L 15,44 C 15,52 22,57 32,57 C 42,57 49,52 49,44 L 49,32
+      C 49,20 42,12 32,12 Z
+      M 30,20 L 34,20 L 34,30 L 30,30 Z
+      M 22,33 L 42,33 L 42,38 L 35,38 L 35,50 L 29,50 L 29,38 L 22,38 Z
+      M 15,26
+        C 9,24 5,18 5,10 C 5,16 7,21 11,24
+        C 7,20 6,14 8,9 C 11,13 14,19 15,26 Z
+      M 49,26
+        C 55,24 59,18 59,10 C 59,16 57,21 53,24
+        C 57,20 58,14 56,9 C 53,13 50,19 49,26 Z" />
+  </Canvas>
+
+  <!-- DRUID — forward-facing bear head with rounded ears, EvenOdd eyes/snout -->
+  <Canvas x:Key="Druid" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 18,16
+      C 12,16 8,20 8,26 C 8,30 10,33 13,34 C 12,38 12,42 14,46
+      C 18,54 24,58 32,58 C 40,58 46,54 50,46 C 52,42 52,38 51,34
+      C 54,33 56,30 56,26 C 56,20 52,16 46,16 C 42,16 39,18 37,22
+      C 35,21 33,21 32,21 C 31,21 29,21 27,22 C 25,18 22,16 18,16 Z
+      M 24,31 C 21,31 19,33 19,36 C 19,39 21,41 24,41 C 27,41 29,39 29,36 C 29,33 27,31 24,31 Z
+      M 40,31 C 37,31 35,33 35,36 C 35,39 37,41 40,41 C 43,41 45,39 45,36 C 45,33 43,31 40,31 Z
+      M 32,43 C 28,43 26,45 26,48 C 26,51 28,53 32,53 C 36,53 38,51 38,48 C 38,45 36,43 32,43 Z
+      M 32,46 C 34,46 35,47 35,48 C 35,49 34,50 32,50 C 30,50 29,49 29,48 C 29,47 30,46 32,46 Z" />
+  </Canvas>
+
+  <!-- NECROMANCER — skull with EvenOdd eye/nose cutouts -->
+  <Canvas x:Key="Necromancer" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 32,8
+      C 20,8 12,17 12,29 C 12,37 16,43 21,46 L 21,52
+      C 21,54 22,55 24,55 L 24,50 L 27,50 L 27,56 L 30,56 L 30,50 L 34,50 L 34,56 L 37,56 L 37,50 L 40,50 L 40,55
+      C 42,55 43,54 43,52 L 43,46 C 48,43 52,37 52,29 C 52,17 44,8 32,8 Z
+      M 24,26 C 20,26 18,29 18,33 C 18,37 20,40 24,40 C 28,40 30,37 30,33 C 30,29 28,26 24,26 Z
+      M 40,26 C 36,26 34,29 34,33 C 34,37 36,40 40,40 C 44,40 46,37 46,33 C 46,29 44,26 40,26 Z
+      M 32,38 L 36,46 L 32,45 L 28,46 Z" />
+  </Canvas>
+
+  <!-- ROGUE — crossed daggers (X): bold blades, crossguard, pommel, fuller cutout -->
+  <Canvas x:Key="Rogue" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 54,6 L 33,32 L 27,26 Z
+      M 24,23 L 37,36 L 32,41 L 40,49 L 35,54 L 27,46 L 22,41 Z
+      M 20,39 L 12,47 L 9,44 L 17,36 Z
+      M 47,13 L 35,25 L 31,29 L 29,27 L 45,11 Z" />
+    <Path Fill="#FFFFFF" Data="F0 M 10,6 L 31,32 L 37,26 Z
+      M 40,23 L 27,36 L 32,41 L 24,49 L 29,54 L 37,46 L 42,41 Z
+      M 44,39 L 52,47 L 55,44 L 47,36 Z
+      M 17,13 L 29,25 L 33,29 L 35,27 L 19,11 Z" />
+  </Canvas>
+
+  <!-- SORCERER — lightning bolt inside an orb (EvenOdd bolt hole) -->
+  <Canvas x:Key="Sorcerer" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 32,5
+      C 17,5 5,17 5,32 C 5,47 17,59 32,59 C 47,59 59,47 59,32 C 59,17 47,5 32,5 Z
+      M 32,12 C 43,12 52,21 52,32 C 52,43 43,52 32,52 C 21,52 12,43 12,32 C 12,21 21,12 32,12 Z
+      M 36,16 L 24,34 L 31,34 L 27,48 L 42,28 L 34,28 Z" />
+  </Canvas>
+
+  <!-- SPIRITBORN — upright feather: barbed vanes with a hollow central quill -->
+  <Canvas x:Key="Spiritborn" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 32,5
+      C 26,12 22,20 21,30 L 27,26 L 24,34 L 30,31 L 27,39 L 32,36
+      L 32,52 L 30,54 C 26,54 22,52 19,49 C 24,49 28,47 30,44
+      C 26,45 22,44 19,41 C 24,41 28,39 31,36 L 31,20
+      C 31,15 31,10 32,5 Z
+      M 32,5 C 33,10 33,15 33,20 L 33,36 C 36,39 40,41 45,41
+      C 42,44 38,45 34,44 C 36,47 40,49 45,49 C 42,52 38,54 34,54 L 32,52
+      L 32,36 L 37,39 L 34,31 L 40,34 L 37,26 L 43,30 C 42,20 38,12 32,5 Z
+      M 30,44 L 34,44 L 34,58 C 34,60 33,61 32,61 C 31,61 30,60 30,58 Z
+      M 31,25 L 33,25 L 33,44 L 31,44 Z" />
+  </Canvas>
+
+  <!-- PALADIN — heater shield with a bold cross cutout (EvenOdd) -->
+  <Canvas x:Key="Paladin" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 32,6
+      L 54,12 L 54,32 C 54,45 45,54 32,60 C 19,54 10,45 10,32 L 10,12 Z
+      M 32,13 L 16,17 L 16,32 C 16,42 22,49 32,54 C 42,49 48,42 48,32 L 48,17 Z
+      M 30,20 L 34,20 L 34,30 L 44,30 L 44,34 L 34,34 L 34,48 L 30,48 L 30,34 L 20,34 L 20,30 L 30,30 Z" />
+  </Canvas>
+
+  <!-- WARLOCK — occult eye within a triangular sigil (EvenOdd rings) -->
+  <Canvas x:Key="Warlock" x:Shared="False" Width="64" Height="64">
+    <Path Fill="#FFFFFF" Data="F0 M 32,5 L 60,55 L 4,55 Z
+      M 32,15 L 15,49 L 49,49 Z" />
+    <Path Fill="#FFFFFF" Data="F0 M 32,30
+      C 22,30 15,38 12,42 C 15,46 22,54 32,54 C 42,54 49,46 52,42 C 49,38 42,30 32,30 Z
+      M 32,35 C 36,35 39,38 39,42 C 39,46 36,49 32,49 C 28,49 25,46 25,42 C 25,38 28,35 32,35 Z
+      M 32,39 C 30,39 29,40 29,42 C 29,44 30,45 32,45 C 34,45 35,44 35,42 C 35,40 34,39 32,39 Z" />
+  </Canvas>
+
+</ResourceDictionary>

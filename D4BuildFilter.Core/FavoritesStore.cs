@@ -21,7 +21,8 @@ public sealed record FavoriteEntry(
     // files deserialize unchanged). TierReconciler maintains them after every tier-list fetch.
     string? PrevTier = null,           // tier before the most recent re-rank (null = never moved)
     DateTime? TierCheckedUtc = null,   // when Tier was last confirmed against a live list
-    bool Delisted = false);            // absent from its own (Source, TierKind) list on last check
+    bool Delisted = false,             // absent from its own (Source, TierKind) list on last check
+    BuildSnapshot? Snapshot = null);   // last successfully compiled guide content; null = no drift opinion
 
 /// <summary>Persisted list of starred builds. Defaults to
 /// <c>%LOCALAPPDATA%\MedicKsMight\favorites.json</c> so it survives app re-installs (the publish zip
@@ -117,7 +118,32 @@ public sealed class FavoritesStore : IFavoritesStore
     {
         var dir = Path.GetDirectoryName(_path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-        File.WriteAllText(_path, JsonSerializer.Serialize(_entries, JsonOpts));
+        AtomicWrite(_path, JsonSerializer.Serialize(_entries, JsonOpts));
+    }
+
+    /// <summary>Commit a complete sibling file in one filesystem operation. A crash before the
+    /// replace leaves the old favorites intact; the finally block removes an abandoned temp file.</summary>
+    internal static void AtomicWrite(string path, string contents, Action<string>? beforeCommit = null)
+    {
+        var temp = path + $".{Guid.NewGuid():N}.tmp";
+        try
+        {
+            using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false)))
+            {
+                writer.Write(contents);
+                writer.Flush();
+                stream.Flush(flushToDisk: true);
+            }
+
+            beforeCommit?.Invoke(temp);
+            if (File.Exists(path)) File.Replace(temp, path, null);
+            else File.Move(temp, path);
+        }
+        finally
+        {
+            if (File.Exists(temp)) File.Delete(temp);
+        }
     }
 
     private static readonly JsonSerializerOptions JsonOpts = new()

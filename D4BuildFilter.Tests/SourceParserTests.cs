@@ -6,6 +6,14 @@ namespace D4BuildFilter.Tests;
 
 public class SourceParserTests
 {
+    [Fact]
+    public void ResolvedBuild_WithNoVariants_IsNotUsable()
+    {
+        var build = new ResolvedBuild("Changed Site Build", "Barbarian", []);
+
+        Assert.False(build.HasUsableVariants);
+    }
+
     // ── Paste mode ──
     [Fact]
     public void Paste_extracts_affixes_and_uniques_skips_headers()

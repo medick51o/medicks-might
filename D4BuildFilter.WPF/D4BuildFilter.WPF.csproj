@@ -10,14 +10,35 @@
     <!-- Version flows into the exe metadata AND the in-app footer stamp (with build time), so
          anyone can tell at a glance which build they're running (Medick's ask, 2026-07-02).
          "-dev" marks work-in-progress builds; drop the suffix when cutting a release. -->
-    <Version>1.0.3</Version>
+    <Version>1.3.1</Version>
     <!-- Embeds the MK monogram into the exe's PE resources so the taskbar / Explorer / Alt-Tab
          use it (the Window.Icon=Assets/mk_logo.png only sets the running window's title-bar icon). -->
     <ApplicationIcon>Assets\mk.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- Release builds/publishes ship no .pdb — nothing left in the output folder that leaks source
+       paths or line numbers to end users. Debug keeps full symbols for local debugging. -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <!-- ProjectReferences (Core) still produce their own .pdb regardless of this project's DebugType,
+       and MSBuild copies it alongside the referenced .dll by default. Strip any .pdb out of the
+       copy-local set on Release so none reaches build output or publish — Core.csproj is untouched. -->
+  <Target Name="StripReferencedPdbsInRelease" AfterTargets="ResolveAssemblyReferences"
+          Condition="'$(Configuration)'=='Release'">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)'=='.pdb'" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\D4BuildFilter.Core\D4BuildFilter.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="D4BuildFilter.Tests" />
   </ItemGroup>
 
   <ItemGroup>

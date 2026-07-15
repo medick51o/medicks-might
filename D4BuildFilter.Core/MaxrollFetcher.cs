@@ -12,9 +12,12 @@ public sealed record ResolvedSlot(string Slot, IReadOnlyList<string> Affixes);
 /// breakdown when the source provides it (null = flat list only, e.g. pasted builds).
 /// <paramref name="TalismanSets"/> = the charm SETS this variant equips (SetItemBonusDatabase
 /// display names, e.g. "Talisman: Barbarian Set 05"), extracted from set-charm item ids — feeds
-/// the build-scoped Charms &amp; Seals rules. Null when the source carries no talisman data.</summary>
+/// the build-scoped Charms &amp; Seals rules. Null when the source carries no talisman data.
+/// <paramref name="UnknownTalismanSets"/> preserves source names that could not be resolved against
+/// the local catalog, so the UI can explain why it safely fell back to showing every set.</summary>
 public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes, IReadOnlyList<string> Uniques,
-    IReadOnlyList<ResolvedSlot>? Slots = null, IReadOnlyList<string>? TalismanSets = null);
+    IReadOnlyList<ResolvedSlot>? Slots = null, IReadOnlyList<string>? TalismanSets = null,
+    IReadOnlyList<string>? UnknownTalismanSets = null, IReadOnlyList<string>? SlotlessAffixes = null);
 
 /// <summary>A whole maxroll build resolved to affix names, ready for the AffixMapper/encoder.
 /// Serializes (camelCase) to the same shape the Tester reads from build_resolved.json.
@@ -25,6 +28,17 @@ public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes,
 public sealed record ResolvedBuild(string Build, string Class, IReadOnlyList<ResolvedVariant> Variants,
     IReadOnlyList<string>? UnknownAffixNids = null, IReadOnlyList<string>? UnknownUniqueIds = null)
 {
+    /// <summary>Optional tier-list provenance used only to disambiguate two copies of the same build
+    /// selected from different sites. It is never written into the Diablo filter wire format.</summary>
+    public string Source { get; init; } = "";
+
+    /// <summary>Stable guide identity for UI state that must distinguish identically named pages.</summary>
+    public string SourceUrl { get; init; } = "";
+
+    /// <summary>A resolved page is only loadable when it produced at least one build variant.
+    /// Zero variants usually means the source site's format changed, not that an empty filter is valid.</summary>
+    public bool HasUsableVariants => Variants.Count > 0;
+
     /// <summary>How many distinct ids this build references that the local game data doesn't know.</summary>
     public int UnknownDataCount => (UnknownAffixNids?.Count ?? 0) + (UnknownUniqueIds?.Count ?? 0);
 }
@@ -119,8 +133,9 @@ public static class MaxrollFetcher
         var root = doc.RootElement;
 
         string build = root.TryGetProperty("name", out var n) ? n.GetString() ?? "Unnamed Build" : "Unnamed Build";
-        string cls = root.TryGetProperty("class", out var c) && c.ValueKind == JsonValueKind.String
-            ? c.GetString()! : "Unknown";
+        string cls = TalismanSetDatabase.NormalizeClassName(
+            root.TryGetProperty("class", out var c) && c.ValueKind == JsonValueKind.String
+                ? c.GetString() : null);
 
         // `data` is itself a JSON-encoded string — parse it a second time.
         if (!root.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.String)
@@ -147,10 +162,12 @@ public static class MaxrollFetcher
             if (IsDisabled(vName)) continue;
 
             var affixes = new List<string>();
+            var slotlessAffixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var uniqueNames = new List<string>();
             var resolvedSlots = new List<ResolvedSlot>();
             var seenUnique = new HashSet<string>(StringComparer.Ordinal);
             var talismanSets = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+            var unknownTalismanSets = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
             if (profile.TryGetProperty("items", out var slotMap) && slotMap.ValueKind == JsonValueKind.Object)
             {
                 foreach (var slot in slotMap.EnumerateObject())
@@ -169,10 +186,14 @@ public static class MaxrollFetcher
                         // Set-charms name their set in the id ("Talisman_Charm_Set_Barb_05_03") —
                         // collect the SETS (S14 display names, e.g. "Bul-Kathos' Pride") so the
                         // Charms & Seals rules can scope to the build.
-                        if (TalismanSetCharm.Match(itemId) is { Success: true } tm &&
-                            TalismanSetDatabase.TryGetByPlannerToken(tm.Groups["cls"].Value,
+                        if (TalismanSetCharm.Match(itemId) is { Success: true } tm)
+                        {
+                            if (TalismanSetDatabase.TryGetByPlannerToken(tm.Groups["cls"].Value,
                                 int.Parse(tm.Groups["num"].Value), out var tset))
-                            talismanSets.Add(tset.Name);
+                                talismanSets.Add(tset.Name);
+                            else
+                                unknownTalismanSets.Add(itemId);
+                        }
                         else if (uniques.Resolve(itemId) is { } un) { if (seenUnique.Add(un)) uniqueNames.Add(un); }
                         else if (LooksLikeGearUnique(itemId)) unknownUniqueIds.Add(itemId);
                     }
@@ -184,17 +205,46 @@ public static class MaxrollFetcher
                         if (!e.TryGetProperty("nid", out var nidEl)) continue;
                         var nid = nidEl.GetInt64();
                         var name = names.Resolve(nid);
-                        if (name is not null) { affixes.Add(name); slotAffixes.Add(name); }   // mapper dedupes by coarse id
+                        if (name is not null) slotAffixes.Add(name);
                         else unknownNids.Add(nid);
                     }
                     // Per-slot breakdown: derive a slot label from the item id (e.g. "1HMace_..." -> "1HMace",
                     // "S05_BSK_Helm_..." -> "Helm") — the first id segment that resolves to an item type.
-                    if (slotAffixes.Count > 0 && SlotLabel(itemId) is { } label)
+                    if (slotAffixes.Count == 0) continue;
+                    if (SlotLabel(itemId) is { } label)
+                    {
+                        affixes.AddRange(slotAffixes);
                         resolvedSlots.Add(new ResolvedSlot(label, slotAffixes));
+                    }
+                    else if (IsRecognizedSlotless(itemId))
+                        foreach (var name in slotAffixes) slotlessAffixes.Add(name);
+                    else
+                    {
+                        // A new gear kind must not masquerade as a charm. Preserve its stats in the
+                        // combined pool and its raw id as an unresolved slot so compilation warns and
+                        // refuses unsafe per-slot precision.
+                        affixes.AddRange(slotAffixes);
+                        resolvedSlots.Add(new ResolvedSlot(
+                            string.IsNullOrWhiteSpace(itemId) ? "Unknown item" : itemId, slotAffixes));
+                    }
                 }
             }
+            // Slotless charm/talisman/seal stats are governed by dedicated charm rules and must not
+            // inflate the gear affix count. If the same stat genuinely appears on gear too, it is a
+            // wanted-anywhere stat: keep it in the gear pool and add it to every real slot rule.
+            var wantedAnywhere = affixes.Where(slotlessAffixes.Contains)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (wantedAnywhere.Count > 0)
+                for (int i = 0; i < resolvedSlots.Count; i++)
+                    resolvedSlots[i] = resolvedSlots[i] with
+                    {
+                        Affixes = resolvedSlots[i].Affixes.Concat(wantedAnywhere)
+                            .Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                    };
             variants.Add(new ResolvedVariant(vName, affixes, uniqueNames, resolvedSlots,
-                talismanSets.Count > 0 ? talismanSets.ToList() : null));
+                talismanSets.Count > 0 ? talismanSets.ToList() : null,
+                unknownTalismanSets.Count > 0 ? unknownTalismanSets.ToList() : null,
+                slotlessAffixes.ToList()));
         }
         return new ResolvedBuild(build, cls, variants,
             unknownNids.Select(n => n.ToString()).ToList(), unknownUniqueIds.ToList());
@@ -212,6 +262,11 @@ public static class MaxrollFetcher
         && !itemId.Contains("Charm", StringComparison.OrdinalIgnoreCase)
         && !itemId.Contains("Seal", StringComparison.OrdinalIgnoreCase)
         && !itemId.Contains("Talisman", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsRecognizedSlotless(string itemId) =>
+        itemId.Contains("Charm", StringComparison.OrdinalIgnoreCase)
+        || itemId.Contains("Seal", StringComparison.OrdinalIgnoreCase)
+        || itemId.Contains("Talisman", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsDisabled(string name) =>
         name.Contains("disabled", StringComparison.OrdinalIgnoreCase) ||

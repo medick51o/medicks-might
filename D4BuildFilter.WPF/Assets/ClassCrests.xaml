@@ -1,0 +1,169 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- v1.0.4: ORIGINAL class CRESTS (hand-authored geometry; NOT from Blizzard/Maxroll/Mobalytics/
+       D4Builds/wikis). Full-color badges with OUR class palette baked in (shield for melee/holy,
+       disc for casters/primal). 64x64; reads at 40-56px. Keys: <Class>Crest. x:Shared="False".
+       Richer alternative to the flat tinted emblems in ClassEmblems.xaml. -->
+
+  <!-- BARBARIAN #E0845A -->
+  <Canvas x:Key="BarbarianCrest" x:Shared="False" Width="64" Height="64">
+    <Path>
+      <Path.Data><PathGeometry Figures="M32,3 L58,11 L58,34 C58,49 46,58 32,62 C18,58 6,49 6,34 L6,11 Z"/></Path.Data>
+      <Path.Fill>
+        <RadialGradientBrush GradientOrigin="0.35,0.28" Center="0.4,0.35" RadiusX="0.85" RadiusY="0.9">
+          <GradientStop Color="#F0A277" Offset="0"/><GradientStop Color="#C0603A" Offset="0.55"/><GradientStop Color="#5E2412" Offset="1"/>
+        </RadialGradientBrush>
+      </Path.Fill>
+    </Path>
+    <Path Stroke="#FFE0C8" StrokeThickness="1.4" Opacity="0.85"><Path.Data><PathGeometry Figures="M32,7 L54,13.5 L54,33.5 C54,46 43.5,54 32,57.5 C20.5,54 10,46 10,33.5 L10,13.5 Z"/></Path.Data></Path>
+    <Path Stroke="#3A180C" StrokeThickness="1.4" Opacity="0.9"><Path.Data><PathGeometry Figures="M32,3 L58,11 L58,34 C58,49 46,58 32,62 C18,58 6,49 6,34 L6,11 Z"/></Path.Data></Path>
+    <Canvas>
+      <Path Fill="#FBEFE3" Stroke="#4A1C0E" StrokeThickness="0.8">
+        <Path.Data><PathGeometry Figures="M31,14 C25,13 21,16 20,22 C24,20 28,20 31,21 L33,21 C36,20 40,20 44,22 C43,16 39,13 33,14 L33,20 L34.6,20 L34.6,52 L29.4,52 L29.4,20 L31,20 Z"/></Path.Data>
+        <Path.RenderTransform><RotateTransform Angle="-32" CenterX="32" CenterY="34"/></Path.RenderTransform>
+      </Path>
+      <Path Fill="#F3E6D8" Stroke="#4A1C0E" StrokeThickness="0.8">
+        <Path.Data><PathGeometry Figures="M31,14 C25,13 21,16 20,22 C24,20 28,20 31,21 L33,21 C36,20 40,20 44,22 C43,16 39,13 33,14 L33,20 L34.6,20 L34.6,52 L29.4,52 L29.4,20 L31,20 Z"/></Path.Data>
+        <Path.RenderTransform><RotateTransform Angle="32" CenterX="32" CenterY="34"/></Path.RenderTransform>
+      </Path>
+      <Ellipse Canvas.Left="29.4" Canvas.Top="31.4" Width="5.2" Height="5.2" Fill="#FFF7EF" Stroke="#8A3A1E" StrokeThickness="0.8"/>
+    </Canvas>
+  </Canvas>
+
+  <!-- DRUID #C89655 -->
+  <Canvas x:Key="DruidCrest" x:Shared="False" Width="64" Height="64">
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56">
+      <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.4,0.38" RadiusX="0.75" RadiusY="0.8">
+        <GradientStop Color="#E4B778" Offset="0"/><GradientStop Color="#A87838" Offset="0.55"/><GradientStop Color="#4A3216" Offset="1"/>
+      </RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Ellipse Canvas.Left="8" Canvas.Top="8" Width="48" Height="48" Stroke="#F1DCB6" StrokeThickness="1.3" Opacity="0.85"/>
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56" Stroke="#2E1E0C" StrokeThickness="1.4" Opacity="0.9"/>
+    <Canvas>
+      <Path Stroke="#F6EAD0" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}">
+        <Path.Data><PathGeometry Figures="M27,34 C22,28 19,22 20,14 M24.5,29 C20,28 17,27 15,24 M22,24 C18,22 16,20 15.5,16 M20.6,19 L20,13"/></Path.Data>
+      </Path>
+      <Path Stroke="#F6EAD0" StrokeThickness="2.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="{x:Null}">
+        <Path.Data><PathGeometry Figures="M37,34 C42,28 45,22 44,14 M39.5,29 C44,28 47,27 49,24 M42,24 C46,22 48,20 48.5,16 M43.4,19 L44,13"/></Path.Data>
+      </Path>
+      <Path Fill="#F6EAD6" Stroke="#31220E" StrokeThickness="0.9">
+        <Path.Data><PathGeometry Figures="M32,28 C27,28 24,31 23,36 C22.5,41 25,46 28,49 L31,52 L33,52 L36,49 C39,46 41.5,41 41,36 C40,31 37,28 32,28 Z"/></Path.Data>
+      </Path>
+      <Path Fill="#2A1C0A"><Path.Data><PathGeometry Figures="M27,37 L31,38 L30,41 L27,40 Z M37,37 L33,38 L34,41 L37,40 Z"/></Path.Data></Path>
+      <Ellipse Canvas.Left="30.4" Canvas.Top="46" Width="3.2" Height="2.6" Fill="#2A1C0A"/>
+    </Canvas>
+  </Canvas>
+
+  <!-- NECROMANCER #9ACF7B -->
+  <Canvas x:Key="NecromancerCrest" x:Shared="False" Width="64" Height="64">
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56">
+      <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.42,0.4" RadiusX="0.78" RadiusY="0.82">
+        <GradientStop Color="#C4E8AB" Offset="0"/><GradientStop Color="#6FA84E" Offset="0.5"/><GradientStop Color="#20330F" Offset="1"/>
+      </RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Ellipse Canvas.Left="8" Canvas.Top="8" Width="48" Height="48" Stroke="#D8F2C4" StrokeThickness="1.3" Opacity="0.8"/>
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56" Stroke="#152309" StrokeThickness="1.4" Opacity="0.9"/>
+    <Path Stroke="#DEEEC9" StrokeThickness="2.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="{x:Null}" Opacity="0.95"><Path.Data><PathGeometry Figures="M19,54 L46,18"/></Path.Data></Path>
+    <Path Fill="#EDF7E0" Stroke="#243A12" StrokeThickness="0.8"><Path.Data><PathGeometry Figures="M46,18 C37,10 27,11 21,18 C24,17 27,17 30,18 C26,19 23,22 22,26 C29,19 38,19 44,24 C46,22 47,20 46,18 Z"/></Path.Data></Path>
+    <Canvas>
+      <Path Fill="#F4F9EC" Stroke="#243A12" StrokeThickness="0.8"><Path.Data><PathGeometry Figures="M32,24 C24,24 19,30 19,37 C19,42 22,45 25,47 L25,50 C25,52 27,53 29,53 L35,53 C37,53 39,52 39,50 L39,47 C42,45 45,42 45,37 C45,30 40,24 32,24 Z"/></Path.Data></Path>
+      <Ellipse Canvas.Left="23.5" Canvas.Top="34" Width="7" Height="8" Fill="#1C2E0C"/>
+      <Ellipse Canvas.Left="33.5" Canvas.Top="34" Width="7" Height="8" Fill="#1C2E0C"/>
+      <Ellipse Canvas.Left="25" Canvas.Top="35.5" Width="2" Height="2" Fill="#BFE89A"/>
+      <Ellipse Canvas.Left="35" Canvas.Top="35.5" Width="2" Height="2" Fill="#BFE89A"/>
+      <Path Fill="#1C2E0C"><Path.Data><PathGeometry Figures="M32,42 L30,46 L34,46 Z"/></Path.Data></Path>
+      <Path Stroke="#243A12" StrokeThickness="0.7" Fill="{x:Null}"><Path.Data><PathGeometry Figures="M28,49 L28,53 M32,49 L32,53 M36,49 L36,53"/></Path.Data></Path>
+    </Canvas>
+  </Canvas>
+
+  <!-- ROGUE #E4CC4A -->
+  <Canvas x:Key="RogueCrest" x:Shared="False" Width="64" Height="64">
+    <Path>
+      <Path.Data><PathGeometry Figures="M32,3 L58,11 L58,34 C58,49 46,58 32,62 C18,58 6,49 6,34 L6,11 Z"/></Path.Data>
+      <Path.Fill><RadialGradientBrush GradientOrigin="0.35,0.28" Center="0.42,0.36" RadiusX="0.85" RadiusY="0.9">
+        <GradientStop Color="#F4E27E" Offset="0"/><GradientStop Color="#C6A824" Offset="0.55"/><GradientStop Color="#4E3E08" Offset="1"/>
+      </RadialGradientBrush></Path.Fill>
+    </Path>
+    <Path Stroke="#FBF3C6" StrokeThickness="1.3" Opacity="0.8"><Path.Data><PathGeometry Figures="M32,7 L54,13.5 L54,33.5 C54,46 43.5,54 32,57.5 C20.5,54 10,46 10,33.5 L10,13.5 Z"/></Path.Data></Path>
+    <Path Stroke="#2E2404" StrokeThickness="1.4" Opacity="0.9"><Path.Data><PathGeometry Figures="M32,3 L58,11 L58,34 C58,49 46,58 32,62 C18,58 6,49 6,34 L6,11 Z"/></Path.Data></Path>
+    <Path Fill="#8A7414" Stroke="#2E2404" StrokeThickness="0.7" Opacity="0.85"><Path.Data><PathGeometry Figures="M32,16 C23,16 17,23 17,33 C17,40 20,45 24,48 C22,42 24,34 32,32 C40,34 42,42 40,48 C44,45 47,40 47,33 C47,23 41,16 32,16 Z"/></Path.Data></Path>
+    <Path Fill="#2A2205"><Path.Data><PathGeometry Figures="M32,26 C28,26 25,30 25,35 C25,40 28,44 32,45 C36,44 39,40 39,35 C39,30 36,26 32,26 Z"/></Path.Data></Path>
+    <Canvas>
+      <Path Fill="#FBF6DA" Stroke="#2E2404" StrokeThickness="0.6"><Path.Data><PathGeometry Figures="M42,20 L45,23 L28,42 L25,42 L25,39 Z"/></Path.Data></Path>
+      <Ellipse Canvas.Left="45" Canvas.Top="14" Width="5" Height="5" Fill="#E8CC58" Stroke="#2E2404" StrokeThickness="0.5"/>
+      <Path Fill="#FBF6DA" Stroke="#2E2404" StrokeThickness="0.6"><Path.Data><PathGeometry Figures="M22,20 L19,23 L36,42 L39,42 L39,39 Z"/></Path.Data></Path>
+      <Ellipse Canvas.Left="14" Canvas.Top="14" Width="5" Height="5" Fill="#E8CC58" Stroke="#2E2404" StrokeThickness="0.5"/>
+    </Canvas>
+  </Canvas>
+
+  <!-- SORCERER #7CB6E6 -->
+  <Canvas x:Key="SorcererCrest" x:Shared="False" Width="64" Height="64">
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56">
+      <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.42,0.4" RadiusX="0.78" RadiusY="0.82">
+        <GradientStop Color="#B4DBF6" Offset="0"/><GradientStop Color="#4E90C8" Offset="0.52"/><GradientStop Color="#12304C" Offset="1"/>
+      </RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Ellipse Canvas.Left="8" Canvas.Top="8" Width="48" Height="48" Stroke="#D2ECFB" StrokeThickness="1.3" Opacity="0.8"/>
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56" Stroke="#0A1E30" StrokeThickness="1.4" Opacity="0.9"/>
+    <Ellipse Canvas.Left="18" Canvas.Top="18" Width="28" Height="28">
+      <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.4,0.35" Center="0.5,0.5" RadiusX="0.6" RadiusY="0.6">
+        <GradientStop Color="#EAF6FF" Offset="0"/><GradientStop Color="#8AC2EC" Offset="0.6"/><GradientStop Color="#2C5F8C" Offset="1"/>
+      </RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Path Fill="#FFFDF0" Stroke="#2C5F8C" StrokeThickness="0.7"><Path.Data><PathGeometry Figures="M35,18 L25,35 L31,35 L28,48 L40,29 L33,29 Z"/></Path.Data></Path>
+    <Ellipse Canvas.Left="23" Canvas.Top="22" Width="7" Height="5" Fill="#FFFFFF" Opacity="0.55"/>
+  </Canvas>
+
+  <!-- SPIRITBORN #6FC9B8 -->
+  <Canvas x:Key="SpiritbornCrest" x:Shared="False" Width="64" Height="64">
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56">
+      <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.42,0.4" RadiusX="0.78" RadiusY="0.82">
+        <GradientStop Color="#A6E6DA" Offset="0"/><GradientStop Color="#45A08F" Offset="0.52"/><GradientStop Color="#10352E" Offset="1"/>
+      </RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Ellipse Canvas.Left="8" Canvas.Top="8" Width="48" Height="48" Stroke="#CFF2EA" StrokeThickness="1.3" Opacity="0.8"/>
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56" Stroke="#08201B" StrokeThickness="1.4" Opacity="0.9"/>
+    <Canvas>
+      <Path Fill="#EAF9F5" Stroke="#0E3A31" StrokeThickness="0.7" Opacity="0.95"><Path.Data><PathGeometry Figures="M31,26 C24,24 17,25 13,29 C18,29 21,31 23,33 C18,32 15,33 12,36 C17,36 20,37 23,39 C19,39 16,41 14,44 C22,44 29,40 31,34 Z"/></Path.Data></Path>
+      <Path Fill="#EAF9F5" Stroke="#0E3A31" StrokeThickness="0.7" Opacity="0.95"><Path.Data><PathGeometry Figures="M33,26 C40,24 47,25 51,29 C46,29 43,31 41,33 C46,32 49,33 52,36 C47,36 44,37 41,39 C45,39 48,41 50,44 C42,44 35,40 33,34 Z"/></Path.Data></Path>
+      <Path Fill="#F6FDFB" Stroke="#0E3A31" StrokeThickness="0.7"><Path.Data><PathGeometry Figures="M32,22 C29,27 28,36 30,50 C31,45 33,45 34,50 C36,36 35,27 32,22 Z"/></Path.Data></Path>
+    </Canvas>
+  </Canvas>
+
+  <!-- PALADIN #F48CBA -->
+  <Canvas x:Key="PaladinCrest" x:Shared="False" Width="64" Height="64">
+    <Path>
+      <Path.Data><PathGeometry Figures="M32,3 L58,11 L58,34 C58,49 46,58 32,62 C18,58 6,49 6,34 L6,11 Z"/></Path.Data>
+      <Path.Fill><RadialGradientBrush GradientOrigin="0.35,0.28" Center="0.42,0.36" RadiusX="0.85" RadiusY="0.9">
+        <GradientStop Color="#FBB6D3" Offset="0"/><GradientStop Color="#DE679C" Offset="0.55"/><GradientStop Color="#611E3E" Offset="1"/>
+      </RadialGradientBrush></Path.Fill>
+    </Path>
+    <Path Stroke="#FEDDEB" StrokeThickness="1.3" Opacity="0.85"><Path.Data><PathGeometry Figures="M32,7 L54,13.5 L54,33.5 C54,46 43.5,54 32,57.5 C20.5,54 10,46 10,33.5 L10,13.5 Z"/></Path.Data></Path>
+    <Path Stroke="#3A1223" StrokeThickness="1.4" Opacity="0.9"><Path.Data><PathGeometry Figures="M32,3 L58,11 L58,34 C58,49 46,58 32,62 C18,58 6,49 6,34 L6,11 Z"/></Path.Data></Path>
+    <Path Fill="#C24E82" Stroke="#3A1223" StrokeThickness="0.8" Opacity="0.9"><Path.Data><PathGeometry Figures="M32,18 L45,22 L45,36 C45,44 39,49 32,52 C25,49 19,44 19,36 L19,22 Z"/></Path.Data></Path>
+    <Canvas>
+      <Rectangle Canvas.Left="30" Canvas.Top="22" Width="4" Height="26" Fill="#FFF0F6" Stroke="#3A1223" StrokeThickness="0.6" RadiusX="1" RadiusY="1"/>
+      <Rectangle Canvas.Left="24" Canvas.Top="30" Width="16" Height="4" Fill="#FFF0F6" Stroke="#3A1223" StrokeThickness="0.6" RadiusX="1" RadiusY="1"/>
+      <Rectangle Canvas.Left="26" Canvas.Top="18" Width="12" Height="6" Fill="#FBE0EC" Stroke="#3A1223" StrokeThickness="0.7" RadiusX="1.4" RadiusY="1.4"/>
+    </Canvas>
+  </Canvas>
+
+  <!-- WARLOCK #B58AE6 -->
+  <Canvas x:Key="WarlockCrest" x:Shared="False" Width="64" Height="64">
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56">
+      <Ellipse.Fill><RadialGradientBrush GradientOrigin="0.35,0.3" Center="0.42,0.4" RadiusX="0.78" RadiusY="0.82">
+        <GradientStop Color="#D3B8F2" Offset="0"/><GradientStop Color="#8E5FCC" Offset="0.52"/><GradientStop Color="#2C1A4A" Offset="1"/>
+      </RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Ellipse Canvas.Left="8" Canvas.Top="8" Width="48" Height="48" Stroke="#E7D6FA" StrokeThickness="1.3" Opacity="0.8"/>
+    <Ellipse Canvas.Left="4" Canvas.Top="4" Width="56" Height="56" Stroke="#170D28" StrokeThickness="1.4" Opacity="0.9"/>
+    <Path Stroke="#EADCFB" StrokeThickness="1" Fill="{x:Null}" Opacity="0.7"><Path.Data><PathGeometry Figures="M20,24 L44,24 L32,46 Z"/></Path.Data></Path>
+    <Path Fill="#F3EAFC" Stroke="#2C1A4A" StrokeThickness="0.8"><Path.Data><PathGeometry Figures="M18,34 C24,27 40,27 46,34 C40,41 24,41 18,34 Z"/></Path.Data></Path>
+    <Ellipse Canvas.Left="27" Canvas.Top="28" Width="10" Height="12">
+      <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#C8A6F0" Offset="0"/><GradientStop Color="#5E38A0" Offset="1"/></RadialGradientBrush></Ellipse.Fill>
+    </Ellipse>
+    <Path Fill="#160B2A"><Path.Data><PathGeometry Figures="M32,28 C33.5,31 33.5,37 32,40 C30.5,37 30.5,31 32,28 Z"/></Path.Data></Path>
+    <Ellipse Canvas.Left="28.5" Canvas.Top="30" Width="2.4" Height="2.4" Fill="#FFFFFF" Opacity="0.8"/>
+  </Canvas>
+
+</ResourceDictionary>

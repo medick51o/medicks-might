@@ -133,4 +133,67 @@ public class PerSlotTests
         var o = FilterCompiler.Compile(new[] { b }, new FilterOptions { PerSlotRules = true }, "t");
         Assert.True(o.RoundTripOk);
     }
+
+    [Fact]
+    public void Per_slot_drift_cannot_leave_wanted_affixes_for_hide_rest()
+    {
+        string[] helm = ["Strength", "Maximum Life", "Armor"];
+        string[] necklace = ["Critical Strike Chance", "Movement Speed", "Attack Speed"];
+        var rb = new ResolvedBuild("Drifted slots", "Rogue",
+        [
+            new ResolvedVariant("Endgame", helm.Concat(necklace).ToArray(), [],
+            [
+                new ResolvedSlot("Helm", helm),
+                new ResolvedSlot("Necklace Renamed By Source", necklace),
+            ])
+        ]);
+        var build = FilterCompiler.Analyze(rb, FilterColors.Gold, FilterColors.Silver);
+
+        var output = FilterCompiler.Compile([build], new FilterOptions
+        {
+            PerSlotRules = true,
+            ItemPowerTiers = false,
+            GreaterAffixes = false,
+        }, "drift");
+
+        Assert.True(output.IsCopyable);
+        var wantedIds = necklace.Select(a => AffixMapper.Map(a).CoarseId!.Value).ToHashSet();
+        var protectiveRule = FilterDecoder.Decode(output.ImportCode).Rules
+            .Where(r => r.Visibility != (int)Visibility.HideAll)
+            .FirstOrDefault(r => r.Conditions.Any(c => c.Type == 6
+                && wantedIds.All(id => c.Ids.Contains(id)))
+                && !r.Conditions.Any(c => c.Type == 5));
+        Assert.NotNull(protectiveRule);
+    }
+
+    [Fact]
+    public void Per_slot_diagnostic_names_only_slots_with_no_mapped_affixes()
+    {
+        CompiledBuild AnalyzeBoots(params string[] bootsAffixes) => FilterCompiler.Analyze(
+            new ResolvedBuild("t", "Barbarian", new[]
+            {
+                new ResolvedVariant("v", new[] { "Strength" }, Array.Empty<string>(), new[]
+                {
+                    new ResolvedSlot("Helm", new[] { "Strength", "Maximum Life", "Cooldown Reduction" }),
+                    new ResolvedSlot("Boots", bootsAffixes),
+                }),
+            }),
+            FilterColors.Gold,
+            FilterColors.Silver);
+
+        var partiallyMapped = FilterCompiler.Compile(
+            new[] { AnalyzeBoots("Affix That Does Not Exist") },
+            new FilterOptions { PerSlotRules = true },
+            "partial");
+        Assert.Contains(partiallyMapped.Diagnostics, message =>
+            message.Contains("No affixes could be mapped for Boots")
+            && message.Contains("that slot has no rule"));
+
+        var fullyMapped = FilterCompiler.Compile(
+            new[] { AnalyzeBoots("Strength", "Maximum Life", "Movement Speed") },
+            new FilterOptions { PerSlotRules = true },
+            "full");
+        Assert.DoesNotContain(fullyMapped.Diagnostics, message =>
+            message.Contains("that slot has no rule"));
+    }
 }

@@ -23,6 +23,39 @@ public class FilterCompilerTests
     private static int RuleCount(FilterOptions o) =>
         FilterCompiler.Compile(new[] { SampleBuild() }, o, "t").RuleCount;
 
+    private static CompiledBuild EmptyAffixBuild() =>
+        FilterCompiler.Analyze(
+            new ResolvedBuild("Empty", "Barbarian", new[]
+            {
+                new ResolvedVariant("v1", new[] { "Definitely Not A Real Affix" },
+                    System.Array.Empty<string>()),
+            }),
+            FilterColors.Gold, FilterColors.Silver);
+
+    [Fact]
+    public void Empty_affix_pool_without_hide_rest_refuses_to_claim_build_coverage()
+    {
+        var output = FilterCompiler.Compile(new[] { EmptyAffixBuild() },
+            new FilterOptions { HideRest = false }, "t");
+
+        Assert.False(output.IsCopyable);
+        Assert.Empty(output.ImportCode);
+        Assert.Contains(output.Diagnostics, message =>
+            message.Contains("No affixes could be mapped for Rare/Leg"));
+        Assert.Contains(output.Diagnostics, message =>
+            message.Contains("No filter code was produced") && message.Contains("Empty"));
+    }
+
+    [Fact]
+    public void All_empty_affix_pools_with_hide_rest_refuse_copyable_output()
+    {
+        var output = FilterCompiler.Compile(new[] { EmptyAffixBuild() }, new FilterOptions(), "t");
+
+        Assert.False(output.IsCopyable);
+        Assert.Empty(output.ImportCode);
+        Assert.Contains(output.Diagnostics, message => message.Contains("could hide everything"));
+    }
+
     [Fact]
     public void Analyze_maps_affixes_and_unique()
     {
@@ -243,6 +276,77 @@ public class FilterCompilerTests
         var dec = FilterDecoder.Decode(o.ImportCode);
         Assert.DoesNotContain(dec.Rules, r => r.Name.Contains("Seals"));   // set charm rules gone (Unique Charms stays)
         Assert.Equal(9, o.RuleCount);   // the 11 defaults minus green minus ancestral-red
+    }
+
+    [Fact]
+    public void Unknown_class_with_hide_rest_rescues_every_talisman_before_the_hide()
+    {
+        // Pasted builds cannot offer class-set checkboxes because their class is Unknown. Even if the
+        // UI passes its visible generic-set selection, compilation must collapse to the type-based
+        // catch-all so every class set matches above the talisman-aware hide.
+        var pasted = FilterCompiler.Analyze(
+            new ResolvedBuild("Pasted", "Unknown", new[]
+            {
+                new ResolvedVariant("Pasted", new[] { "Maximum Life" }, System.Array.Empty<string>()),
+            }), FilterColors.Red, FilterColors.Pink);
+        var output = FilterCompiler.Compile(new[] { pasted }, new FilterOptions
+        {
+            HideRest = true,
+            TalismanSets = TalismanSetDatabase.ForClass("Unknown"),
+        }, "t");
+        var rules = FilterDecoder.Decode(output.ImportCode).Rules.ToList();
+        var showAll = rules.Single(r => r.Name == "Charms & Seals (Green)");
+        var hide = rules.Single(r => r.Visibility == (int)Visibility.HideAll);
+
+        Assert.Contains(showAll.Conditions, c => c.Type == 5
+            && c.Ids.Contains(ItemTypes.Charm) && c.Ids.Contains(ItemTypes.Seal));
+        Assert.DoesNotContain(showAll.Conditions, c => c.Type == 9); // no set scope can omit a class
+        Assert.True(rules.IndexOf(showAll) < rules.IndexOf(hide));
+        Assert.NotEqual(0u, (uint)hide.Conditions.Single(c => c.Type == 1).MaskOrCount!.Value & Rarity.Talisman);
+    }
+
+    [Fact]
+    public void Maxroll_trims_class_before_catalog_scoping()
+    {
+        const string inner = """{"profiles":[{"name":"Main","items":{}}],"items":{}}""";
+        var raw = $$"""{"name":"Whitespace Rogue","class":"Rogue ","data":{{System.Text.Json.JsonSerializer.Serialize(inner)}}}""";
+        var parsed = MaxrollFetcher.Parse(raw, NameLookup.Default(), UniqueLookup.Default());
+        Assert.Equal("Rogue", parsed.Class);
+
+        var build = FilterCompiler.Analyze(parsed with
+        {
+            Variants = [new ResolvedVariant("Main", ["Maximum Life"], [])]
+        }, FilterColors.Red, FilterColors.Pink);
+        var output = FilterCompiler.Compile([build], new FilterOptions
+        {
+            TalismanSets = TalismanSetDatabase.ForClass(parsed.Class)
+        }, "trimmed");
+        var green = FilterDecoder.Decode(output.ImportCode).Rules
+            .Single(r => r.Name == "Charms & Seals (Green)");
+        Assert.Contains(green.Conditions.Single(c => c.Type == 9).SetItems,
+            pair => pair.SetId == TalismanSetDatabase.ByName["Applied Alchemy"].Id);
+    }
+
+    [Fact]
+    public void Catalog_unrecognized_class_fails_open_before_hide_rest()
+    {
+        var build = FilterCompiler.Analyze(new ResolvedBuild("Future class", "Chronomancer",
+        [
+            new ResolvedVariant("Main", ["Maximum Life"], [])
+        ]), FilterColors.Red, FilterColors.Pink);
+        var output = FilterCompiler.Compile([build], new FilterOptions
+        {
+            TalismanSets = TalismanSetDatabase.ForClass(build.Class),
+            HideRest = true,
+        }, "future");
+        var rules = FilterDecoder.Decode(output.ImportCode).Rules.ToList();
+        var green = rules.Single(r => r.Name == "Charms & Seals (Green)");
+        var hide = rules.Single(r => r.Visibility == (int)Visibility.HideAll);
+
+        Assert.Contains(green.Conditions, c => c.Type == 5
+            && c.Ids.Contains(ItemTypes.Charm) && c.Ids.Contains(ItemTypes.Seal));
+        Assert.DoesNotContain(green.Conditions, c => c.Type == 9);
+        Assert.True(rules.IndexOf(green) < rules.IndexOf(hide));
     }
 
     [Fact]

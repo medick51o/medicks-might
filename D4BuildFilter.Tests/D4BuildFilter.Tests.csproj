@@ -1,12 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
+
+  <!-- The WindowsDesktop SDK (UseWPF, needed to test the ViewModels directly) drops System.IO and
+       System.Net.Http from the implicit-usings set the plain SDK provided; the older tests were
+       written against the plain set, so restore those two project-wide. -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
@@ -16,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\D4BuildFilter.Core\D4BuildFilter.Core.csproj" />
+    <ProjectReference Include="..\D4BuildFilter.WPF\D4BuildFilter.WPF.csproj" />
   </ItemGroup>
 
 </Project>

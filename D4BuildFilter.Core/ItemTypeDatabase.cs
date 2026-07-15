@@ -139,13 +139,13 @@ public static class ItemTypeDatabase
             "2hsword" => new[] { 0x0006d14fu },
             "axe" or "1haxe" => new[] { 0x0006d151u },
             "2haxe" => new[] { 0x0006d152u },
-            "dagger" => new[] { 0x0006d159u },
+            "dagger" or "1hdagger" => new[] { 0x0006d159u },
             "polearm" or "2hpolearm" => new[] { 0x0006d15du },
-            "scythe" => new[] { 0x0006d154u },
+            "scythe" or "1hscythe" => new[] { 0x0006d154u },
             "2hscythe" => new[] { 0x0006d155u },
             "staff" or "2hstaff" => new[] { 0x0006d153u },
-            "wand" => new[] { 0x0006d163u },
-            "bow" => new[] { 0x0006d167u },
+            "wand" or "1hwand" => new[] { 0x0006d163u },
+            "bow" or "2hbow" => new[] { 0x0006d167u },
             "crossbow" or "1hcrossbow" => new[] { 0x0006d168u },
             "2hcrossbow" => new[] { 0x0006d169u },
             // Newer-class weapons. Game item ids use bare "Quarterstaff_"/"Glaive_" but "1HFlail_"
@@ -153,6 +153,10 @@ public static class ItemTypeDatabase
             "flail" or "1hflail" => new[] { 0x00234a98u },
             "glaive" or "2hglaive" => new[] { 0x00165271u },
             "quarterstaff" or "2hquarterstaff" => new[] { 0x0016d22du },
+            // Maxroll prefixes off-hands with 1H even though these stay separate from weapon pools.
+            "1hfocus" => new[] { 0x0006d16au },
+            "1hshield" => new[] { 0x0006d172u },
+            "1htotem" => new[] { 0x0006d16bu },
             _ => null,
         };
     }

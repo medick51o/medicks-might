@@ -1,0 +1,23 @@
+{
+  "_comment": "CURATED BUILD TAG OVERRIDES. Review this small list whenever seasonal tier-list data is updated; entries are current top S-tier identities from Maxroll, D4Builds, and Mobalytics.",
+  "overrides": [
+    { "source": "Maxroll", "class": "Barbarian", "name": "Mighty Throw Barb", "tag": "MightyThrw" },
+    { "source": "Maxroll", "class": "Barbarian", "name": "Minion Barb", "tag": "Minion" },
+    { "source": "Maxroll", "class": "Barbarian", "name": "Whirlwind Barb", "tag": "Whirlwind" },
+    { "source": "Maxroll", "class": "Spiritborn", "name": "Evade Counterswarm Spiritborn", "tag": "CounterSwm" },
+    { "source": "D4Builds", "class": "Barbarian", "name": "Charge", "tag": "Charge" },
+    { "source": "D4Builds", "class": "Barbarian", "name": "Leap Rend", "tag": "LeapRend" },
+    { "source": "D4Builds", "class": "Druid", "name": "Shred", "tag": "Shred" },
+    { "source": "D4Builds", "class": "Rogue", "name": "Penetrating Shot", "tag": "PenShot" },
+    { "source": "D4Builds", "class": "Rogue", "name": "Rain of Arrows", "tag": "RoA" },
+    { "source": "D4Builds", "class": "Sorcerer", "name": "Firewall", "tag": "Firewall" },
+    { "source": "D4Builds", "class": "Spiritborn", "name": "Pestilent Swarm", "tag": "PestSwarm" },
+    { "source": "Mobalytics", "class": "Barbarian", "name": "Pure Whirlwind", "tag": "PureWW" },
+    { "source": "Mobalytics", "class": "Druid", "name": "Landslide Landmine Druid Endgame Build Guide", "tag": "Landmine" },
+    { "source": "Mobalytics", "class": "Druid", "name": "Storm Shred", "tag": "StormShred" },
+    { "source": "Mobalytics", "class": "Druid", "name": "Werenado", "tag": "Werenado" },
+    { "source": "Mobalytics", "class": "Rogue", "name": "Death Trap", "tag": "DeathTrap" },
+    { "source": "Mobalytics", "class": "Spiritborn", "name": "Poison Stinger - Stingerborn", "tag": "Stinger" },
+    { "source": "Mobalytics", "class": "Spiritborn", "name": "Swarm - Swarmborn", "tag": "Swarm" }
+  ]
+}

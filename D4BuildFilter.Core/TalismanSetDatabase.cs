@@ -114,15 +114,97 @@ public static class TalismanSetDatabase
     public static readonly IReadOnlyDictionary<uint, TalismanSet> ById =
         All.ToDictionary(s => s.Id);
 
+    /// <summary>Display name → set. Source-provided names must cross this boundary before they
+    /// count as detection; a season rename must never silently turn every charm checkbox off.</summary>
+    public static readonly IReadOnlyDictionary<string, TalismanSet> ByName =
+        All.ToDictionary(s => s.Name, (IEqualityComparer<string>)StringComparer.OrdinalIgnoreCase);
+
+    private static readonly IReadOnlyDictionary<string, string> KnownClasses = All
+        .Where(s => s.Class != "Generic")
+        .Select(s => s.Class)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(c => c, c => c, (IEqualityComparer<string>)StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Trim source class text and canonicalize catalog-known casing. An unrecognized
+    /// nonblank name is preserved for display, while <see cref="IsKnownClass"/> still fails it open.</summary>
+    public static string NormalizeClassName(string? className)
+    {
+        var trimmed = className?.Trim() ?? "";
+        if (trimmed.Length == 0) return "Unknown";
+        return KnownClasses.TryGetValue(trimmed, out var canonical) ? canonical : trimmed;
+    }
+
+    public static bool IsKnownClass(string? className) =>
+        KnownClasses.ContainsKey(NormalizeClassName(className));
+
+    public static bool TryGetByName(string name, out TalismanSet set)
+    {
+        if (name is not null && ByName.TryGetValue(name.Trim(), out var s))
+        {
+            set = s;
+            return true;
+        }
+        set = null!;
+        return false;
+    }
+
     /// <summary>Internal name ("Talisman_Barb_01") → set. The bridge from planner charm ids.</summary>
     public static readonly IReadOnlyDictionary<string, TalismanSet> ByInternalName =
         All.ToDictionary(s => s.InternalName, (IEqualityComparer<string>)StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Sets offered to a build of <paramref name="className"/>: its five class sets plus
     /// the five generics — the same ten the in-game picker shows.</summary>
-    public static IReadOnlyList<TalismanSet> ForClass(string className) =>
-        All.Where(s => s.Class.Equals(className, StringComparison.OrdinalIgnoreCase)
+    public static IReadOnlyList<TalismanSet> ForClass(string className)
+    {
+        var normalized = NormalizeClassName(className);
+        return All.Where(s => s.Class.Equals(normalized, StringComparison.OrdinalIgnoreCase)
                     || s.Class == "Generic").ToList();
+    }
+
+    /// <summary>Choose the sets checked on first load. If none of the detected names belongs to
+    /// this class's picker, fail open to every offered set so Hide the rest cannot eat build charms.</summary>
+    public static IReadOnlyList<TalismanSet> DefaultSelectionForClass(string className,
+        IEnumerable<string> detectedNames, out bool noneDetected)
+    {
+        var offered = ForClass(className);
+        var detected = new HashSet<string>(detectedNames, StringComparer.OrdinalIgnoreCase);
+        var matched = offered.Where(s => detected.Contains(s.Name)).ToList();
+        noneDetected = matched.Count == 0;
+        return noneDetected ? offered : matched;
+    }
+
+    public static string UnknownSetWarning(IEnumerable<string> names)
+    {
+        var seen = string.Join("', '", names);
+        return $"Build lists charm set '{seen}' this app doesn't know — showing all sets; app data may be a season behind.";
+    }
+
+    /// <summary>Member-charm display name ("Phoba of the Crucible") → owning set. The bridge for
+    /// sources that list equipped charms by ITEM name (Mobalytics slot titles). Built with TryAdd
+    /// so a future data-drop collision degrades to first-wins instead of a type-init crash.</summary>
+    public static readonly IReadOnlyDictionary<string, TalismanSet> ByItemName = BuildItemNameIndex();
+
+    private static Dictionary<string, TalismanSet> BuildItemNameIndex()
+    {
+        var d = new Dictionary<string, TalismanSet>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in All)
+            foreach (var (_, itemName) in s.Items)
+                d.TryAdd(itemName, s);
+        return d;
+    }
+
+    /// <summary>Resolve an equipped charm's ITEM display name to its set (v1.0.5 — feeds the
+    /// Mobalytics charm-slot extraction).</summary>
+    public static bool TryGetByItemName(string itemName, out TalismanSet set)
+    {
+        if (itemName is not null && ByItemName.TryGetValue(itemName.Trim(), out var s))
+        {
+            set = s;
+            return true;
+        }
+        set = null!;
+        return false;
+    }
 
     /// <summary>Resolve a planner-style class token + set number ("Barb", 5) via the internal
     /// name ("Talisman_Barb_05").</summary>

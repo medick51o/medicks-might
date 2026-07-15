@@ -71,7 +71,7 @@ public static class D4BuildsFetcher
 
         var doc = DecodeFields(fieldsEl)!.AsObject();
         string name = (string?)doc["name"] ?? "d4builds Build";
-        string cls = (string?)doc["class"] ?? "Unknown";
+        string cls = TalismanSetDatabase.NormalizeClassName((string?)doc["class"]);
 
         var variants = new List<ResolvedVariant>();
         if (doc["variants"] is JsonArray vs && vs.Count > 0)
@@ -122,7 +122,31 @@ public static class D4BuildsFetcher
                     && seen.Add(itemName))
                     uniques.Add(itemName);
 
-        return new ResolvedVariant(vName, affixes, uniques, slots);
+        // The doc names each equipped charm's set. Resolve that source text at the boundary: a
+        // season rename must not masquerade as successful detection and leave every checkbox off.
+        // Keep unknown names separately so the UI can explain the safe show-all fallback.
+        var talismanSets = new List<string>();
+        var unknownTalismanSets = new List<string>();
+        var seenSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenUnknownSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (v["charms"] is JsonArray charms)
+            foreach (var c in charms)
+                if (c is JsonObject co
+                    && (co["hide"] is not JsonValue hv || !hv.TryGetValue(out bool hidden) || !hidden)
+                    && co["set"] is JsonValue sv && sv.TryGetValue(out string? setName)
+                    && !string.IsNullOrWhiteSpace(setName))
+                {
+                    var sourceName = setName.Trim();
+                    if (TalismanSetDatabase.TryGetByName(sourceName, out var set))
+                    {
+                        if (seenSet.Add(set.Name)) talismanSets.Add(set.Name);
+                    }
+                    else if (seenUnknownSet.Add(sourceName)) unknownTalismanSets.Add(sourceName);
+                }
+
+        return new ResolvedVariant(vName, affixes, uniques, slots,
+            talismanSets.Count > 0 ? talismanSets : null,
+            unknownTalismanSets.Count > 0 ? unknownTalismanSets : null);
     }
 
     // ── Firestore typed-value JSON → plain JsonNode ──

@@ -9,6 +9,13 @@
                 <!-- Tokens FIRST: the theme-invariant design system (radius/type/elevation/spacing/
                      font/motion). No ThemeId sentinel, so ThemeManager never unmerges it on a swap. -->
                 <ResourceDictionary Source="/Themes/Tokens.xaml" />
+                <!-- v1.0.4: original class emblems (theme-invariant vector art; no ThemeId sentinel,
+                     so ThemeManager leaves it merged across theme swaps). -->
+                <ResourceDictionary Source="/Assets/ClassEmblems.xaml" />
+                <ResourceDictionary Source="/Assets/ClassCrests.xaml" />
+                <!-- v1.0.5: licensed class icons (game-icons.net, CC BY 3.0; credit line lives in
+                     the footer). Preferred by NameToEmblemConverter; emblems remain the fallback. -->
+                <ResourceDictionary Source="/Assets/ClassIcons.xaml" />
                 <!-- Default theme. ThemeManager swaps THIS for Discord/Dark at runtime
                      based on %LOCALAPPDATA%\MedicKsMight\theme.json. -->
                 <ResourceDictionary Source="/Themes/Default.xaml" />

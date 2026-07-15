@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:D4BuildFilter.WPF"
         xmlns:vm="clr-namespace:D4BuildFilter.WPF.ViewModels"
+        xmlns:b="clr-namespace:D4BuildFilter.WPF.Behaviors"
         mc:Ignorable="d"
         Title="MedicK's Might — Filters Made EZ"
         Icon="Assets/mk_logo.png"
@@ -25,13 +26,15 @@
         <local:StringToVisibilityConverter x:Key="StringToVis" />
         <local:FavoriteStarConverter x:Key="FavStar" />
         <local:FavoriteStarBrushConverter x:Key="FavStarBrush" />
-        <local:AllTrueToVisibilityConverter x:Key="AllTrueToVis" />
         <local:SourceToBrushConverter x:Key="SourceBrush" />
         <local:EmptyStringToVisibilityConverter x:Key="EmptyToVis" />
         <local:RecipeIconConverter x:Key="RecipeIcon" />
         <local:IconKeyToPathConverter x:Key="IconKey" />
         <local:BoolToOpacityConverter x:Key="BoolToOpacity" />
         <local:StringEqualsConverter x:Key="StrEq" />
+        <local:BoolToChevronConverter x:Key="ToChevron" />
+        <local:NameToEmblemConverter x:Key="NameToEmblem" />
+        <local:NameToCrestConverter x:Key="NameToCrest" />
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
@@ -105,13 +108,22 @@
             </Style.Triggers>
         </Style>
 
+        <!-- v1.0.5 input polish: comfortable 34px minimum + a gold focus ring so the active field
+             is unmistakable (the stock 1px gray focus was invisible on the dark palette). -->
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource Surface.Inset}" />
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Border.Input}" />
             <Setter Property="Padding" Value="8,6" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
             <Setter Property="CaretBrush" Value="{DynamicResource Text.Primary}" />
+            <Style.Triggers>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Accent.Primary}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="ListBox">
@@ -122,11 +134,187 @@
             <Setter Property="FontSize" Value="{DynamicResource Type.BodySm}" />
         </Style>
 
+        <!-- v1.0.5 FABLE PASS: fully drawn CheckBox — the stock Windows glyph box was the app's
+             loudest "2000s WinForms" tell (it appears on every toggle in the product). 18px rounded
+             box on Surface.Inset; checked = crimson Action.Primary fill + drawn white check. All
+             brushes DynamicResource so the Default/Discord/Dark themes each restyle it live. -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
             <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
             <Setter Property="FontSize" Value="{DynamicResource Type.BodySm}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="box" Width="18" Height="18" CornerRadius="4"
+                                    Background="{DynamicResource Surface.Inset}"
+                                    BorderBrush="{DynamicResource Border.Input}" BorderThickness="1.5"
+                                    VerticalAlignment="Center" SnapsToDevicePixels="True">
+                                <Path x:Name="check" Data="M 3.6,7.8 L 6.6,10.8 L 11.6,4.2"
+                                      Stroke="{DynamicResource Action.Primary.Fg}" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                      Opacity="0" />
+                            </Border>
+                            <ContentPresenter Grid.Column="1" Margin="8,0,0,0" RecognizesAccessKey="True"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- hover first, checked second: on conflict the LATER trigger wins, so a
+                                 checked box keeps its crimson border while hovered. -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent.Primary}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="box" Property="Background" Value="{DynamicResource Action.Primary.Bg}" />
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Action.Primary.Bg}" />
+                                <Setter TargetName="check" Property="Opacity" Value="1" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource Accent.Primary}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- v1.0.5 FABLE PASS: flat themed ComboBox (Cube Sandbox rarity + GA pickers) — replaces
+             the stock Windows dropdown chrome. Drawn chevron rotates open; popup is a floating
+             themed card. Non-editable only (both usages are pick-lists). -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="bg" Background="Transparent" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}" Margin="2,1" SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bg" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Accent.Primary}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Sans}" />
+            <Setter Property="FontSize" Value="{DynamicResource Type.BodySm}" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="field" Background="{DynamicResource Surface.Inset}"
+                                    BorderBrush="{DynamicResource Border.Input}" BorderThickness="1"
+                                    CornerRadius="{DynamicResource Radius.Control}" SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                      Margin="10,0,6,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                    <Path x:Name="chevron" Grid.Column="1" Data="M 0,0 L 4,4 L 8,0"
+                                          Stroke="{DynamicResource Accent.Primary}" StrokeThickness="1.8"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                          Margin="0,0,10,0" VerticalAlignment="Center"
+                                          RenderTransformOrigin="0.5,0.5">
+                                        <Path.RenderTransform>
+                                            <RotateTransform x:Name="chevronRot" Angle="0" />
+                                        </Path.RenderTransform>
+                                    </Path>
+                                </Grid>
+                            </Border>
+                            <!-- full-surface invisible toggle drives IsDropDownOpen -->
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Background="Transparent" BorderThickness="0">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" />
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="4"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True"
+                                   PopupAnimation="Fade" StaysOpen="False">
+                                <Grid Margin="8">
+                                    <Border Background="{DynamicResource Surface.Panel}"
+                                            BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
+                                            CornerRadius="8" Padding="3" Effect="{DynamicResource Elevation.Raised}"
+                                            MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                            MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="field" Property="BorderBrush" Value="{DynamicResource Accent.Primary}" />
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="field" Property="BorderBrush" Value="{DynamicResource Accent.Primary}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="chevronRot" Storyboard.TargetProperty="Angle"
+                                                             To="180" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="chevronRot" Storyboard.TargetProperty="Angle"
+                                                             To="0" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="SectionLabel" TargetType="TextBlock">
@@ -134,6 +322,69 @@
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Foreground" Value="{DynamicResource Accent.Primary}" />
             <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <!-- v1.0.3: a section header that toggles a collapsible group. Strips all default button
+             chrome so it reads as a clickable label + chevron (the chevron glyph flips via ToChevron). -->
+        <Style x:Key="SectionToggle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- v1.0.5: reusable rotating chevron for the four collapsible section headers. A fixed "▸"
+             glyph that rotates 0°→90° (collapsed→expanded) instead of swapping ▸/▾ instantly. The
+             DataTrigger binds to the owning ToggleButton's IsChecked (the same *Expanded bool the
+             content reveal uses), so the glyph and the content animate off one source of truth. -->
+        <Style x:Key="SectionChevron" TargetType="TextBlock">
+            <Setter Property="Text" Value="▸" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent.Primary}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,7,0" />
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+            <Setter Property="RenderTransform">
+                <Setter.Value><RotateTransform Angle="0" /></Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(TextBlock.RenderTransform).(RotateTransform.Angle)"
+                                                 To="90" Duration="0:0:0.18">
+                                    <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(TextBlock.RenderTransform).(RotateTransform.Angle)"
+                                                 To="0" Duration="0:0:0.18">
+                                    <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.ExitActions>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
         <!-- Slim transparent icon button for the 56px header chrome (Ko-fi / Discord), matching
@@ -200,7 +451,10 @@
             <Setter Property="Background" Value="{DynamicResource Surface.Card}" />
             <Setter Property="Foreground" Value="{DynamicResource Text.Primary}" />
             <Setter Property="Padding" Value="12,6" />
-            <Setter Property="FontSize" Value="{DynamicResource Type.BodySm}" />
+            <!-- v1.0.5: build names are the DATA on this page — bigger than BodySm(12), but 14 clips
+                 the longest single words ("Counterswarm") in the narrow 3-across columns at the
+                 default window width, so this is a deliberate off-ramp 13. -->
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Margin" Value="0,0,8,8" />
@@ -223,29 +477,41 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="b" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.Card}"
                                 BorderBrush="Transparent" BorderThickness="1"
-                                Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
+                                Padding="0" RenderTransformOrigin="0.5,0.5">
                             <Border.RenderTransform>
                                 <TranslateTransform x:Name="bt" Y="0" />
                             </Border.RenderTransform>
-                            <!-- Two-line content: build name (TemplateBinding Content, set per
-                                 instance) then an optional "(ClassName)" subtitle bound to the
-                                 chip's DataContext (TierBuildVM.ClassName). Subtitle Visibility is
-                                 driven by MainViewModel.ShowClassNames so the toggle on the landing
-                                 page collapses every chip's class line at once. -->
-                            <StackPanel>
+                            <!-- v1.0.4: dressed-up build chip — a class-color LEFT RAIL + the class's own
+                                 EMBLEM (tinted its class color) + the build name in the class color, with
+                                 an optional class subtitle (ShowClassNames toggle). Turns the plain text
+                                 list into a class-colored card grid. All art is original (ClassEmblems). -->
+                            <StackPanel Margin="6,7,6,8">
+                                <!-- Emblem centered ON TOP so the build name keeps the full (narrow)
+                                     chip width instead of wrapping to shreds. Class emblem tinted its
+                                     class color; name in the class color; class subtitle below. -->
+                                <!-- v1.0.5: 24px — the licensed game-icons carry more detail than the
+                                     old hand-drawn emblems and earn the extra 2px. -->
+                                <Rectangle Width="24" Height="24" Fill="{Binding ClassColor}"
+                                           HorizontalAlignment="Center" Margin="0,0,0,5">
+                                    <Rectangle.OpacityMask>
+                                        <VisualBrush Stretch="Uniform" AlignmentX="Center" AlignmentY="Center"
+                                                     Visual="{Binding ClassName, Converter={StaticResource NameToEmblem}}" />
+                                    </Rectangle.OpacityMask>
+                                </Rectangle>
+                                <!-- WrapWithOverflow (not Wrap): breaks at spaces only, so long single
+                                     words ("Penetrating", "Heartseeker") overflow a hair instead of
+                                     shredding to "Penetratin g" in the narrow 3-across columns. -->
                                 <TextBlock Text="{TemplateBinding Content}"
-                                           Foreground="{TemplateBinding Foreground}"
-                                           FontSize="{TemplateBinding FontSize}"
-                                           TextWrapping="Wrap" TextAlignment="Center"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <TextBlock Foreground="{TemplateBinding Foreground}"
-                                           Opacity="0.7" FontSize="{DynamicResource Type.Caption}"
+                                           Foreground="{Binding ClassColor}"
+                                           FontSize="{TemplateBinding FontSize}" FontWeight="SemiBold"
+                                           TextWrapping="WrapWithOverflow" TextAlignment="Center" HorizontalAlignment="Center" />
+                                <TextBlock Opacity="0.75" FontSize="{DynamicResource Type.Caption}"
+                                           Foreground="{DynamicResource Text.Muted}" Margin="0,2,0,0"
                                            TextAlignment="Center" HorizontalAlignment="Center"
-                                           Margin="0,2,0,0"
                                            Visibility="{Binding DataContext.ShowClassNames,
                                                         RelativeSource={RelativeSource AncestorType=Window},
                                                         Converter={StaticResource BoolToVis}}">
-                                    <Run Text="(" /><Run Text="{Binding ClassName, Mode=OneWay}" /><Run Text=")" />
+                                    <Run Text="{Binding ClassName, Mode=OneWay}" />
                                 </TextBlock>
                             </StackPanel>
                         </Border>
@@ -312,35 +578,38 @@
         <!-- Tier-list source tab (Endgame / Bossing / Leveling / Push / Speedfarm etc).
              Active state pulled from the TierTabVM.IsActive property — gold-on-dark when selected,
              dim-cream-on-transparent otherwise. -->
+        <!-- v1.0.5 FABLE PASS: filled-pill tabs. The active tab was near-invisible (same hover-gray
+             as mouseover); now it's a solid gold pill with dark text — unmissable. Trigger order
+             matters: IsActive is declared LAST so an active tab keeps its fill while hovered. -->
         <Style x:Key="TierTab" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource Text.Muted}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Border.Subtle}" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="Padding" Value="10,4" />
             <Setter Property="Margin" Value="0,0,4,4" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="tabBg" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.Control}"
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.Pill}"
                                 Padding="{TemplateBinding Padding}"
-                                BorderBrush="{DynamicResource Border.Subtle}" BorderThickness="1">
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
                             <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
                         </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="tabBg" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
-                                <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
-                    <Setter Property="Foreground" Value="{DynamicResource Accent.Primary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Text.Secondary}" />
+                </Trigger>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Accent.Primary}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Text.OnAccent}" />
+                    <Setter Property="BorderBrush" Value="Transparent" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -366,6 +635,64 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- v1.0.5 FABLE PASS: THE shared tier-row template — one source of truth for all three
+             source columns (was copy-pasted 3×, so every badge tweak had to land three times).
+             Badge went pill → 36px SQUARE (radius 6), bold BodyLg letter, on the classic tier-list
+             heat ramp (S red → D blue, see TierGroupVM.BadgeFor). GOD/SUP stretch via MinWidth. -->
+        <DataTemplate x:Key="TierRowTemplate">
+            <Grid Margin="0,3,0,7">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="48" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="6"
+                        MinWidth="36" Height="36" VerticalAlignment="Top" Padding="4,0"
+                        HorizontalAlignment="Center" Margin="0,1,4,0">
+                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="{DynamicResource Type.BodyLg}"
+                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!-- Star sits ABOVE the chip in z-order so it captures clicks in its tiny
+                                 corner footprint; the rest of the chip stays clickable for Load. -->
+                            <Grid>
+                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
+                                        Foreground="{Binding ClassColor}"
+                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
+                                <!-- Independent additive selector. It occupies only the top-left
+                                     checkbox hit area; clicking anywhere else still runs LoadCommand. -->
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          HorizontalAlignment="Left" VerticalAlignment="Top"
+                                          Margin="5,5,0,0" Panel.ZIndex="2"
+                                          ToolTip="Add this build to a Super Build (up to 4)" />
+                                <ComboBox Width="42" Height="22"
+                                          HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                          Margin="0,0,5,5" Panel.ZIndex="3"
+                                          ItemsSource="{Binding PriorityChoices}"
+                                          SelectedItem="{Binding Priority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Visibility="{Binding HasPriority, Converter={StaticResource BoolToVis}}"
+                                          ToolTip="Build priority. Choosing an occupied number swaps the two builds." />
+                                <Button Style="{StaticResource FavStarBtn}"
+                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
+                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
+                                        Command="{Binding ToggleFavoriteCommand}"
+                                        Margin="0,3,9,0"
+                                        Visibility="{Binding DataContext.ShowFavoriteStars,
+                                                     RelativeSource={RelativeSource AncestorType=Window},
+                                                     Converter={StaticResource BoolToVis}}"
+                                        ToolTip="Star to save under Your Favorites" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid Margin="16">
@@ -512,7 +839,7 @@
             <StackPanel Orientation="Horizontal" Margin="18,0">
                 <Button Content="Browse" Style="{StaticResource NavTab}" Tag="{Binding IsBrowseTab}"
                         Command="{Binding SelectTabCommand}" CommandParameter="Browse" />
-                <Button Content="Compile" Style="{StaticResource NavTab}" Tag="{Binding IsCompileTab}"
+                <Button Content="Paste a build" Style="{StaticResource NavTab}" Tag="{Binding IsCompileTab}"
                         Command="{Binding SelectTabCommand}" CommandParameter="Compile" />
                 <Button Content="Favorites" Style="{StaticResource NavTab}" Tag="{Binding IsFavTab}"
                         Command="{Binding SelectTabCommand}" CommandParameter="Favorites" />
@@ -603,10 +930,10 @@
                         <TextBox Text="{Binding MaxrollUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Width="620" Height="34" FontSize="{DynamicResource Type.Body}" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                            <Button Content="Compile Filter"
+                            <Button Content="Make my loot filter"
                                     Command="{Binding CompileCommand}"
                                     Width="200" Height="44" FontSize="{DynamicResource Type.Body}" Margin="0,0,12,0" />
-                            <Button Content="Load sample build (offline)"
+                            <Button Content="Try it with a sample build"
                                     Command="{Binding LoadSampleCommand}"
                                     Style="{StaticResource SecondaryButton}"
                                     Width="220" Height="44" FontSize="{DynamicResource Type.Body}" />
@@ -624,7 +951,7 @@
                                  Width="620" Height="200" FontSize="{DynamicResource Type.BodySm}"
                                  AcceptsReturn="True" TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto" />
-                        <Button Content="Compile from paste"
+                        <Button Content="Make my loot filter"
                                 Command="{Binding CompilePasteCommand}"
                                 Width="220" Height="44" FontSize="{DynamicResource Type.Body}"
                                 HorizontalAlignment="Center" Margin="0,16,0,0" />
@@ -1070,8 +1397,12 @@
                                           FontWeight="SemiBold"
                                           Margin="0,0,16,4" VerticalContentAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding Glyph}" FontSize="{DynamicResource Type.Body}"
-                                                   Margin="0,0,5,0" VerticalAlignment="Center" />
+                                        <!-- v1.0.4 (crest option): full-color premium class crest
+                                             (ClassCrests.xaml). Flat-emblem alternative is the
+                                             OpacityMask-tinted Rectangle (in git history / ClassEmblems). -->
+                                        <Viewbox Width="34" Height="34" Margin="0,0,6,0" VerticalAlignment="Center">
+                                            <ContentControl Content="{Binding ClassName, Converter={StaticResource NameToCrest}}" />
+                                        </Viewbox>
                                         <TextBlock Text="{Binding ClassName}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </CheckBox>
@@ -1113,8 +1444,23 @@
                     <TextBlock TextWrapping="Wrap" TextAlignment="Center" MaxWidth="680"
                                FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center" Margin="0,2,0,14">
                         <Run Text="Tier rankings courtesy of Maxroll, D4Builds &amp; Mobalytics." />
-                        <Run Text="Click a build to compile a filter from it — or right-click to open it on its source." />
+                        <Run Text="Click any build to make its loot filter, or tick builds to select; while a selection is active, card clicks add/remove and Compile N builds is the only compile action." />
                     </TextBlock>
+
+                    <StackPanel HorizontalAlignment="Center" Margin="0,0,0,12">
+                        <Button Content="{Binding SuperBuildActionLabel}"
+                                Command="{Binding CompileSelectedBuildsCommand}"
+                                Padding="18,7"
+                                Visibility="{Binding CanCompileSuperBuild, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock Text="{Binding SuperBuildSelectionStatus}" TextWrapping="Wrap"
+                                   TextAlignment="Center" MaxWidth="760" Margin="0,5,0,0"
+                                   Foreground="{DynamicResource Danger.Fg}"
+                                   Visibility="{Binding SuperBuildSelectionStatus, Converter={StaticResource StringToVis}}" />
+                        <TextBlock Text="{Binding SuperBuildAdvisory}" TextWrapping="Wrap"
+                                   TextAlignment="Center" MaxWidth="760" Margin="0,5,0,0"
+                                   Foreground="{DynamicResource Accent.Primary}"
+                                   Visibility="{Binding SuperBuildAdvisory, Converter={StaticResource StringToVis}}" />
+                    </StackPanel>
 
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -1155,51 +1501,7 @@
                                 <TextBlock Text="{Binding D4BuildsTierStatus}" Foreground="{DynamicResource Text.Secondary}" FontSize="{DynamicResource Type.BodySm}"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
                                            Visibility="{Binding D4BuildsTierStatus, Converter={StaticResource StringToVis}}" />
-                                <ItemsControl ItemsSource="{Binding D4BuildsTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,3,0,7">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="48" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="{DynamicResource Radius.Control}"
-                                                        MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
-                                                        HorizontalAlignment="Center" Margin="0,1,4,0">
-                                                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="{DynamicResource Type.Body}"
-                                                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
-                                                               VerticalAlignment="Center" />
-                                                </Border>
-                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <!-- Star sits ABOVE the chip in z-order so it captures clicks
-                                                                 in its tiny corner footprint; the rest of the chip area
-                                                                 stays clickable for Load (chip Button beneath). -->
-                                                            <Grid>
-                                                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                        Foreground="{Binding ClassColor}"
-                                                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
-                                                                <Button Style="{StaticResource FavStarBtn}"
-                                                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
-                                                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
-                                                                        Command="{Binding ToggleFavoriteCommand}"
-                                                                        Margin="0,3,9,0"
-                                                                        Visibility="{Binding DataContext.ShowFavoriteStars,
-                                                                                     RelativeSource={RelativeSource AncestorType=Window},
-                                                                                     Converter={StaticResource BoolToVis}}"
-                                                                        ToolTip="Star to save under Your Favorites" />
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding D4BuildsTiers}" ItemTemplate="{StaticResource TierRowTemplate}" />
                             </StackPanel>
                         </Border>
 
@@ -1232,51 +1534,7 @@
                                 <TextBlock Text="{Binding MaxrollTierStatus}" Foreground="{DynamicResource Text.Secondary}" FontSize="{DynamicResource Type.BodySm}"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
                                            Visibility="{Binding MaxrollTierStatus, Converter={StaticResource StringToVis}}" />
-                                <ItemsControl ItemsSource="{Binding MaxrollTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,3,0,7">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="48" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="{DynamicResource Radius.Control}"
-                                                        MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
-                                                        HorizontalAlignment="Center" Margin="0,1,4,0">
-                                                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="{DynamicResource Type.Body}"
-                                                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
-                                                               VerticalAlignment="Center" />
-                                                </Border>
-                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <!-- Star sits ABOVE the chip in z-order so it captures clicks
-                                                                 in its tiny corner footprint; the rest of the chip area
-                                                                 stays clickable for Load (chip Button beneath). -->
-                                                            <Grid>
-                                                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                        Foreground="{Binding ClassColor}"
-                                                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
-                                                                <Button Style="{StaticResource FavStarBtn}"
-                                                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
-                                                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
-                                                                        Command="{Binding ToggleFavoriteCommand}"
-                                                                        Margin="0,3,9,0"
-                                                                        Visibility="{Binding DataContext.ShowFavoriteStars,
-                                                                                     RelativeSource={RelativeSource AncestorType=Window},
-                                                                                     Converter={StaticResource BoolToVis}}"
-                                                                        ToolTip="Star to save under Your Favorites" />
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding MaxrollTiers}" ItemTemplate="{StaticResource TierRowTemplate}" />
                             </StackPanel>
                         </Border>
 
@@ -1309,51 +1567,7 @@
                                 <TextBlock Text="{Binding MobalyticsTierStatus}" Foreground="{DynamicResource Text.Secondary}" FontSize="{DynamicResource Type.BodySm}"
                                            TextWrapping="Wrap" Margin="0,2,0,2"
                                            Visibility="{Binding MobalyticsTierStatus, Converter={StaticResource StringToVis}}" />
-                                <ItemsControl ItemsSource="{Binding MobalyticsTiers}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,3,0,7">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="48" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="{Binding Badge}" CornerRadius="{DynamicResource Radius.Control}"
-                                                        MinWidth="30" Height="26" VerticalAlignment="Top" Padding="6,0"
-                                                        HorizontalAlignment="Center" Margin="0,1,4,0">
-                                                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="{DynamicResource Type.Body}"
-                                                               Foreground="{DynamicResource Text.OnAccent}" HorizontalAlignment="Center"
-                                                               VerticalAlignment="Center" />
-                                                </Border>
-                                                <ItemsControl Grid.Column="1" ItemsSource="{Binding Builds}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><UniformGrid Columns="3" /></ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <!-- Star sits ABOVE the chip in z-order so it captures clicks
-                                                                 in its tiny corner footprint; the rest of the chip area
-                                                                 stays clickable for Load (chip Button beneath). -->
-                                                            <Grid>
-                                                                <Button Style="{StaticResource BuildChip}" Content="{Binding Name}"
-                                                                        Foreground="{Binding ClassColor}"
-                                                                        Command="{Binding LoadCommand}" ToolTip="{Binding Tip}" />
-                                                                <Button Style="{StaticResource FavStarBtn}"
-                                                                        Content="{Binding IsFavorited, Converter={StaticResource FavStar}}"
-                                                                        Foreground="{Binding IsFavorited, Converter={StaticResource FavStarBrush}}"
-                                                                        Command="{Binding ToggleFavoriteCommand}"
-                                                                        Margin="0,3,9,0"
-                                                                        Visibility="{Binding DataContext.ShowFavoriteStars,
-                                                                                     RelativeSource={RelativeSource AncestorType=Window},
-                                                                                     Converter={StaticResource BoolToVis}}"
-                                                                        ToolTip="Star to save under Your Favorites" />
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding MobalyticsTiers}" ItemTemplate="{StaticResource TierRowTemplate}" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -1368,7 +1582,7 @@
             <!-- ─── LOADING STATE ─── -->
             <Grid Visibility="{Binding IsLoadingState, Converter={StaticResource BoolToVis}}">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock Text="Compiling filter…" FontSize="{DynamicResource Type.H1}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Building your filter…" FontSize="{DynamicResource Type.H1}" HorizontalAlignment="Center" />
                     <TextBlock Text="{Binding StatusMessage}" FontSize="{DynamicResource Type.BodySm}" Foreground="{DynamicResource Text.Muted}"
                                HorizontalAlignment="Center" Margin="0,8,0,0" />
                 </StackPanel>
@@ -1378,6 +1592,12 @@
             <ScrollViewer Visibility="{Binding IsResultState, Converter={StaticResource BoolToVis}}"
                           VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="8">
+                    <!-- v1.0.4: quick "make another" at the TOP (mirrors the bottom button) so you
+                         don't have to scroll back up to start a different build. -->
+                    <Button Content="← Make another filter" Command="{Binding RestartCommand}"
+                            Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left"
+                            Padding="12,5" FontSize="{DynamicResource Type.BodySm}" Margin="0,0,0,10"
+                            ToolTip="Back to the tier lists to pick or paste a different build." />
                     <!-- Result-page header: title on the left, ★ Favorite toggle on the right.
                          The star button only shows when the current build has a URL we can re-fetch
                          (CanFavoriteCurrent — false for pasted builds, true for any URL-based build).
@@ -1435,43 +1655,206 @@
                         </StackPanel>
                     </DockPanel>
                     <TextBlock Text="{Binding BuildSubtitle}"
-                               FontSize="{DynamicResource Type.BodySm}" Foreground="{DynamicResource Text.Secondary}" Margin="0,4,0,12" />
+                               FontSize="{DynamicResource Type.BodySm}" Foreground="{DynamicResource Text.Secondary}" Margin="0,4,0,4" />
+                    <!-- v1.0.4: clickable link to the ORIGINAL build guide on its source site
+                         (Maxroll / D4Builds / Mobalytics) — attribution + lets players read the full
+                         guide. Only shown when the build came from a URL source (pasted affix lists
+                         have none, so CanFavoriteCurrent is false). -->
+                    <TextBlock Margin="0,0,0,12" FontSize="{DynamicResource Type.BodySm}"
+                               Visibility="{Binding CanFavoriteCurrent, Converter={StaticResource BoolToVis}}">
+                        <Hyperlink Command="{Binding OpenBuildGuideCommand}" Foreground="{DynamicResource Accent.Link}"
+                                   ToolTip="Open the full build guide on its source site in your browser.">
+                            <Run Text="↗ Read the full build guide on " /><Run Text="{Binding CurrentSourceLabel, Mode=OneWay}" />
+                        </Hyperlink>
+                    </TextBlock>
+
+                    <!-- Armory Mode stays folded during the ordinary one-build flow. It deliberately
+                         reuses one text seat for either a supported guide URL or a pasted affix list. -->
+                    <Expander Header="＋ Add a second build (Armory Mode)" Margin="0,0,0,12"
+                              Foreground="{DynamicResource Accent.Link}">
+                        <StackPanel Margin="0,8,0,0">
+                            <TextBlock Text="One import code can cover two loadouts. Paste a build URL or affix list."
+                                       Foreground="{DynamicResource Text.Secondary}" FontSize="{DynamicResource Type.BodySm}"
+                                       TextWrapping="Wrap" />
+                            <DockPanel Margin="0,6,0,0">
+                                <Button DockPanel.Dock="Right" Content="Add build" Command="{Binding AddSecondBuildCommand}"
+                                        Style="{StaticResource SecondaryButton}" Padding="12,5" Margin="8,0,0,0" />
+                                <TextBox Text="{Binding ArmorySource, UpdateSourceTrigger=PropertyChanged}"
+                                         MinHeight="34" VerticalContentAlignment="Center" />
+                            </DockPanel>
+                            <TextBlock Text="{Binding ArmoryStatus}" Foreground="{DynamicResource Danger.Fg}"
+                                       FontSize="{DynamicResource Type.Caption}" Margin="0,5,0,0"
+                                       Visibility="{Binding ArmoryStatus, Converter={StaticResource StringToVis}}" />
+                        </StackPanel>
+                    </Expander>
+                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Accent.Primary}"
+                            BorderThickness="1" CornerRadius="{DynamicResource Radius.Control}" Padding="12,8"
+                            Margin="0,0,0,12" Visibility="{Binding HasSecondBuild, Converter={StaticResource BoolToVis}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Drop second build" Command="{Binding DropSecondBuildCommand}"
+                                    Style="{StaticResource SecondaryButton}" Padding="10,4" Margin="10,0,0,0" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding ArmoryBuildNames}" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Accent.Primary}" />
+                                <TextBlock Text="{Binding ArmoryClassNote}" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Text.Secondary}" FontSize="{DynamicResource Type.Caption}"
+                                           Visibility="{Binding ArmoryClassNote, Converter={StaticResource StringToVis}}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
 
                     <!-- Missing-game-data note (amber): the build references affix/unique ids the
                          local data files can't name — the new-season symptom, fixable by the user
                          via the inline Update link (which re-fetches this build afterwards). Not
                          the same as the dev-only "not yet filterable" list below: that's mapper
                          coverage we fix in code; this is data the app can refresh itself. -->
-                    <Border Background="{DynamicResource Caution.Bg}" BorderBrush="{DynamicResource Caution.Border}"
+                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Input}"
                             BorderThickness="1" CornerRadius="{DynamicResource Radius.Control}"
                             Padding="12,8" Margin="0,0,0,12"
                             Visibility="{Binding HasMissingDataNote, Converter={StaticResource BoolToVis}}">
                         <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource Type.BodySm}"
-                                   Foreground="{DynamicResource Caution.Fg}">
-                            <Run Text="⚠ " /><Run Text="{Binding MissingDataNote, Mode=OneWay}" />
+                                   Foreground="{DynamicResource Text.Secondary}">
+                            <Run Text="✓ Filter's ready. " FontWeight="SemiBold" Foreground="#57C46A" /><Run Text="{Binding MissingDataNote, Mode=OneWay}" />
                             <Hyperlink Command="{Binding UpdateGameDataCommand}"
                                        Foreground="{DynamicResource Accent.Link}"
                                        ToolTip="Download the latest affix + unique data, then reload this build automatically.">Update game data</Hyperlink>
                         </TextBlock>
                     </Border>
 
-                    <!-- Variant picker — uncheck a variant to drop it from the combined pool -->
-                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
-                            CornerRadius="{DynamicResource Radius.Control}" Padding="12,8" Margin="0,0,0,12">
+                    <!-- Favorite build-drift alarm: shown only when this live favorite had a
+                         baseline and filter-relevant guide content changed before this compile. -->
+                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="#D69A2D"
+                            BorderThickness="1" CornerRadius="{DynamicResource Radius.Control}"
+                            Padding="12,8" Margin="0,0,0,12"
+                            Visibility="{Binding HasBuildDriftNote, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding BuildDriftNote}" TextWrapping="Wrap"
+                                   FontSize="{DynamicResource Type.BodySm}" Foreground="#D69A2D" />
+                    </Border>
+
+                    <!-- ═══ THE PAYOFF (v1.0.4): filter title + import code + Copy pulled to the TOP so
+                         it's the first thing after the header. Name it, copy it, paste it. All the
+                         tuning lives below under "Fine-tune (optional)". ═══ -->
+                    <DockPanel LastChildFill="True" Margin="0,0,0,4">
+                        <TextBlock DockPanel.Dock="Left" Text="Filter title" VerticalAlignment="Center"
+                                   Style="{StaticResource SectionLabel}" Margin="0,0,8,0"
+                                   ToolTip="Becomes the filter's name in Diablo 4 when imported. D4 drops names longer than 24 chars." />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding TitleLengthNote}"
+                                   FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                        <TextBox Text="{Binding FilterTitle, UpdateSourceTrigger=PropertyChanged}"
+                                 LostFocus="FilterTitle_LostFocus"
+                                 MaxLength="24" Height="34" FontSize="{DynamicResource Type.Body}" FontFamily="{DynamicResource Font.Sans}" />
+                    </DockPanel>
+                    <TextBlock Text="Copy your import code" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
+                    <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="3,0,0,0"
+                            Background="{DynamicResource Surface.Inset}" CornerRadius="{DynamicResource Radius.Control}" Padding="8">
+                        <DockPanel LastChildFill="True">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                                <Button Content="Save PNG…" Click="SaveWitnessCard_Click"
+                                        IsEnabled="{Binding CanShareWitnessCard}" Height="40" Padding="12,0"
+                                        Style="{StaticResource SecondaryButton}"
+                                        ToolTip="{Binding WitnessCardBlockReason}" ToolTipService.ShowOnDisabled="True" />
+                                <Button Content="Share card" Click="ShareWitnessCard_Click"
+                                        IsEnabled="{Binding CanShareWitnessCard}" Height="40" Padding="14,0" Margin="6,0,0,0"
+                                        FontWeight="SemiBold" ToolTip="{Binding WitnessCardBlockReason}"
+                                        ToolTipService.ShowOnDisabled="True" />
+                                <Button Content="{Binding CopyButtonText}" Command="{Binding CopyCodeCommand}"
+                                        Width="110" Height="40" Margin="6,0,0,0" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <TextBox Text="{Binding ImportCode, Mode=OneWay}"
+                                     IsReadOnly="True" Height="40" FontSize="{DynamicResource Type.Caption}"
+                                     FontFamily="{DynamicResource Font.Mono}"
+                                     TextWrapping="NoWrap" BorderThickness="0"
+                                     Background="Transparent"
+                                     HorizontalScrollBarVisibility="Hidden"
+                                     VerticalContentAlignment="Center" />
+                        </DockPanel>
+                    </Border>
+                    <!-- Persistent copy confirmation (v1.0.4): the intended success line was never wired
+                         into the result state; bind it here so Copy gives lasting feedback, not a blink. -->
+                    <TextBlock Text="{Binding CopyConfirmation}" TextWrapping="Wrap" Margin="2,6,0,0"
+                               FontSize="{DynamicResource Type.BodySm}" FontWeight="SemiBold" Foreground="#57C46A"
+                               Visibility="{Binding CopyConfirmation, Converter={StaticResource StringToVis}}" />
+                    <TextBlock Text="{Binding WitnessCardConfirmation}" TextWrapping="Wrap" Margin="2,6,0,0"
+                               FontSize="{DynamicResource Type.BodySm}" FontWeight="SemiBold" Foreground="#57C46A"
+                               Visibility="{Binding WitnessCardConfirmation, Converter={StaticResource StringToVis}}" />
+                    <DockPanel LastChildFill="True" Margin="0,6,0,0">
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding FilterInfo}" Foreground="{DynamicResource Text.Secondary}"
+                                   VerticalAlignment="Center" FontSize="{DynamicResource Type.BodySm}" FontFamily="{DynamicResource Font.Mono}" />
+                        <Expander Header="▾ Show full code" Foreground="{DynamicResource Text.Muted}" FontSize="{DynamicResource Type.Caption}"
+                                  HorizontalAlignment="Left">
+                            <TextBox Text="{Binding ImportCode, Mode=OneWay}"
+                                     IsReadOnly="True" MinHeight="100" MaxHeight="200" TextWrapping="Wrap"
+                                     FontFamily="{DynamicResource Font.Mono}"
+                                     VerticalScrollBarVisibility="Auto" FontSize="{DynamicResource Type.Caption}" Margin="0,6,0,0" />
+                        </Expander>
+                    </DockPanel>
+                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="3,1,1,1"
+                            CornerRadius="{DynamicResource Radius.Control}" Padding="12,8" Margin="0,10,0,0"
+                            Visibility="{Binding HasAutoFitNote, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding AutoFitNote}" TextWrapping="Wrap" FontSize="{DynamicResource Type.BodySm}"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}" />
+                    </Border>
+                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="3,1,1,1"
+                            CornerRadius="{DynamicResource Radius.Control}" Padding="12,8" Margin="0,10,0,0"
+                            Visibility="{Binding SuperBuildAdvisory, Converter={StaticResource StringToVis}}">
+                        <StackPanel>
+                            <TextBlock Text="ADVISORY" FontSize="{DynamicResource Type.Caption}" FontWeight="Bold"
+                                       Foreground="{DynamicResource Accent.Primary}" Margin="0,0,0,3" />
+                            <TextBlock Text="{Binding SuperBuildAdvisory}" TextWrapping="Wrap"
+                                       FontSize="{DynamicResource Type.BodySm}" Foreground="{DynamicResource Accent.Primary}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource Danger.Bg}" BorderBrush="{DynamicResource Danger.Border}" BorderThickness="1"
+                            CornerRadius="{DynamicResource Radius.Control}" Padding="12,8" Margin="0,10,0,0"
+                            Visibility="{Binding HasCapWarning, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding CapWarning}" TextWrapping="Wrap" FontSize="{DynamicResource Type.BodySm}"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Danger.Fg}" />
+                    </Border>
+                    <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource Type.Caption}" Margin="0,8,0,12"
+                               Foreground="{DynamicResource Text.Muted}">
+                        <Run Text="ℹ Changed an option below? Copy the new code and re-import; in-game filters don't auto-update." />
+                    </TextBlock>
+
+                    <TextBlock Text="Fine-tune (optional)" Style="{StaticResource SectionLabel}" Margin="0,4,0,4"
+                               ToolTip="The code above already matches this build. Everything below is optional tweaking." />
+
+                    <!-- Variant picker — uncheck a variant to drop it from the combined pool.
+                         v1.0.5: promoted to the true card recipe (matches the tier columns). -->
+                    <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
+                            CornerRadius="{DynamicResource Radius.Card}" Padding="{DynamicResource Pad.Card}" Margin="0,0,0,12">
                         <StackPanel>
                             <TextBlock Text="Variants included (uncheck to narrow the filter — recompiles live)"
                                        Style="{StaticResource SectionLabel}" Margin="0,0,0,6" />
-                            <ItemsControl ItemsSource="{Binding Variants}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
+                            <ItemsControl ItemsSource="{Binding VariantGroups}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <CheckBox IsChecked="{Binding IsSelected}"
-                                                  Content="{Binding Label}"
-                                                  Margin="0,2,22,2" />
+                                        <StackPanel Margin="0,2,0,8">
+                                            <DockPanel Margin="0,0,0,2" LastChildFill="True">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                    <TextBlock Text="Priority" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource Text.Muted}" Margin="12,0,5,0" />
+                                                    <ComboBox Width="52"
+                                                              ItemsSource="{Binding PriorityChoices}"
+                                                              SelectedItem="{Binding Priority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                              ToolTip="Priority 1 is protected. Choosing an occupied priority swaps the two builds." />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Accent.Primary}"
+                                                           VerticalAlignment="Center" />
+                                            </DockPanel>
+                                            <ItemsControl ItemsSource="{Binding Variants}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox IsChecked="{Binding IsSelected}"
+                                                                  Content="{Binding Label}"
+                                                                  Margin="0,2,22,2" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -1500,24 +1883,6 @@
                                         <UniformGrid Columns="3" />
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
-                            </ListBox>
-
-                            <TextBlock Text="Not yet filterable (dev — affixes the mapper hasn't resolved)"
-                                       Style="{StaticResource SectionLabel}" Margin="0,12,0,4">
-                                <TextBlock.Visibility>
-                                    <MultiBinding Converter="{StaticResource AllTrueToVis}">
-                                        <Binding Path="ShowPendingAffixes" />
-                                        <Binding Path="HasDropped" />
-                                    </MultiBinding>
-                                </TextBlock.Visibility>
-                            </TextBlock>
-                            <ListBox ItemsSource="{Binding DroppedLines}" Height="120">
-                                <ListBox.Visibility>
-                                    <MultiBinding Converter="{StaticResource AllTrueToVis}">
-                                        <Binding Path="ShowPendingAffixes" />
-                                        <Binding Path="HasDropped" />
-                                    </MultiBinding>
-                                </ListBox.Visibility>
                             </ListBox>
                         </StackPanel>
 
@@ -1566,30 +1931,92 @@
                                 <TextBlock Text="Legend — what the colors mean"
                                            Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding VariantGroups}" Margin="0,0,0,6">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,5"
+                                                        Visibility="{Binding HasColorPickers, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding Header}" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Accent.Primary}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <Grid Margin="0,2,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Margin="0,0,3,0">
+                                                        <TextBlock Text="Chase color" FontSize="{DynamicResource Type.Caption}"
+                                                                   Foreground="{DynamicResource Text.Muted}" />
+                                                        <ComboBox ItemsSource="{Binding Palette}" IsEnabled="{Binding TierColorsEnabled}"
+                                                                  SelectedItem="{Binding ChaseColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Border Width="12" Height="12" Background="{Binding Hex}"
+                                                                                BorderBrush="#777777" BorderThickness="1" Margin="0,0,5,0" />
+                                                                        <TextBlock Text="{Binding FullName}" />
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Margin="3,0,0,0">
+                                                        <TextBlock Text="Keeper color" FontSize="{DynamicResource Type.Caption}"
+                                                                   Foreground="{DynamicResource Text.Muted}" />
+                                                        <ComboBox ItemsSource="{Binding Palette}" IsEnabled="{Binding TierColorsEnabled}"
+                                                                  SelectedItem="{Binding KeeperColor, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <Border Width="12" Height="12" Background="{Binding Hex}"
+                                                                                BorderBrush="#777777" BorderThickness="1" Margin="0,0,5,0" />
+                                                                        <TextBlock Text="{Binding FullName}" />
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <TextBlock Text="{Binding TierEmissionNote}" TextWrapping="Wrap"
+                                                           FontSize="{DynamicResource Type.Caption}" FontStyle="Italic"
+                                                           Foreground="#E0A030" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <Border Background="{DynamicResource Surface.Inset}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
                                         CornerRadius="{DynamicResource Radius.Control}" Padding="10,8">
                                     <StackPanel>
-                                        <TextBlock Margin="0,1"><Run Foreground="#a020f0" Text="● Purple" /><Run Text="  — build uniques" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#dc0000" Text="● Red" /><Run Text="  — 3+ affixes · ancestral charms (chase)" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#ff69b4" Text="● Pink" /><Run Text="  — 2+ build affixes (keeper)" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#ffd700" Text="● Gold" /><Run Text="  — cube bases (2-affix magic)" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text="  — IP 900/850" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#2251e8" Text="● Blue" /><Run Text="  — Greater Affix items" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#00c800" Text="● Green" /><Run Text="  — Charms &amp; Seals" /></TextBlock>
-                                        <TextBlock Margin="0,1"><Run Foreground="#ffffff" Text="● White" /><Run Text="  — Codex upgrades" /></TextBlock>
-                                        <TextBlock Margin="0,1" Foreground="{DynamicResource Text.Muted}"><Run Text="◌ Hidden" /><Run Text="  — everything else" /></TextBlock>
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#a020f0" Text="● Purple" /><Run Text=": build uniques" /></TextBlock>
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap" Text="{Binding BuildTierLegend}" />
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text=": IP 900/850" /></TextBlock>
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#2251e8" Text="● Blue" /><Run Text=": Greater Affix items" /></TextBlock>
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#00c800" Text="● Green" /><Run Text=": Charms &amp; Seals" /></TextBlock>
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#ffffff" Text="● White" /><Run Text=": Codex upgrades" /></TextBlock>
+                                        <TextBlock Margin="0,1" TextWrapping="Wrap" Foreground="{DynamicResource Text.Muted}"><Run Text="◌ Hidden" /><Run Text=": everything else" /></TextBlock>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
                         </Grid>
                     </Grid>
 
-                    <!-- Filter options — toggles recompile the code live -->
-                    <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0,10,0,4"
-                               ToolTip="Each toggle is a rule the filter emits. Red = 3+ affix legendaries, Pink = 3+ affix rares. Mythics are never touched." />
-                    <Border Background="{DynamicResource Surface.Panel}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
-                            CornerRadius="{DynamicResource Radius.Control}" Padding="14,10">
+                    <!-- Filter options (v1.0.3): now four collapsible groups inside one card. Each
+                         header row is a ToggleButton (chevron ▾/▸ + label) that shows/hides its group.
+                         "Filter options" + "Charm sets" reopen on every app launch (state not saved);
+                         the two big unique lists remember their state and reopen only on a new build. -->
+                    <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
+                            CornerRadius="{DynamicResource Radius.Card}" Padding="{DynamicResource Pad.Card}">
                         <StackPanel>
+                            <ToggleButton IsChecked="{Binding FilterOptionsExpanded}" Style="{StaticResource SectionToggle}" Margin="0,0,0,2"
+                                          ToolTip="Each toggle is a rule the filter emits. Red = 3+ affix legendaries, Pink = 3+ affix rares. Mythics are never touched.">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource SectionChevron}" />
+                                    <TextBlock Text="Filter options" Style="{StaticResource SectionLabel}" Margin="0" />
+                                    <TextBlock Text="  good defaults are set · click to fine-tune" VerticalAlignment="Center"
+                                               FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
+                                </StackPanel>
+                            </ToggleButton>
+                            <StackPanel ClipToBounds="True" b:Reveal.IsOpen="{Binding FilterOptionsExpanded}">
                             <!-- ── Primary matching choice: per-slot mode + the two color-coded build-affix tiers ── -->
                             <CheckBox Content="Precise per-slot rules (recommended)" IsChecked="{Binding OptPerSlot}"
                                       Foreground="{Binding OptPerSlot, Converter={StaticResource ActiveText}}" Margin="0,0,0,6"
@@ -1597,15 +2024,23 @@
                             <!-- v1.0.2: Leveling mode (off by default; strict endgame is the standard). Adds a
                                  silver 2+ affix-rare tier and forces coarse combined rules to fit the 25-cap. -->
                             <CheckBox Content="Leveling — also show 2+ affix rares (Silver)" IsChecked="{Binding OptLeveling}"
+                                      IsEnabled="{Binding MultiBuildLevelingEnabled}"
                                       Foreground="{Binding OptLeveling, Converter={StaticResource ActiveText}}" Margin="0,0,0,2"
                                       ToolTip="OFF (default): endgame — only 3+ affix items (Red legendaries / Pink rares). ON: adds a Silver tier for 2+ affix rares so you can gear up while leveling. To fit the 25-rule limit it uses coarse combined rules (not per-slot), so it shows a lot — best with a leveling build loaded, not recommended for endgame." />
                             <TextBlock Text="Leveling shows a LOT (coarse, combined rules, not per-slot). Load a leveling build before turning it on; not recommended for endgame."
                                        FontSize="{DynamicResource Type.Caption}" Foreground="#E0A030" FontStyle="Italic" TextWrapping="Wrap"
                                        Margin="0,0,0,6" Visibility="{Binding OptLeveling, Converter={StaticResource BoolToVis}}" />
+                            <TextBlock Text="Leveling is unavailable for Super Builds: multi-build hunters use fixed 3+ endgame tiers only. A rare with only 2 wanted affixes is not rescued."
+                                       FontSize="{DynamicResource Type.Caption}" Foreground="#E0A030" FontStyle="Italic" TextWrapping="Wrap"
+                                       Margin="0,0,0,6" Visibility="{Binding MultiBuildTierLayoutFixed, Converter={StaticResource BoolToVis}}" />
                             <!-- beta.8.1: every row uses a 2-col Grid (32px chip slot | checkbox+label)
                                  so every checkbox locks to x=32 regardless of how many chips a row
                                  carries. Fixes the Item Power row pushing right because it has 2 chips. -->
-                            <UniformGrid Columns="2">
+                            <TextBlock Text="Super Build layout is fixed: every build keeps its 3+ legendary and 3+ rare tiers."
+                                       FontSize="{DynamicResource Type.Caption}" Foreground="#E0A030" FontStyle="Italic"
+                                       TextWrapping="Wrap" Margin="0,0,0,4"
+                                       Visibility="{Binding MultiBuildTierLayoutFixed, Converter={StaticResource BoolToVis}}" />
+                            <UniformGrid Columns="2" IsEnabled="{Binding MultiBuildTierControlsEnabled}">
                                 <!-- 3+ → Red (chase). v1.0.2: rarity sub-toggles refine the mask INSIDE
                                      this rule (rare/leg/ancestral) — regenerate the code as the
                                      character progresses; the rule count never changes. -->
@@ -1751,29 +2186,42 @@
                                      standard now (Red 3+ legendaries / Pink 3+ rares are the defaults).
                                      The looser 2+ rares moved to the opt-in "Leveling" checkbox up by
                                      "Precise per-slot rules." -->
-                                <!-- The "Show pending affixes (dev)" toggle that used to live here was
-                                     removed for ship — internal dev diagnostic, not user info. The
-                                     ShowPendingAffixes VM property is preserved so a future power-user
-                                     surface (settings.json flag / hidden chord) can rebind it. -->
-
                             </UniformGrid>
+                            </StackPanel>
 
-                            <!-- ── v1.0.1: per-class talisman-set checkboxes (Medick's wireframe:
-                                 "insert charms in here"). The build's sets come pre-checked;
-                                 unchecked sets are hidden by the compiled filter. Collapsed until
-                                 a build offers sets (paste builds keep the legacy catch-all). -->
+                            <!-- ── Charm sets (v1.0.1 per-class talisman checkboxes; v1.0.3 collapsible,
+                                 reopens each app launch). Build's sets come pre-checked; unchecked sets
+                                 are hidden. The whole group hides until a build offers sets. -->
                             <StackPanel Visibility="{Binding HasTalismanSetOptions, Converter={StaticResource BoolToVis}}">
                                 <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
-                                <DockPanel Margin="0,0,0,4" LastChildFill="True">
+                                <DockPanel Margin="0,0,0,4" LastChildFill="True" IsEnabled="{Binding CharmSetSelectionEnabled}">
                                     <Button DockPanel.Dock="Right" Content="Unselect all" Padding="8,2" Margin="6,0,0,0" FontSize="12"
                                             Command="{Binding UncheckAllCharmSetsCommand}" />
                                     <Button DockPanel.Dock="Right" Content="Select all" Padding="8,2" FontSize="12"
                                             Command="{Binding CheckAllCharmSetsCommand}" />
-                                    <TextBlock Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
-                                               Text="Charm sets — checked = shown (green · ancestral red) · unchecked = hidden"
-                                               ToolTip="All of your class's talisman sets plus the generic small sets. The sets your build calls for come pre-checked. Checked sets pack into one green rule (plus one ancestral-red rule); unchecked sets are hidden by the filter." />
+                                    <Button DockPanel.Dock="Right" Content="Re-check from current variants" Padding="8,2" Margin="6,0,0,0" FontSize="12"
+                                            Command="{Binding RecheckCharmSetsCommand}"
+                                            ToolTip="pulls from the currently highlighted variants that are open in the menu on screen at the moment" />
+                                    <ToggleButton IsChecked="{Binding CharmSetsExpanded}" Style="{StaticResource SectionToggle}"
+                                                  ToolTip="All of your class's talisman sets plus the generic small sets. The sets your build calls for come pre-checked. Checked sets pack into one green rule (plus one ancestral-red rule); unchecked sets are hidden by the filter.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource SectionChevron}" />
+                                            <TextBlock Style="{StaticResource SectionLabel}" Margin="0" VerticalAlignment="Center" Text="Charm sets" />
+                                            <TextBlock Text="  checked = shown · unchecked = hidden" VerticalAlignment="Center"
+                                                       FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
+                                        </StackPanel>
+                                    </ToggleButton>
                                 </DockPanel>
-                                <ItemsControl ItemsSource="{Binding TalismanSetOptions}">
+                                <StackPanel ClipToBounds="True" b:Reveal.IsOpen="{Binding CharmSetsExpanded}">
+                                <!-- v1.0.4: when a build carries no charm-set data (pasted affix lists,
+                                     or a guide that skips charms) we show ALL the class's sets so charms
+                                     aren't hidden; this note explains it. v1.0.5: all three sites now
+                                     detect, so this fires mainly for pasted builds. -->
+                                <TextBlock FontSize="{DynamicResource Type.Caption}" FontStyle="Italic"
+                                           Foreground="{DynamicResource Text.Muted}" TextWrapping="Wrap" Margin="0,0,0,6"
+                                           Visibility="{Binding CharmSetsUndetected, Converter={StaticResource BoolToVis}}"
+                                           Text="{Binding CharmSetSafetyNote}" />
+                                <ItemsControl ItemsSource="{Binding TalismanSetOptions}" IsEnabled="{Binding CharmSetSelectionEnabled}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
@@ -1785,12 +2233,12 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                </StackPanel>
                             </StackPanel>
 
-                            <!-- ── v1.0.2: unique-charm show-list (Medick's list): every S14 unique
-                                 charm, ALL pre-checked to drop visible in its natural color. Uncheck
-                                 any to hide it (build uniques still go purple above). Scrolls, since
-                                 there are ~110. Build-independent, so always shown. -->
+                            <!-- ── Unique charms (v1.0.2 show-list; v1.0.3 collapsible group that
+                                 remembers its state and reopens only on a new/different build). Every
+                                 S14 unique charm, ALL pre-checked; uncheck any to hide it. ~110, scrolls. -->
                             <StackPanel Visibility="{Binding HasUniqueCharmOptions, Converter={StaticResource BoolToVis}}">
                                 <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
                                 <DockPanel Margin="0,0,0,4" LastChildFill="True">
@@ -1798,10 +2246,17 @@
                                             Command="{Binding UncheckAllUniqueCharmsCommand}" />
                                     <Button DockPanel.Dock="Right" Content="Select all" Padding="8,2" FontSize="12"
                                             Command="{Binding CheckAllUniqueCharmsCommand}" />
-                                    <TextBlock Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
-                                               Text="Unique charms — all shown by default; uncheck any to hide"
-                                               ToolTip="Every S14 unique charm. All checked = they all drop visible in their natural color (your build's uniques still show purple). Uncheck the ones you don't want to hide them. Seals aren't listed here — they stay hidden." />
+                                    <ToggleButton IsChecked="{Binding UniqueCharmsExpanded}" Style="{StaticResource SectionToggle}"
+                                                  ToolTip="Every S14 unique charm. All checked = they all drop visible in their natural color (your build's uniques still show purple). Uncheck the ones you don't want to hide them. Seals aren't listed here — they stay hidden.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource SectionChevron}" />
+                                            <TextBlock Style="{StaticResource SectionLabel}" Margin="0" VerticalAlignment="Center" Text="Unique charms" />
+                                            <TextBlock Text="{Binding UniqueCharmsSummary}" VerticalAlignment="Center" Margin="6,0,0,0"
+                                                       FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
+                                        </StackPanel>
+                                    </ToggleButton>
                                 </DockPanel>
+                                <StackPanel ClipToBounds="True" b:Reveal.IsOpen="{Binding UniqueCharmsExpanded}">
                                 <TextBlock FontSize="12" FontStyle="Italic" Foreground="{DynamicResource Text.Muted}"
                                            TextWrapping="Wrap" Margin="0,0,0,6"
                                            Text="Checked charms drop on the ground in their normal color. Unchecked charms are hidden by the 'Hide the rest' rule at the bottom. Your build's own unique charms always show purple, from the 'Build Uniques' rule near the top of the filter." />
@@ -1819,11 +2274,12 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
+                                </StackPanel>
                             </StackPanel>
 
-                            <!-- ── v1.0.2: unique-item hide-list (Medick's list): every regular unique,
-                                 ALL pre-checked. Uniques drop by default, so this is a hide-list —
-                                 unchecking one adds it to the "Hide Uniques" rule. Scrolls (~329). -->
+                            <!-- ── Uniques (v1.0.2 hide-list; v1.0.3 collapsible group that remembers
+                                 its state and reopens only on a new/different build). Every regular
+                                 unique, ALL pre-checked; unchecking one adds it to "Hide Uniques". ~329. -->
                             <StackPanel Visibility="{Binding HasUniqueItemOptions, Converter={StaticResource BoolToVis}}">
                                 <Border Height="1" Background="{DynamicResource Border.Subtle}" Margin="0,10,0,10" />
                                 <DockPanel Margin="0,0,0,4" LastChildFill="True">
@@ -1831,10 +2287,17 @@
                                             Command="{Binding UncheckAllUniquesCommand}" />
                                     <Button DockPanel.Dock="Right" Content="Select all" Padding="8,2" FontSize="12"
                                             Command="{Binding CheckAllUniquesCommand}" />
-                                    <TextBlock Style="{StaticResource SectionLabel}" VerticalAlignment="Center"
-                                               Text="Uniques — all shown by default; uncheck any to hide"
-                                               ToolTip="Every regular unique in the game. All checked = they all drop as normal. Uncheck ones you never want to see and they get hidden. Your build's own uniques still show purple no matter what, and a Mythic version of any unique is never hidden." />
+                                    <ToggleButton IsChecked="{Binding UniquesExpanded}" Style="{StaticResource SectionToggle}"
+                                                  ToolTip="Every regular unique in the game. All checked = they all drop as normal. Uncheck ones you never want to see and they get hidden. Your build's own uniques still show purple no matter what, and a Mythic version of any unique is never hidden.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource SectionChevron}" />
+                                            <TextBlock Style="{StaticResource SectionLabel}" Margin="0" VerticalAlignment="Center" Text="Uniques" />
+                                            <TextBlock Text="{Binding UniquesSummary}" VerticalAlignment="Center" Margin="6,0,0,0"
+                                                       FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
+                                        </StackPanel>
+                                    </ToggleButton>
                                 </DockPanel>
+                                <StackPanel ClipToBounds="True" b:Reveal.IsOpen="{Binding UniquesExpanded}">
                                 <TextBlock FontSize="12" FontStyle="Italic" Foreground="{DynamicResource Text.Muted}"
                                            TextWrapping="Wrap" Margin="0,0,0,6"
                                            Text="Checked uniques drop as normal. Unchecked ones are hidden by a 'Hide Uniques' rule. Your build's own uniques always show purple, and Mythic versions are never hidden." />
@@ -1852,6 +2315,7 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
+                                </StackPanel>
                             </StackPanel>
                             <!-- beta.8.3: the 2-paragraph explainer here moved into tooltips on
                                  "Filter options" header + "Precise per-slot rules" checkbox above —
@@ -1859,69 +2323,8 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Filter title — inline row ("Filter title:  [box]  X/24 chars").
-                         beta.9: dropped the old 65px "warlord-reveal" dead-space gutter. With cards now
-                         opaque the watermark reads through the header/gutters anyway, and the dead band
-                         only pushed the Copy button below the fold. Back on the 8px grid (16 top). -->
-                    <DockPanel LastChildFill="True" Margin="0,16,0,0">
-                        <TextBlock DockPanel.Dock="Left" Text="Filter title" VerticalAlignment="Center"
-                                   Style="{StaticResource SectionLabel}" Margin="0,0,8,0"
-                                   ToolTip="Becomes the filter's name in Diablo 4 when imported. D4 drops names longer than 24 chars." />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding TitleLengthNote}"
-                                   FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center" Margin="8,0,0,0" />
-                        <TextBox Text="{Binding FilterTitle, UpdateSourceTrigger=PropertyChanged}"
-                                 MaxLength="24" Height="30" FontSize="{DynamicResource Type.Body}" FontFamily="{DynamicResource Font.Sans}" />
-                    </DockPanel>
-
-                    <!-- Import code (beta.8): single-line monospace + Copy button welded right.
-                         Was a 120px multiline wall of base64 dominating the page. The full code lives
-                         in the Expander below for the curious; the primary affordance is just Copy. -->
-                    <TextBlock Text="Import code" Style="{StaticResource SectionLabel}" Margin="0,16,0,4" />
-                    <!-- beta.9: the import code is the whole payoff, so it gets a "ticket" treatment —
-                         a gold left-accent rail so the eye lands here. Copy flips to "✓ Copied" (VM). -->
-                    <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="3,0,0,0"
-                            Background="{DynamicResource Surface.Inset}" CornerRadius="{DynamicResource Radius.Control}" Padding="8">
-                        <DockPanel LastChildFill="True">
-                            <Button DockPanel.Dock="Right" Content="{Binding CopyButtonText}"
-                                    Command="{Binding CopyCodeCommand}"
-                                    Width="110" Height="38" Margin="8,0,0,0" />
-                            <TextBox Text="{Binding ImportCode, Mode=OneWay}"
-                                     IsReadOnly="True" Height="38" FontSize="{DynamicResource Type.Caption}"
-                                     FontFamily="{DynamicResource Font.Mono}"
-                                     TextWrapping="NoWrap" BorderThickness="0"
-                                     Background="Transparent"
-                                     HorizontalScrollBarVisibility="Hidden"
-                                     VerticalContentAlignment="Center" />
-                        </DockPanel>
-                    </Border>
-                    <DockPanel LastChildFill="True" Margin="0,6,0,0">
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding FilterInfo}" Foreground="{DynamicResource Text.Secondary}"
-                                   VerticalAlignment="Center" FontSize="{DynamicResource Type.BodySm}" FontFamily="{DynamicResource Font.Mono}" />
-                        <Expander Header="▾ Show full code" Foreground="{DynamicResource Text.Muted}" FontSize="{DynamicResource Type.Caption}"
-                                  HorizontalAlignment="Left">
-                            <TextBox Text="{Binding ImportCode, Mode=OneWay}"
-                                     IsReadOnly="True" MinHeight="100" MaxHeight="200" TextWrapping="Wrap"
-                                     FontFamily="{DynamicResource Font.Mono}"
-                                     VerticalScrollBarVisibility="Auto" FontSize="{DynamicResource Type.Caption}" Margin="0,6,0,0" />
-                        </Expander>
-                    </DockPanel>
-
-                    <!-- Rule-cap warning: D4 rejects filters over 25 rules on import -->
-                    <Border Background="{DynamicResource Danger.Bg}" BorderBrush="{DynamicResource Danger.Border}" BorderThickness="1"
-                            CornerRadius="{DynamicResource Radius.Control}" Padding="12,8" Margin="0,10,0,0"
-                            Visibility="{Binding HasCapWarning, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{Binding CapWarning}" TextWrapping="Wrap" FontSize="{DynamicResource Type.BodySm}"
-                                   FontWeight="SemiBold" Foreground="{DynamicResource Danger.Fg}" />
-                    </Border>
-
-                    <!-- Re-import note (beta.9): demoted from an always-on amber WARNING band to a quiet
-                         muted helper line. Amber/red are now reserved for the genuine rule-cap failure
-                         above, so a successful compile no longer reads as two alarm colors. -->
-                    <TextBlock TextWrapping="Wrap" FontSize="{DynamicResource Type.Caption}" Margin="0,8,0,0"
-                               Foreground="{DynamicResource Text.Muted}">
-                        <Run Text="ℹ Changed an option? Copy the new code and re-import — in-game filters don't auto-update." />
-                    </TextBlock>
-
+                    <!-- (Filter title + import code + Copy + cap/auto-fit notes were moved to the TOP
+                         of this page in v1.0.4 — payoff first. See "THE PAYOFF" block above.) -->
                     <!-- How to import (beta.8: collapsed into an Expander since this is read-once
                          reference content — recovers ~140px of viewport from the read-only banner). -->
                     <Expander Header="? How to import into Diablo 4" Foreground="{DynamicResource Accent.Primary}" FontSize="{DynamicResource Type.BodySm}"
@@ -1938,7 +2341,7 @@
                     </Expander>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                        <Button Content="← Compile another build"
+                        <Button Content="← Make another filter"
                                 Command="{Binding RestartCommand}"
                                 Style="{StaticResource SecondaryButton}"
                                 Width="220" Height="44" FontSize="{DynamicResource Type.Body}" />
@@ -1977,9 +2380,13 @@
                     <Run Text="{Binding StatusMessage, Mode=OneWay}" Foreground="#8c8" />
                 </TextBlock>
 
-                <TextBlock Grid.Column="2" FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center"
-                           TextTrimming="CharacterEllipsis">
-                    Not affiliated with or endorsed by Blizzard Entertainment. Diablo is a trademark of Blizzard Entertainment, Inc.
+                <!-- CC BY 3.0 attribution for the licensed class icons is REQUIRED — keep this line.
+                     Lives in the STAR column (an Auto column measures infinite → never wraps, just
+                     clips); wraps to two lines at narrow widths so the credit and the trademark
+                     line both stay readable. -->
+                <TextBlock Grid.Column="1" Margin="16,0,0,0" FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" VerticalAlignment="Center"
+                           TextWrapping="Wrap" TextAlignment="Right">
+                    Class icons: Lorc and Delapouite, game-icons.net (CC BY 3.0)  •  Not affiliated with or endorsed by Blizzard Entertainment. Diablo is a trademark of Blizzard Entertainment, Inc.
                 </TextBlock>
             </Grid>
         </Border>

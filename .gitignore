@@ -13,8 +13,16 @@ _discord_landing.png
 # Tester scratch outputs
 last_code_perslot.txt
 last_code_leveling.txt
+last_code.txt
+last_code_strict.txt
+build_resolved.json
+maxroll_d4_data.json
+/sample_barb.json
 _tmp/
 _tmpfix_moba.html
+
+# Rescue-agent receipts (regenerated per run)
+tools/receipts/
 
 # Local launchers / scratch (machine-specific)
 D4 Filter Launcher.cmd
@@ -22,3 +30,8 @@ Open-D4Filter.ps1
 
 # Claude Code local config + hooks (machine-local)
 .claude/
+
+# internal shop law - never ships; contains identity-bearing self-referential rules
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md

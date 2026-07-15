@@ -22,17 +22,55 @@ public sealed partial class TierBuildVM : ObservableObject
     public string Source { get; }        // "Maxroll" | "D4Builds" | "Mobalytics"
     public string? TierKind { get; }     // "Endgame" | "Bossing" | ... — null for non-tier chips
     public string? Tier { get; }         // "S" | "A" | ... | "God" | "Support" — null for non-tier chips
-    public string Tip => $"{ClassName} · click to load into the filter · right-click to open on {Source}";
+    public string Tip => $"{ClassName} · click to load or adjust the active selection · right-click to open on {Source}";
     public Brush ClassColor { get; }
-    private readonly Action<string> _load;
+    private readonly Action<TierBuildVM> _load;
     private readonly Action<TierBuildVM>? _toggleFav;
     private readonly Action<string>? _openSource;
+    private readonly Func<TierBuildVM, bool, bool>? _toggleSelection;
+    private readonly Func<TierBuildVM, int, bool>? _changePriority;
+    private int? _priority;
+    private IReadOnlyList<int> _priorityChoices = [];
 
     [ObservableProperty] private bool _isFavorited;
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value) return;
+            var oldValue = _isSelected;
+            _isSelected = value;
+            OnPropertyChanged();
+            if (_toggleSelection?.Invoke(this, value) is false)
+            {
+                _isSelected = oldValue;
+                OnPropertyChanged();
+            }
+            OnPropertyChanged(nameof(HasPriority));
+        }
+    }
+
+    public int? Priority
+    {
+        get => _priority;
+        set
+        {
+            if (value == _priority || value is null || !_priorityChoices.Contains(value.Value)) return;
+            _changePriority?.Invoke(this, value.Value);
+        }
+    }
+
+    public IReadOnlyList<int> PriorityChoices => _priorityChoices;
+    public bool HasPriority => IsSelected && Priority is not null;
 
     public TierBuildVM(TierBuild b, string source, string? tierKind, string? tier,
-        Action<string> load, Action<TierBuildVM>? toggleFav = null, bool isFavorited = false,
-        Action<string>? openSource = null)
+        Action<TierBuildVM> load, Action<TierBuildVM>? toggleFav = null, bool isFavorited = false,
+        Action<string>? openSource = null,
+        Func<TierBuildVM, bool, bool>? toggleSelection = null, bool isSelected = false,
+        Func<TierBuildVM, int, bool>? changePriority = null, int? priority = null,
+        int priorityCount = 0)
     {
         Name = b.Name;
         ClassName = b.ClassName;
@@ -43,11 +81,33 @@ public sealed partial class TierBuildVM : ObservableObject
         _load = load;
         _toggleFav = toggleFav;
         _openSource = openSource;
+        _toggleSelection = toggleSelection;
+        _changePriority = changePriority;
         IsFavorited = isFavorited;
+        _isSelected = isSelected;
+        _priority = priority;
+        _priorityChoices = Enumerable.Range(1, priorityCount).ToArray();
         ClassColor = ColorFor(b.ClassName);
     }
 
-    [RelayCommand] private void Load() => _load(Url);
+    internal void SyncSelection(bool value)
+    {
+        if (_isSelected == value) return;
+        _isSelected = value;
+        OnPropertyChanged(nameof(IsSelected));
+        OnPropertyChanged(nameof(HasPriority));
+    }
+
+    internal void SyncPriority(int? value, int selectedBuildCount)
+    {
+        _priority = value;
+        _priorityChoices = Enumerable.Range(1, selectedBuildCount).ToArray();
+        OnPropertyChanged(nameof(Priority));
+        OnPropertyChanged(nameof(PriorityChoices));
+        OnPropertyChanged(nameof(HasPriority));
+    }
+
+    [RelayCommand] private void Load() => _load(this);
     [RelayCommand] private void ToggleFavorite() => _toggleFav?.Invoke(this);
     /// <summary>Open this build on its source site (Maxroll/D4Builds/Mobalytics) in the browser —
     /// the "link-out + attribution" model: we drive traffic back to the source rather than presenting
@@ -114,14 +174,18 @@ public sealed class TierGroupVM
         BadgeText = tier switch { "God" => "GOD", "Support" => "SUP", _ => tier };
     }
 
+    // v1.0.5: the classic tier-list heat ramp (S red-hot → D cool blue) — the convention every
+    // TierMaker/Maxroll-literate player already reads at a glance. The old scheme (S gold, C orange)
+    // ranked hotter colors BELOW cooler ones and misread. God/Support sit outside the ramp and keep
+    // their out-of-band flair colors.
     private static Brush BadgeFor(string tier) => tier switch
     {
-        "God"     => Frozen(0xE0, 0x40, 0x8A),   // magenta — top tier flair
-        "S"       => Frozen(0xE6, 0xB8, 0x00),   // gold
-        "A"       => Frozen(0x7B, 0xBF, 0x6A),   // green
-        "B"       => Frozen(0x5B, 0x8F, 0xD6),   // blue
-        "C"       => Frozen(0xE0, 0x7A, 0x4D),   // orange
-        "D"       => Frozen(0xB2, 0x51, 0x51),   // red-brown
+        "God"     => Frozen(0xE0, 0x40, 0x8A),   // magenta — above-S flair
+        "S"       => Frozen(0xE8, 0x4A, 0x4A),   // red (hottest)
+        "A"       => Frozen(0xF0, 0x90, 0x2E),   // orange
+        "B"       => Frozen(0xE8, 0xC8, 0x4A),   // yellow
+        "C"       => Frozen(0x5F, 0xB8, 0x5F),   // green
+        "D"       => Frozen(0x5A, 0x9B, 0xD8),   // blue (coolest)
         "Support" => Frozen(0x4D, 0xB3, 0xA8),   // teal — utility / multiplayer
         _         => Frozen(0x8a, 0x7e, 0x74),   // gray fallback
     };
