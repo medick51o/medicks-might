@@ -207,6 +207,29 @@ public class CharmSetDetectionTests
     }
 
     [Fact]
+    public void MainViewModel_CharmsSealsAncestralCheckboxControlsDecodedRedRule()
+    {
+        var vm = new MainViewModel(startTierListFetches: false);
+        var build = new ResolvedBuild("Crucible Build", "Barbarian",
+        [
+            new ResolvedVariant("Endgame", ["Strength"], [],
+                TalismanSets: ["Berserker's Crucible"])
+        ]);
+
+        vm.Ingest(build, "Test");
+        Assert.Contains(FilterDecoder.Decode(vm.ImportCode).Rules,
+            rule => rule.Name == "Charms&Seals Anc (Red)");
+
+        vm.OptCharmsSealsAncestral = false;
+        Assert.DoesNotContain(FilterDecoder.Decode(vm.ImportCode).Rules,
+            rule => rule.Name == "Charms&Seals Anc (Red)");
+
+        vm.OptCharmsSealsAncestral = true;
+        Assert.Contains(FilterDecoder.Decode(vm.ImportCode).Rules,
+            rule => rule.Name == "Charms&Seals Anc (Red)");
+    }
+
+    [Fact]
     public void MainViewModel_TransitionIntoUnknownSetFallback_DiscardsPriorChecks()
     {
         var vm = new MainViewModel(startTierListFetches: false);

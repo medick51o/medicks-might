@@ -1299,6 +1299,7 @@ public partial class MainViewModel : ObservableObject
         ItemPowerTiers = OptItemPowerTiers,
         GreaterAffixes = OptGreaterAffixes,
         CharmsSeals = OptCharmsSeals,
+        CharmsSealsAncestral = OptCharmsSealsAncestral,
         Codex = OptCodex,
         HideRest = OptHideRest,
     };
