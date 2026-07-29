@@ -796,20 +796,13 @@ public partial class MainViewModel : ObservableObject
             _currentTier = first.Tier;
             Ingest(resolved[0], first.Source, resolved.Skip(1).ToList());
 
-            // The primary favorite is handled by Ingest (including its drift note). Extra selected
-            // favorites earn the same full-source baseline only after the grouped compile produced
-            // copyable code; temporary variant narrowing is never written into BuildSnapshot.
-            if (!string.IsNullOrEmpty(ImportCode))
-            {
-                bool updated = false;
-                for (int i = 1; i < selections.Count; i++)
-                    if (_favorites.Find(selections[i].Url) is { } favorite)
-                    {
-                        _favorites.Update(favorite with { Snapshot = BuildSnapshot.Capture(resolved[i]) });
-                        updated = true;
-                    }
-                if (updated) RefreshFavoritesUi();
-            }
+            // The primary favorite is handled by Ingest. Extra selected favorites must compare
+            // before advancing too; temporary variant narrowing is never written into BuildSnapshot.
+            bool updated = false;
+            for (int i = 1; i < selections.Count; i++)
+                updated |= TryCompareAndAdvanceFavoriteSnapshot(
+                    selections[i].Url, resolved[i], isPrimary: false);
+            if (updated) RefreshFavoritesUi();
         }
         catch (UserMessageException ex)
         {
@@ -1530,23 +1523,8 @@ public partial class MainViewModel : ObservableObject
         Recompile(RecompileCause.BuildContextChanged);
         State = AppState.Result;
 
-        // A snapshot is earned only by a real, copyable compile. Compare before replacing the
-        // baseline, then keep the note visible while the persisted favorite moves forward.
-        if (!string.IsNullOrEmpty(ImportCode)
-            && !string.IsNullOrEmpty(_currentSourceUrl)
-            && !_currentSourceUrl.StartsWith("paste://", StringComparison.OrdinalIgnoreCase)
-            && _favorites.Find(_currentSourceUrl) is { } favorite)
-        {
-            var diff = BuildDrift.Compare(favorite.Snapshot, resolved);
-            if (diff is { HasDrift: true })
-            {
-                var days = Math.Max(0, (int)(DateTime.UtcNow - diff.BaselineCapturedUtc).TotalDays);
-                BuildDriftNote = $"What changed since your last compile ({days} "
-                    + $"{(days == 1 ? "day" : "days")} ago): {diff.Summary}";
-            }
-            _favorites.Update(favorite with { Snapshot = BuildSnapshot.Capture(resolved) });
+        if (TryCompareAndAdvanceFavoriteSnapshot(_currentSourceUrl, resolved, isPrimary: true))
             RefreshFavoritesUi();
-        }
         // Result-page ★ button: refresh state + visibility for whichever URL we just loaded (paste
         // mode clears _currentSourceUrl so the button hides).
         var currentUrl = CurrentResultBuild()?.SourceUrl;
@@ -1646,23 +1624,37 @@ public partial class MainViewModel : ObservableObject
         ApplyMultiTierDefaults();
         Recompile(RecompileCause.BuildContextChanged);
 
-        // Match the primary seat's earned-baseline rule: compile first, then compare and advance
-        // only when the attempted Armory payload produced a real import code.
-        if (!string.IsNullOrEmpty(ImportCode)
-            && !string.IsNullOrEmpty(sourceUrl)
-            && _favorites.Find(sourceUrl) is { Snapshot: not null } favorite)
-        {
-            var diff = BuildDrift.Compare(favorite.Snapshot, resolved);
-            if (diff is { HasDrift: true })
-            {
-                var days = Math.Max(0, (int)(DateTime.UtcNow - diff.BaselineCapturedUtc).TotalDays);
-                var note = $"{resolved.Build} changed since your last compile ({days} "
-                    + $"{(days == 1 ? "day" : "days")} ago): {diff.Summary}";
-                BuildDriftNote = string.IsNullOrEmpty(BuildDriftNote) ? note : BuildDriftNote + "\n" + note;
-            }
-            _favorites.Update(favorite with { Snapshot = BuildSnapshot.Capture(resolved) });
+        if (TryCompareAndAdvanceFavoriteSnapshot(sourceUrl, resolved, isPrimary: false))
             RefreshFavoritesUi();
+    }
+
+    /// <summary>Earn a favorite baseline only from a real import payload. A missing baseline is
+    /// initialized without a drift opinion; an existing baseline is compared before it advances.</summary>
+    private bool TryCompareAndAdvanceFavoriteSnapshot(
+        string? sourceUrl, ResolvedBuild resolved, bool isPrimary)
+    {
+        if (string.IsNullOrEmpty(ImportCode)
+            || string.IsNullOrEmpty(sourceUrl)
+            || sourceUrl.StartsWith("paste://", StringComparison.OrdinalIgnoreCase)
+            || _favorites.Find(sourceUrl) is not { } favorite)
+            return false;
+
+        var diff = BuildDrift.Compare(favorite.Snapshot, resolved);
+        if (diff is { HasDrift: true })
+        {
+            var days = Math.Max(0, (int)(DateTime.UtcNow - diff.BaselineCapturedUtc).TotalDays);
+            var note = isPrimary
+                ? $"What changed since your last compile ({days} "
+                    + $"{(days == 1 ? "day" : "days")} ago): {diff.Summary}"
+                : $"{resolved.Build} changed since your last compile ({days} "
+                    + $"{(days == 1 ? "day" : "days")} ago): {diff.Summary}";
+            BuildDriftNote = string.IsNullOrEmpty(BuildDriftNote)
+                ? note
+                : BuildDriftNote + "\n" + note;
         }
+
+        _favorites.Update(favorite with { Snapshot = BuildSnapshot.Capture(resolved) });
+        return true;
     }
 
     private bool RefuseArmoryForLoadedSuperBuild()

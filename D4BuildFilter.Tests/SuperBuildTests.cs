@@ -157,6 +157,52 @@ public class SuperBuildTests
     }
 
     [Fact]
+    public async Task Non_priority_one_favorite_drift_is_reported_before_its_snapshot_advances()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"medicksmight_super_drift_{Guid.NewGuid():N}.json");
+        try
+        {
+            const string firstUrl = "https://example.test/favorite-rogue";
+            const string secondUrl = "https://example.test/favorite-sorcerer";
+            var first = Build("Dance of Knives", "Rogue",
+                "Dexterity", "Critical Strike Chance", "Maximum Life");
+            var oldSecond = Build("Meteor", "Sorcerer",
+                "Dexterity", "Cooldown Reduction", "Maximum Life");
+            var freshSecond = Build("Meteor", "Sorcerer",
+                "Intelligence", "Cooldown Reduction", "Maximum Life");
+            var resolved = new Dictionary<string, ResolvedBuild>
+            {
+                [firstUrl] = first,
+                [secondUrl] = freshSecond,
+            };
+            var store = new FavoritesStore(path);
+            store.Toggle(new FavoriteEntry("first", firstUrl, "Test", "Endgame", "S",
+                first.Build, first.Class, DateTime.UtcNow.AddDays(-10), DateTime.UtcNow.AddDays(-5),
+                Snapshot: BuildSnapshot.Capture(first, DateTime.UtcNow.AddDays(-5))));
+            store.Toggle(new FavoriteEntry("second", secondUrl, "Test", "Endgame", "S",
+                oldSecond.Build, oldSecond.Class, DateTime.UtcNow.AddDays(-10), DateTime.UtcNow.AddDays(-5),
+                Snapshot: BuildSnapshot.Capture(oldSecond, DateTime.UtcNow.AddDays(-5))));
+            var vm = new MainViewModel(startTierListFetches: false, favorites: store,
+                resolveBuild: url => Task.FromResult((resolved[url], "Test")));
+            var cards = vm.BuildGroups(new TierList("Test", "https://example.test/list",
+            [
+                new TierBuild(first.Build, first.Class, "S", firstUrl),
+                new TierBuild(freshSecond.Build, freshSecond.Class, "S", secondUrl),
+            ]), "Test", "Endgame").Single().Builds;
+            foreach (var card in cards) card.IsSelected = true;
+
+            await vm.CompileSelectedBuildsCommand.ExecuteAsync(null);
+
+            Assert.Contains("Meteor changed since your last compile", vm.BuildDriftNote);
+            Assert.Contains("+ Intelligence", vm.BuildDriftNote);
+            Assert.Contains("− Dexterity", vm.BuildDriftNote);
+            var advanced = Assert.IsType<BuildSnapshot>(store.Find(secondUrl)!.Snapshot);
+            Assert.False(BuildDrift.Compare(advanced, freshSecond)!.HasDrift);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void Each_super_build_exposes_variants_and_narrowing_build_b_changes_only_build_b_rules()
     {
         var first = BuildWithVariants("Heartseeker", "Rogue",

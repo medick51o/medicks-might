@@ -237,6 +237,32 @@ public class ArmoryModeTests
         finally { File.Delete(path); }
     }
 
+    [Fact]
+    public void Armory_secondary_favorite_without_snapshot_earns_baseline_without_drift_warning()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"medicksmight_armory_baseline_{Guid.NewGuid():N}.json");
+        try
+        {
+            const string secondUrl = "https://example.test/favorite-druid-baseline";
+            var second = Build("Companion Druid", "Druid", "Tyrael's Might",
+                "Nature's Fury", "Willpower", "Maximum Life", "Armor");
+            var store = new FavoritesStore(path);
+            store.Toggle(new FavoriteEntry("second-baseline", secondUrl, "Test", null, null,
+                second.Build, second.Class, DateTime.UtcNow.AddDays(-10), DateTime.UtcNow.AddDays(-5)));
+            var vm = new MainViewModel(startTierListFetches: false, favorites: store);
+            vm.Ingest(Build("Dance of Knives", "Rogue", "Harlequin Crest",
+                "Vile Apothecary", "Dexterity", "Critical Strike Chance", "Maximum Life"), "Test");
+
+            vm.IngestSecond(second, secondUrl);
+
+            Assert.NotEmpty(vm.ImportCode);
+            Assert.Empty(vm.BuildDriftNote);
+            var baseline = Assert.IsType<BuildSnapshot>(store.Find(secondUrl)!.Snapshot);
+            Assert.False(BuildDrift.Compare(baseline, second)!.HasDrift);
+        }
+        finally { File.Delete(path); }
+    }
+
     private static WitnessCardRequest CardRequest(FilterOutput output) => new(
         "Speedfarm", "Barbarian", "Maxroll", "Endgame", "S", output, 25,
         "https://discord.gg/test", VersionOverride: "MedicK's Might v1.2.3");
