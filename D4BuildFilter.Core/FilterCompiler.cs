@@ -428,9 +428,10 @@ public static class FilterCompiler
         // ideal affixes makes both thresholds collapse to the same count).
         if (multiBuild)
         {
-            // Super Builds have a deliberately fixed endgame shape: one combined 3+ legendary
-            // rule and one combined 3+ rare rule per build. Two builds use colors by build; three
-            // or four use colors by tier. Names carry identity in both schemes.
+            // Super Builds have a deliberately fixed endgame shape: one combined legendary rule
+            // and one combined rare rule per build, using up to the strict 3+ threshold. Two builds
+            // use colors by build; three or four use colors by tier. Names carry identity in both
+            // schemes.
             for (int i = 0; i < builds.Count; i++)
             {
                 var b = builds[i];
@@ -444,14 +445,16 @@ public static class FilterCompiler
                     continue;
                 }
 
-                var legendaryScope = new[] { Conditions.RarityMask(Rarity.Legendary), Conditions.Affixes(b.Pool, Strict) };
+                var legendaryScope = new[] { Conditions.RarityMask(Rarity.Legendary),
+                    Conditions.Affixes(b.Pool, Math.Min(Strict, b.Pool.Count)) };
                 rules.Add(Recolor($"{multiTags[i]} Leg", legendaryScope, chaseColors[i]));
             }
             for (int i = 0; i < builds.Count; i++)
             {
                 var b = builds[i];
                 if (b.Pool.Count == 0) continue;
-                var rareScope = new[] { Conditions.RarityMask(Rarity.Rare), Conditions.Affixes(b.Pool, Strict) };
+                var rareScope = new[] { Conditions.RarityMask(Rarity.Rare),
+                    Conditions.Affixes(b.Pool, Math.Min(Strict, b.Pool.Count)) };
                 rules.Add(Recolor($"{multiTags[i]} Rare", rareScope, keeperColors[i]));
             }
         }

@@ -39,6 +39,31 @@ public class ArmoryModeTests
     }
 
     [Fact]
+    public void Multi_build_affix_thresholds_do_not_exceed_one_or_two_affix_pools()
+    {
+        var oneAffix = Analyze("Speedfarm", "Barbarian", "Banished Lord's Talisman",
+            "Berserker's Crucible", "Strength");
+        var twoAffixes = Analyze("Pit Push", "Sorcerer", "Tyrael's Might",
+            "Cain's Wild Lightning", "Intelligence", "Maximum Life");
+
+        Assert.Single(oneAffix.Pool);
+        Assert.Equal(2, twoAffixes.Pool.Count);
+
+        var decoded = FilterDecoder.Decode(
+            FilterCompiler.Compile([oneAffix, twoAffixes], new FilterOptions(), "armory").ImportCode);
+        var tierConditions = decoded.Rules
+            .SelectMany(rule => rule.Conditions)
+            .Where(condition => condition.Type == 6)
+            .ToList();
+
+        Assert.Equal(4, tierConditions.Count);
+        Assert.Equal([1, 1, 2, 2], tierConditions.Select(condition => condition.Ids.Count).Order().ToArray());
+        Assert.All(tierConditions, condition =>
+            Assert.True(condition.MaskOrCount!.Value <= (ulong)condition.Ids.Count,
+                $"Affix threshold {condition.MaskOrCount} exceeds its {condition.Ids.Count}-affix pool."));
+    }
+
+    [Fact]
     public void Auto_fit_and_over_cap_honesty_use_the_merged_rule_count()
     {
         var builds = new[] { SyntheticSlotted("Speedfarm", 100), SyntheticSlotted("Pit Push", 200) };
@@ -97,7 +122,14 @@ public class ArmoryModeTests
         Assert.Equal("Speedfarm + Pit Push", card.BuildName);
         Assert.Equal("Barbarian + Sorcerer", card.ClassName);
         Assert.Equal("Super Build · 2 builds · colors by build", card.ProvenanceChip);
-        Assert.Equal(vm.ImportCode, card.ImportCode);
+        var cardTierConditions = FilterDecoder.Decode(card.ImportCode).Rules
+            .SelectMany(rule => rule.Conditions)
+            .Where(condition => condition.Type == 6)
+            .ToList();
+        Assert.Equal(4, cardTierConditions.Count);
+        Assert.All(cardTierConditions, condition =>
+            Assert.True(condition.MaskOrCount!.Value <= (ulong)condition.Ids.Count,
+                $"Affix threshold {condition.MaskOrCount} exceeds its {condition.Ids.Count}-affix pool."));
         Assert.Collection(card.Builds,
             first => Assert.Equal(("Speedfarm", "Barbarian"), (first.BuildName, first.ClassName)),
             second => Assert.Equal(("Pit Push", "Sorcerer"), (second.BuildName, second.ClassName)));
