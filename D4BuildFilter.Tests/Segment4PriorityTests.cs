@@ -148,6 +148,35 @@ public class Segment4PriorityTests
         Assert.Equal(["Beta", "Alpha"], vm.VariantGroups.Select(group => group.BuildName));
     }
 
+    /// <summary>Replacing an Armory build after a priority swap must replace that build by identity,
+    /// not delete the primary build that moved to the end of the collection.</summary>
+    [Fact]
+    public void Armory_replacement_after_priority_swap_preserves_primary_in_compiled_build_set()
+    {
+        var vm = new MainViewModel(startTierListFetches: false);
+        vm.Ingest(Build("Alpha", "Harlequin Crest", ("Endgame", BlurringBlade)), "Test");
+        vm.IngestSecond(Build("Beta", "Tyrael's Might", ("Endgame", AppliedAlchemy)));
+
+        vm.VariantGroups.Single(group => group.BuildName == "Beta").Priority = 1;
+        vm.IngestSecond(Build("Gamma", "Heir of Perdition", ("Endgame", AppliedAlchemy)));
+
+        Assert.Equal(1, vm.VariantGroups.Single(group => group.BuildName == "Gamma").Priority);
+        Assert.Equal(2, vm.VariantGroups.Single(group => group.BuildName == "Alpha").Priority);
+
+        var compiledBuilds = FilterDecoder.Decode(vm.ImportCode).Rules
+            .Where(rule => rule.Name.EndsWith(" Leg (Red)", StringComparison.Ordinal)
+                || rule.Name.EndsWith(" Leg (Pink)", StringComparison.Ordinal))
+            .Select(rule => rule.Name[..rule.Name.IndexOf(" Leg (", StringComparison.Ordinal)])
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        var armoryBuilds = vm.ArmoryBuildNames.Split("  +  ", StringSplitOptions.None)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(["Alpha", "Gamma"], compiledBuilds);
+        Assert.Equal(compiledBuilds, armoryBuilds);
+    }
+
     /// <summary>Reverting this fix stores Alpha's URL and snapshot under Beta's result-page name after a priority swap.</summary>
     [Fact]
     public void Result_page_favorite_after_priority_swap_saves_one_coherent_build_identity()

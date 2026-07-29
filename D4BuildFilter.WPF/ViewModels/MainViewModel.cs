@@ -1615,14 +1615,24 @@ public partial class MainViewModel : ObservableObject
                 SourceUrl = sourceUrl,
             };
 
+        int? replacementPriority = null;
+        int? replacementIndex = null;
         if (_secondResolved is null) _singleBuildDriftNote = BuildDriftNote;
         else
         {
             _buildColorCustomizations.Remove(BuildColorKey(_secondResolved));
+            var outgoingKey = BuildColorKey(_secondResolved);
+            var outgoingGroup = VariantGroups.FirstOrDefault(group =>
+                BuildColorKey(group.Build).Equals(outgoingKey, StringComparison.OrdinalIgnoreCase));
+            if (outgoingGroup is not null)
+            {
+                replacementPriority = outgoingGroup.Priority;
+                replacementIndex = VariantGroups.IndexOf(outgoingGroup);
+                VariantGroups.Remove(outgoingGroup);
+            }
             BuildDriftNote = _singleBuildDriftNote;
         }
         _superResolved.Clear();
-        while (VariantGroups.Count > 1) VariantGroups.RemoveAt(VariantGroups.Count - 1);
         _secondResolved = resolved;
         SecondBuildName = resolved.Build;
         ArmoryStatus = "";
@@ -1631,7 +1641,7 @@ public partial class MainViewModel : ObservableObject
 
         OnPropertyChanged(nameof(HasSecondBuild));
         OnPropertyChanged(nameof(ArmoryBuildNames));
-        AddVariantGroup(resolved);
+        AddVariantGroup(resolved, replacementPriority, replacementIndex);
         ApplyMultiItemPowerDefault();
         ApplyMultiTierDefaults();
         Recompile(RecompileCause.BuildContextChanged);
@@ -1724,14 +1734,18 @@ public partial class MainViewModel : ObservableObject
         RefreshVariantGroupHeaders();
     }
 
-    private void AddVariantGroup(ResolvedBuild build)
+    private void AddVariantGroup(ResolvedBuild build, int? priority = null, int? insertionIndex = null)
     {
         var options = new ObservableCollection<VariantOption>();
         foreach (var variant in build.Variants)
             options.Add(new VariantOption(variant,
                 () => Recompile(RecompileCause.BuildContextChanged)));
-        VariantGroups.Add(new BuildVariantGroup(build, options, build.Build,
-            VariantGroups.Count + 1, ChangeBuildPriority, ChangeBuildColor));
+        var group = new BuildVariantGroup(build, options, build.Build,
+            priority ?? VariantGroups.Count + 1, ChangeBuildPriority, ChangeBuildColor);
+        if (insertionIndex is int index && index >= 0 && index <= VariantGroups.Count)
+            VariantGroups.Insert(index, group);
+        else
+            VariantGroups.Add(group);
         RefreshPriorityChoices();
         RefreshBuildColors();
         RefreshVariantGroupHeaders();
