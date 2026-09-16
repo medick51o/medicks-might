@@ -3,7 +3,7 @@
 **Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `f4ebefe` · gate **412 passed / 0 failed / 5 skipped**
 (run 2026-09-15 19:02 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-15 20:06
+**Last updated:** 2026-09-15 20:09
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -21,7 +21,13 @@ landing BEFORE the affix keeper rules (`FilterCompiler.cs:419-452`, hide emitted
 :484/:487). Compiler constants already assume orange=900, cyan=850 (`:228-235`, `:609-612`).
 A sourcing seat reports Season 15's ceiling is **750 normal / 800 Ancestral, and that item
 power 900 does not exist**. If true, enabling this switch hides **every drop in the game**.
-- Status: **REPORTED, not CONFIRMED.** The claim cites community sites (Maxroll, D4Gold);
+- Status: **DISPUTED — two vendors, opposite answers, neither CONFIRMED.** An independent
+  Claude-lineage seat (2026-09-15 20:08) says the OPPOSITE: that 900 IS the Ancestral drop
+  ceiling at Torment, unchanged by S15, citing Maxroll's equipment page (updated 2026-07-25)
+  and a Blizzard forum thread with a Blue reply. Both seats cite Maxroll and disagree, so one
+  read a stale page. Blizzard's own text was unreachable to both (HTTP 500/404).
+  **Do NOT strip this feature on the current evidence.** See `..\d4-s15-council\DECISION-QUEUE.md` D1.
+- Earlier status line, kept for the record: **REPORTED, not CONFIRMED.** The claim cites community sites (Maxroll, D4Gold);
   Blizzard's own page could not be fetched. The seat that reported it ran on a fast-tier
   brain. An independent refuter seat (Grok) was dispatched TWICE and failed both times; the
   second timed out at 3600s with nothing on disk. See `SIGNED-grok.md` in the council dir.
