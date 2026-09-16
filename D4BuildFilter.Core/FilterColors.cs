@@ -27,10 +27,10 @@ public static class FilterColors
     public static uint Make(byte r, byte g, byte b, byte a = 255)
         => ((uint)a << 24) | ((uint)r << 16) | ((uint)g << 8) | b;
 
-    public static readonly uint Red = Make(220, 0, 0);        // S14: 3-affix "chase" tier + ancestral charms
-    public static readonly uint Pink = Make(255, 105, 180);   // S14: 2-affix "keeper" tier (#FF69B4 hot pink)
-    public static readonly uint Gold = Make(255, 215, 0);     // legacy tier color (pre-S14); kept but unused
-    public static readonly uint Silver = Make(170, 170, 170); // legacy tier color (pre-S14); kept but unused
+    public static readonly uint Red = Make(220, 0, 0);        // Default single-build chase; Super Build chase except second of two; ancestral charms
+    public static readonly uint Pink = Make(255, 105, 180);   // Default single-build keeper; chase for second of two builds (#FF69B4)
+    public static readonly uint Gold = Make(255, 215, 0);     // Default Super Build keeper except second of two; Cube Bases
+    public static readonly uint Silver = Make(170, 170, 170); // Default keeper for second of two builds; optional Leveling tier
     public static readonly uint Orange = Make(255, 140, 0);
     public static readonly uint Cyan = Make(0, 255, 255);
     public static readonly uint Blue = Make(34, 81, 232);     // rootsxo's "Greater Affixes" blue (#2251E8)
@@ -47,6 +47,12 @@ public static class FilterColors
     public static readonly uint Black = Make(16, 16, 16);
 
     public const uint Default = 0xFFFF0000;
+
+    public static uint RuledChaseColor(int buildCount, int index) =>
+        buildCount == 2 && index == 1 ? FilterColors.Pink : FilterColors.Red;
+
+    public static uint RuledKeeperColor(int buildCount, int index) =>
+        buildCount == 2 && index == 1 ? FilterColors.Silver : FilterColors.Gold;
 
     private static readonly FilterColorEntry[] Entries =
     [

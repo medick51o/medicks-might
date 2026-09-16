@@ -16,7 +16,7 @@ public sealed record GameDataUpdateResult(
 
 /// <summary>
 /// Downloads the latest <c>Affixes.enUS.json</c> / <c>Uniques.enUS.json</c>, validates them, and
-/// atomically installs them into <see cref="GameDataStore.DefaultDir"/> where <see cref="DataFiles"/>
+/// installs each file individually into <see cref="GameDataStore.DefaultDir"/> where <see cref="DataFiles"/>
 /// prefers them over the bundled (frozen-at-build-time) copies.
 ///
 /// Source: the <c>josdemmers/Diablo4Companion</c> repo's <c>D4Companion/Data/</c> tree — the same
@@ -27,8 +27,9 @@ public sealed record GameDataUpdateResult(
 /// data — so D4Companion master is the only raw-URL host of this exact shape.
 ///
 /// Both files are validated (parse + shape + entry-count sanity vs the bundled copies) BEFORE
-/// either is installed — a season bump updates the pair together, and a truncated download or
-/// GitHub error page must never half-install or clobber a working override.
+/// either is installed. Each file is then replaced individually; the second replacement can fail
+/// after the first succeeds. Validation failures leave both current files unchanged, but installation
+/// is not a transaction across the pair.
 /// </summary>
 public static class GameDataUpdater
 {

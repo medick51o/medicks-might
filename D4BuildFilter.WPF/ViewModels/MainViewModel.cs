@@ -1839,9 +1839,9 @@ public partial class MainViewModel : ObservableObject
         uint? chaseChoice = current?.Chase;
         uint? keeperChoice = current?.Keeper;
         if (chase)
-            chaseChoice = color.Value == RuledChaseColor(VariantGroups.Count, index) ? null : color.Value;
+            chaseChoice = color.Value == FilterColors.RuledChaseColor(VariantGroups.Count, index) ? null : color.Value;
         else
-            keeperChoice = color.Value == RuledKeeperColor(VariantGroups.Count, index) ? null : color.Value;
+            keeperChoice = color.Value == FilterColors.RuledKeeperColor(VariantGroups.Count, index) ? null : color.Value;
 
         if (chaseChoice is null && keeperChoice is null)
             _buildColorCustomizations.Remove(key);
@@ -1856,17 +1856,11 @@ public partial class MainViewModel : ObservableObject
         {
             var group = VariantGroups[i];
             _buildColorCustomizations.TryGetValue(BuildColorKey(group.Build), out var custom);
-            var chase = FilterColors.EntryFor(custom?.Chase ?? RuledChaseColor(VariantGroups.Count, i));
-            var keeper = FilterColors.EntryFor(custom?.Keeper ?? RuledKeeperColor(VariantGroups.Count, i));
+            var chase = FilterColors.EntryFor(custom?.Chase ?? FilterColors.RuledChaseColor(VariantGroups.Count, i));
+            var keeper = FilterColors.EntryFor(custom?.Keeper ?? FilterColors.RuledKeeperColor(VariantGroups.Count, i));
             group.SetColors(chase, keeper, VariantGroups.Count > 1);
         }
     }
-
-    private static uint RuledChaseColor(int buildCount, int index) =>
-        buildCount == 2 && index == 1 ? FilterColors.Pink : FilterColors.Red;
-
-    private static uint RuledKeeperColor(int buildCount, int index) =>
-        buildCount == 2 && index == 1 ? FilterColors.Silver : FilterColors.Gold;
 
     private static string BuildColorKey(ResolvedBuild build) =>
         BuildColorKey(build.Source, build.SourceUrl, build.Build, build.Class);
@@ -2393,8 +2387,8 @@ public partial class MainViewModel : ObservableObject
                 lines.Add($"○ {tags[i]}: tiers not emitted — no filterable affixes remain in the selected variants");
                 continue;
             }
-            var chase = builds[i].ChaseColorOverride ?? RuledChaseColor(builds.Count, i);
-            var keeper = builds[i].KeeperColorOverride ?? RuledKeeperColor(builds.Count, i);
+            var chase = builds[i].ChaseColorOverride ?? FilterColors.RuledChaseColor(builds.Count, i);
+            var keeper = builds[i].KeeperColorOverride ?? FilterColors.RuledKeeperColor(builds.Count, i);
             lines.Add($"● {FilterColors.EntryFor(chase).FullName}: {tags[i]} chase · legendaries (3+)");
             lines.Add($"● {FilterColors.EntryFor(keeper).FullName}: {tags[i]} keeper · rares (3+)");
         }

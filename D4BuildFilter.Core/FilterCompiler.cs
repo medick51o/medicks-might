@@ -49,6 +49,9 @@ public sealed record CompiledBuild(
 }
 
 /// <summary>One compiled filter: the base64 import code plus its safety diagnostics and self-check.</summary>
+/// <param name="RoundTripOk">Rule-count consistency only: the number of top-level rule fields
+/// read from the serialized filter bytes equals the assembled rule count. Does not validate nested
+/// conditions, Base64 decoding, in-game import acceptance, or gameplay behavior.</param>
 public sealed record FilterOutput(string Label, string ImportCode, int RuleCount, int Bytes,
     bool RoundTripOk, bool IsCopyable, IReadOnlyList<string> Diagnostics)
 {
@@ -116,16 +119,16 @@ public sealed record FilterOptions
     public int PinkMinAffixes { get; init; } = 3;
     /// <summary>The build's own uniques → purple.</summary>
     public bool BuildUniques { get; init; } = true;
-    /// <summary>GOLD tier: rare/legendary carrying ≥3 of the slot's (or, in combined mode, the
-    /// build's) affixes → gold "best items". In <see cref="PerSlotRules"/> mode this is one gold
-    /// rule per gear slot.</summary>
+    /// <summary>Single-build chase tier (legacy property name). Uses <see cref="RedMinAffixes"/>
+    /// and the Red rarity options: defaults to 3+ affixes on legendaries, with the build's chase
+    /// color (normally red). The threshold is capped at the slot/pool's available affix count.</summary>
     public bool GoldTier { get; init; } = true;
-    /// <summary>SILVER tier: rare/legendary carrying ≥2 affixes → silver "one roll away". In
-    /// <see cref="PerSlotRules"/> mode it's PER-SLOT precise (a silver rule per gear piece, scoped to
-    /// that item type) — sits just below the gold tier so 3+ items still go gold (first match wins).
-    /// Skipped for a slot that has fewer than 3 ideal affixes (it would duplicate the gold rule).</summary>
+    /// <summary>Single-build keeper tier (legacy property name). Uses <see cref="PinkMinAffixes"/>
+    /// and the Pink rarity options: defaults to 3+ affixes on rares, with the build's keeper color
+    /// (normally pink). The threshold is capped at the slot/pool's available affix count. Follows
+    /// the chase tier and is omitted when that tier already covers it with matching rarity and gates.</summary>
     public bool SilverTier { get; init; } = true;
-    /// <summary>PRECISE per-slot rules: emit the gold/silver tiers as one rule per gear slot
+    /// <summary>PRECISE per-slot rules: emit the single-build chase/keeper tiers as one rule per gear slot
     /// (ItemType AND that slot's affixes) instead of a single combined pool. Removes cross-slot
     /// false positives (e.g. boots that rolled chest affixes). Falls back to the combined tiers when
     /// the build has no slot data (e.g. pasted builds). Uses more rules — with BOTH tiers on, a big
@@ -369,10 +372,11 @@ public static class FilterCompiler
     /// <summary>
     /// Assemble the filter and produce its import code. D4 applies rules TOP-DOWN, first match
     /// wins, so rules are emitted MOST-SPECIFIC first and a scoped hide-all sits last.
-    /// <paramref name="opts"/> selects which rules to include (the user's toggles); the gold
-    /// build-affix tier is always on. Multiple builds keep their own colors; when two builds have
-    /// an identical tier scope, the first build owns that shared rule so the rule budget is not
-    /// charged twice for loot that would already have matched first.
+    /// <paramref name="opts"/> selects optional rules, including single-build chase/keeper tiers.
+    /// The single-build path deduplicates identical tier scopes and omits keepers already covered
+    /// by the chase tier. Super Builds emit separate legendary chase and rare keeper rules per
+    /// mapped build, with fixed 3+ thresholds capped at each pool's count; shared scopes are not
+    /// deduplicated across builds. Their colors use count/priority defaults unless overridden.
     /// </summary>
     public static FilterOutput Compile(IReadOnlyList<CompiledBuild> builds, FilterOptions opts,
         string label, string filterName = "D4BuildFilter") =>
@@ -386,7 +390,7 @@ public static class FilterCompiler
         string label, string filterName, UnregisteredColorBehavior? unregisteredColorBehavior)
     {
         const uint RareLeg = Rarity.Rare | Rarity.Legendary;
-        // v1.0.2 per-tier rarity masks (defaults = the classic Rare|Legendary blob).
+        // Single-build rarity defaults: legendary chase tier, rare keeper tier.
         uint redMask = (opts.RedRares ? Rarity.Rare : 0) | (opts.RedLegendaries ? Rarity.Legendary : 0);
         uint pinkMask = (opts.PinkRares ? Rarity.Rare : 0) | (opts.PinkLegendaries ? Rarity.Legendary : 0);
 
@@ -396,14 +400,14 @@ public static class FilterCompiler
         bool multiBuild = builds.Count > 1;
         var multiTags = multiBuild ? BuildTagger.Resolve(builds) : [];
         var chaseColors = multiBuild
-            ? builds.Select((build, index) => build.ChaseColorOverride ?? RuledChaseColor(builds.Count, index)).ToArray()
+            ? builds.Select((build, index) => build.ChaseColorOverride ?? FilterColors.RuledChaseColor(builds.Count, index)).ToArray()
             : [];
         var keeperColors = multiBuild
-            ? builds.Select((build, index) => build.KeeperColorOverride ?? RuledKeeperColor(builds.Count, index)).ToArray()
+            ? builds.Select((build, index) => build.KeeperColorOverride ?? FilterColors.RuledKeeperColor(builds.Count, index)).ToArray()
             : [];
         bool hasCustomBuildColors = multiBuild && builds.Select((build, index) =>
-                chaseColors[index] != RuledChaseColor(builds.Count, index)
-                || keeperColors[index] != RuledKeeperColor(builds.Count, index))
+                chaseColors[index] != FilterColors.RuledChaseColor(builds.Count, index)
+                || keeperColors[index] != FilterColors.RuledKeeperColor(builds.Count, index))
             .Any(custom => custom);
         // Every recolor rule is named "<what> (<Color>)" so a player can scroll the in-game filter
         // list and toggle by color (e.g. turn "Charms & Seals (Green)" off). D4 caps rule names at
@@ -484,16 +488,17 @@ public static class FilterCompiler
                         Conditions.ItemPower(1, ItemPowerOrange - 1),
                     }));
         }
-        // 3. Build-affix tiers (the core): GOLD (>=3 affixes) and SILVER (>=2 affixes). Gold is
-        //    emitted first so a 3+ item wins gold over the silver rule (D4 = first match wins).
+        // 3. Build-affix tiers (the core): chase before keeper (D4 = first match wins).
+        //    Single-build thresholds and rarities are configurable; defaults are 3+ legendary
+        //    chase and 3+ rare keeper, with thresholds capped at the available affix count.
         //  • PER-SLOT mode: each tier becomes one rule PER gear slot = ItemType(slot) AND that slot's
         //    affixes. Precise — a boots rule only matches boots, so chest/ring affixes that rolled on
         //    boots no longer trigger a false "keep".
         //  • COMBINED mode (fallback when a build has no slot data): one pool across all slots.
         //    Simpler but matches by affix COUNT regardless of which slot they belong on (a Blizzard
         //    loot-filter limitation) → some cross-slot false positives.
-        // The silver rule is skipped when it would duplicate the gold rule (a pool/slot with <3
-        // ideal affixes makes both thresholds collapse to the same count).
+        // The single-build keeper is skipped when the chase covers it with matching rarity and
+        // gates; identical tier scopes are deduplicated within the single-build path.
         if (multiBuild)
         {
             // Super Builds have a deliberately fixed endgame shape: one combined legendary rule
@@ -720,12 +725,6 @@ public static class FilterCompiler
             HasCustomBuildColors = hasCustomBuildColors,
         };
     }
-
-    private static uint RuledChaseColor(int buildCount, int index) =>
-        buildCount == 2 && index == 1 ? FilterColors.Pink : FilterColors.Red;
-
-    private static uint RuledKeeperColor(int buildCount, int index) =>
-        buildCount == 2 && index == 1 ? FilterColors.Silver : FilterColors.Gold;
 
     private sealed record ColorMeaning(string Id, string Label, uint Color, int? BuildIndex = null,
         bool IsChase = false, bool UserChosen = false);

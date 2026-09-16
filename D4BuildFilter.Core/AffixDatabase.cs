@@ -1,9 +1,10 @@
 namespace D4BuildFilter.Core;
 
 /// <summary>
-/// Verified Diablo 4 loot-filter affix and skill-rank IDs (Season 13 / Lord of Hatred),
-/// cross-validated against DiabloTools/d4data CoreTOC (build 3.0.3.72031, via ThunderEagle/D4LootBench, MIT)
-/// AND real in-game filter exports. Five affix IDs in the 0x1beab4-0x1bead4 cluster were corrected 2026-05-26
+/// Verified Diablo 4 loot-filter affix and skill-rank IDs, cross-validated against
+/// DiabloTools/d4data CoreTOC (build 3.0.3.72031, via ThunderEagle/D4LootBench, MIT)
+/// AND real in-game filter exports. No season name is asserted: the authority for this
+/// catalog is the source build above, which is the only claim the evidence supports. Five affix IDs in the 0x1beab4-0x1bead4 cluster were corrected 2026-05-26
 /// after the in-game "crit filter" proved our earlier values were mislabeled (e.g. Crit Chance = 0x1beace).
 ///
 /// NOTE: these are the game's COARSE filterable stat categories — far fewer than the
