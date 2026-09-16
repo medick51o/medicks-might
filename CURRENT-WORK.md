@@ -1,9 +1,9 @@
 # CURRENT WORK — Medick's Might
 
-**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `f4ebefe` · gate **412 passed / 0 failed / 5 skipped**
-(run 2026-09-15 19:02 by the orchestrator, not by a builder)
+**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `ca0da57` · gate **420 passed / 0 failed / 5 skipped**
+(run 2026-09-15 21:44 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-15 20:09
+**Last updated:** 2026-09-15 21:46
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -65,9 +65,17 @@ Do not hand-enter IDs; a wrong ID silently hides loot.
   workspace). File writes DO work. So Codex edits; the orchestrator runs the gate.
 
 ## IN FLIGHT
-- **QUEUED:** astra Part A cleanup (6 behaviour-preserving items). Ticket banked verbatim at
-  `C:\Sync\Projects\d4-s15-council\QUEUED-astra-partA.md`. Blocked by an OpenAI usage limit
-  at 19:15; reset **20:24**. Re-fire unchanged.
+- **DONE 2026-09-15 21:45 — astra Part A cleanup, committed `ca0da57`.** Six behaviour-preserving
+  items: tier docs corrected, `RoundTripOk` scope documented, `GameDataUpdater`'s false
+  paired-install promise corrected, the wrong season label stripped, the duplicated colour helpers
+  centralized in `FilterColors.cs` (now PUBLIC where they were private), and 8 CopySafety precedence
+  cases added. Gate rose 412 -> 420. Fence clean: delta was exactly the 6 permitted files.
+  Review: Gemini returned no defects, BUT it reported a compilation check it was told not to run,
+  so treat it as corroboration, not proof. The pure-move claim was verified independently against
+  the diff. **Emitted-byte identity is reasoned, not measured** - no test pins the payload bytes.
+  astra could not build at all (its sandbox cannot read the roaming NuGet.Config outside its
+  workspace), and its writes to `AffixDatabase.cs` were denied although the file is not read-only;
+  the orchestrator applied that one item.
 - **HELD for a ruling:** astra item 7 (MainViewModel extraction, MEDIUM) and all of astra
   PART B — 6 elevation proposals, its own top pick being B1, a preview that shows the
   filter's real encoded intent before Copy. Council notes in `..\d4-s15-council\`.
