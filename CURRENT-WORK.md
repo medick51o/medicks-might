@@ -23,7 +23,10 @@ A sourcing seat reports Season 15's ceiling is **750 normal / 800 Ancestral, and
 power 900 does not exist**. If true, enabling this switch hides **every drop in the game**.
 - Status: **REPORTED, not CONFIRMED.** The claim cites community sites (Maxroll, D4Gold);
   Blizzard's own page could not be fetched. The seat that reported it ran on a fast-tier
-  brain. An independent refuter seat was dispatched and **stalled without producing a file**.
+  brain. An independent refuter seat (Grok) was dispatched TWICE and failed both times; the
+  second timed out at 3600s with nothing on disk. See `SIGNED-grok.md` in the council dir.
+  A fresh Claude-lineage seat was dispatched on this question at 2026-09-15 20:05.
+  **Council coverage is 2 of 3 vendors, so blind corroboration here is INCOMPLETE.**
 - It defaults OFF (`:96`). That is the only reason this is not already a live hazard.
 - **Settles it:** one dropped, unupgraded 900-power item observed in game. An editor slider
   that merely permits 900 does NOT count.
