@@ -23,6 +23,200 @@ public class FilterCompilerTests
     private static int RuleCount(FilterOptions o) =>
         FilterCompiler.Compile(new[] { SampleBuild() }, o, "t").RuleCount;
 
+    private static IReadOnlyList<CompiledBuild> MultiBuilds() =>
+    [
+        SampleBuild(),
+        FilterCompiler.Analyze(
+            new ResolvedBuild("Test Rogue", "Rogue", new[]
+            {
+                new ResolvedVariant("v1",
+                    new[] { "Dexterity", "Maximum Life", "Critical Strike Chance",
+                            "Vulnerable Damage Multiplier", "Movement Speed" },
+                    System.Array.Empty<string>()),
+            }),
+            FilterColors.Red, FilterColors.Pink),
+    ];
+
+    private static FilterOptions NineHundredOnlyOptions() => new()
+    {
+        NineHundredOnly = true,
+        NineHundredOnlyLegendaries = true,
+        NineHundredOnlyRares = true,
+        NineHundredOnlyUniques = true,
+        NineHundredOnlyHelm = true,
+        NineHundredOnlyChest = true,
+        NineHundredOnlyTwoHandedWeapon = true,
+        NineHundredOnlyOneHandedWeapon = true,
+        NineHundredOnlyGloves = true,
+        NineHundredOnlyPants = true,
+        NineHundredOnlyBoots = true,
+        NineHundredOnlyRing = true,
+        NineHundredOnlyAmulet = true,
+    };
+
+    private static DecodedRule NineHundredOnlyRule(FilterOutput output) =>
+        FilterDecoder.Decode(output.ImportCode).Rules.Single(r => r.Name == "900 only");
+
+    [Fact]
+    public void Nine_hundred_only_emits_exactly_one_union_rule()
+    {
+        var off = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "t");
+        var on = FilterCompiler.Compile(new[] { SampleBuild() }, NineHundredOnlyOptions(), "t");
+
+        Assert.Equal(off.RuleCount + 1, on.RuleCount);
+        var rule = NineHundredOnlyRule(on);
+        Assert.Equal((int)Visibility.HideAll, rule.Visibility);
+        Assert.Equal(3, rule.Conditions.Count);
+        Assert.Equal((ulong)(Rarity.Rare | Rarity.Legendary | Rarity.Unique),
+            rule.Conditions.Single(c => c.Type == 1).MaskOrCount);
+
+        var expectedTypes = new[]
+            {
+                ItemTypeDatabase.ByName["Helm"], ItemTypeDatabase.ByName["Chest Armor"],
+                ItemTypeDatabase.ByName["Gloves"], ItemTypeDatabase.ByName["Pants"],
+                ItemTypeDatabase.ByName["Boots"], ItemTypeDatabase.ByName["Ring"],
+                ItemTypeDatabase.ByName["Amulet"],
+            }
+            .Concat(ItemTypeDatabase.TwoHandedWeapons)
+            .Concat(ItemTypeDatabase.OneHandedWeapons)
+            .Distinct()
+            .OrderBy(id => id);
+        Assert.Equal(expectedTypes, rule.Conditions.Single(c => c.Type == 5).Ids.OrderBy(id => id));
+    }
+
+    [Fact]
+    public void Nine_hundred_only_sits_after_protected_rules_and_before_build_tiers()
+    {
+        var rules = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            NineHundredOnlyOptions(), "t").ImportCode).Rules;
+        var floor = rules.FindIndex(r => r.Name == "900 only");
+
+        Assert.True(rules.FindIndex(r => r.Name.Contains("Build Uniques")) < floor);
+        Assert.True(rules.FindIndex(r => r.Name.Contains("Codex Upgrades")) < floor);
+        Assert.True(floor < rules.FindIndex(r => r.Name.Contains("[3+]")));
+    }
+
+    [Fact]
+    public void Nine_hundred_only_never_sets_mythic_in_exhaustive_rarity_sweep()
+    {
+        for (var bits = 0; bits < 8; bits++)
+        {
+            var options = new FilterOptions
+            {
+                NineHundredOnly = true,
+                NineHundredOnlyHelm = true,
+                NineHundredOnlyRares = (bits & 1) != 0,
+                NineHundredOnlyLegendaries = (bits & 2) != 0,
+                NineHundredOnlyUniques = (bits & 4) != 0,
+            };
+            var rules = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+                options, "t").ImportCode).Rules;
+            var floor = rules.SingleOrDefault(r => r.Name == "900 only");
+
+            if (bits == 0)
+            {
+                Assert.Null(floor);
+                continue;
+            }
+
+            var mask = (uint)floor!.Conditions.Single(c => c.Type == 1).MaskOrCount!.Value;
+            var expected = ((bits & 1) != 0 ? Rarity.Rare : 0)
+                | ((bits & 2) != 0 ? Rarity.Legendary : 0)
+                | ((bits & 4) != 0 ? Rarity.Unique : 0);
+            Assert.Equal(expected, mask);
+            Assert.Equal(0u, mask & Rarity.Mythic);
+        }
+    }
+
+    [Fact]
+    public void Nine_hundred_only_master_off_preserves_exact_output()
+    {
+        var baseline = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "t");
+        var active = FilterCompiler.Compile(new[] { SampleBuild() }, NineHundredOnlyOptions(), "t");
+        var dormant = FilterCompiler.Compile(new[] { SampleBuild() },
+            NineHundredOnlyOptions() with { NineHundredOnly = false }, "t");
+
+        Assert.Equal(baseline.RuleCount + 1, active.RuleCount);
+        Assert.Equal(baseline.RuleCount, dormant.RuleCount);
+        Assert.Equal(baseline.ImportCode, dormant.ImportCode);
+    }
+
+    [Fact]
+    public void Nine_hundred_only_empty_slots_or_rarities_emit_nothing()
+    {
+        var active = FilterCompiler.Compile(new[] { SampleBuild() }, NineHundredOnlyOptions(), "t");
+        var noSlots = new FilterOptions
+        {
+            NineHundredOnly = true,
+            NineHundredOnlyRares = true,
+            NineHundredOnlyLegendaries = true,
+            NineHundredOnlyUniques = true,
+        };
+        var noRarities = new FilterOptions
+        {
+            NineHundredOnly = true,
+            NineHundredOnlyHelm = true,
+        };
+
+        Assert.Contains(FilterDecoder.Decode(active.ImportCode).Rules, r => r.Name == "900 only");
+        Assert.DoesNotContain(FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            noSlots, "t").ImportCode).Rules, r => r.Name == "900 only");
+        Assert.DoesNotContain(FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            noRarities, "t").ImportCode).Rules, r => r.Name == "900 only");
+    }
+
+    [Fact]
+    public void Nine_hundred_only_never_targets_charms_or_seals()
+    {
+        var types = NineHundredOnlyRule(FilterCompiler.Compile(new[] { SampleBuild() },
+            NineHundredOnlyOptions(), "t")).Conditions.Single(c => c.Type == 5).Ids;
+
+        Assert.DoesNotContain(ItemTypeDatabase.ByName["Charm"], types);
+        Assert.DoesNotContain(ItemTypeDatabase.ByName["Horadric Seal"], types);
+    }
+
+    [Fact]
+    public void Nine_hundred_only_hides_899_but_not_900()
+    {
+        var power = NineHundredOnlyRule(FilterCompiler.Compile(new[] { SampleBuild() },
+            NineHundredOnlyOptions(), "t")).Conditions.Single(c => c.Type == 0);
+        bool Matches(uint itemPower) => itemPower >= power.MaskOrCount!.Value && itemPower <= power.Max!.Value;
+
+        Assert.Equal(1ul, power.MaskOrCount);
+        Assert.Equal(899ul, power.Max);
+        Assert.True(Matches(899));
+        Assert.False(Matches(900));
+    }
+
+    [Fact]
+    public void Nine_hundred_only_rule_is_identical_in_every_compile_mode()
+    {
+        var options = NineHundredOnlyOptions();
+        var combined = NineHundredOnlyRule(FilterCompiler.Compile(new[] { SampleBuild() }, options, "t"));
+        var perSlot = NineHundredOnlyRule(FilterCompiler.Compile(new[] { SampleBuild() },
+            options with { PerSlotRules = true }, "t"));
+        var leveling = NineHundredOnlyRule(FilterCompiler.Compile(new[] { SampleBuild() },
+            options with { Leveling = true }, "t"));
+        var multiOutput = FilterCompiler.CompileWithinCap(MultiBuilds(),
+            options with { PerSlotRules = true }, 25, out CompileFitReport _, "t");
+        var multi = NineHundredOnlyRule(multiOutput);
+
+        var expected = (combined.Visibility,
+            Types: combined.Conditions.Single(c => c.Type == 5).Ids.OrderBy(id => id).ToArray(),
+            Rarity: combined.Conditions.Single(c => c.Type == 1).MaskOrCount,
+            Min: combined.Conditions.Single(c => c.Type == 0).MaskOrCount,
+            Max: combined.Conditions.Single(c => c.Type == 0).Max);
+        foreach (var actualRule in new[] { perSlot, leveling, multi })
+        {
+            Assert.Equal(expected.Visibility, actualRule.Visibility);
+            Assert.Equal(expected.Types,
+                actualRule.Conditions.Single(c => c.Type == 5).Ids.OrderBy(id => id).ToArray());
+            Assert.Equal(expected.Rarity, actualRule.Conditions.Single(c => c.Type == 1).MaskOrCount);
+            Assert.Equal(expected.Min, actualRule.Conditions.Single(c => c.Type == 0).MaskOrCount);
+            Assert.Equal(expected.Max, actualRule.Conditions.Single(c => c.Type == 0).Max);
+        }
+    }
+
     private static CompiledBuild EmptyAffixBuild() =>
         FilterCompiler.Analyze(
             new ResolvedBuild("Empty", "Barbarian", new[]
@@ -109,15 +303,23 @@ public class FilterCompilerTests
     [Theory]
     // v1.0.2 UX: each tier narrates its own scope in plain words, live — including the affix
     // THRESHOLD, so the strict button's bar-raise (3+→4+ / 2→3) is visible the moment it's clicked.
-    [InlineData(true, 3, true, true, false, "highlights 3+ affix rares + legendaries")]
-    [InlineData(true, 2, true, true, false, "highlights 2+ affix rares + legendaries")]
-    [InlineData(true, 2, false, true, false, "highlights 2+ affix legendaries only")]   // Medick's late-game pink
-    [InlineData(true, 4, false, true, true, "highlights 4+ affix legendaries only, ancestral tier only")]
-    [InlineData(true, 3, true, false, false, "highlights 3+ affix rares only")]
-    [InlineData(true, 3, false, false, false, "off — highlights nothing")]
-    [InlineData(false, 3, true, true, false, "off — highlights nothing")]
-    public void Tier_summary_narrates_the_scope(bool tierOn, int min, bool rares, bool legs, bool anc, string expected)
-        => Assert.Equal(expected, FilterCompiler.DescribeTierScope(tierOn, min, rares, legs, anc));
+    [InlineData(true, 3, true, true, false, false, "highlights 3+ affix rares + legendaries")]
+    [InlineData(true, 2, true, true, false, false, "highlights 2+ affix rares + legendaries")]
+    [InlineData(true, 2, false, true, false, false, "highlights 2+ affix legendaries only")]   // Medick's late-game pink
+    [InlineData(true, 4, false, true, true, false, "highlights 4+ affix legendaries only, ancestral tier only")]
+    [InlineData(true, 3, true, false, false, false, "highlights 3+ affix rares only")]
+    [InlineData(true, 3, false, false, false, false, "off — highlights nothing")]
+    [InlineData(false, 3, true, true, false, false, "off — highlights nothing")]
+    public void Tier_summary_narrates_the_scope(bool tierOn, int min, bool rares, bool legs,
+        bool anc, bool minPower900, string expected)
+        => Assert.Equal(expected,
+            FilterCompiler.DescribeTierScope(tierOn, min, rares, legs, anc, minPower900));
+
+    [Fact]
+    public void Tier_summary_narrates_ancestral_and_900_gates_together()
+        => Assert.Equal(
+            "highlights 3+ affix legendaries only, ancestral tier only, item power 900+ only",
+            FilterCompiler.DescribeTierScope(true, 3, false, true, true, true));
 
     [Fact]
     public void Default_is_the_strict_split_red_legendaries_pink_rares()
@@ -215,6 +417,203 @@ public class FilterCompilerTests
         Assert.Contains(red.Conditions, c => c.Type == 2);        // ancestral gate on red
         Assert.DoesNotContain(pink.Conditions, c => c.Type == 2); // pink unaffected
     }
+
+    [Fact]
+    public void Red_900_gate_adds_the_shipped_item_power_range_only_when_enabled()
+    {
+        var off = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions { ItemPowerTiers = false }, "t").ImportCode);
+        var on = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions { ItemPowerTiers = false, RedMinPower900 = true }, "t").ImportCode);
+
+        var redOff = off.Rules.Single(r => r.Color == FilterColors.Gold && r.Name.Contains("[3+]"));
+        var redOn = on.Rules.Single(r => r.Color == FilterColors.Gold && r.Name.Contains("[3+]"));
+        Assert.DoesNotContain(redOff.Conditions, c => c.Type == 0);
+        var power = Assert.Single(redOn.Conditions, c => c.Type == 0);
+        Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
+        Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
+    }
+
+    [Fact]
+    public void Pink_900_gate_adds_the_shipped_item_power_range_only_when_enabled()
+    {
+        var off = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions { ItemPowerTiers = false }, "t").ImportCode);
+        var on = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions { ItemPowerTiers = false, PinkMinPower900 = true }, "t").ImportCode);
+
+        var pinkOff = off.Rules.Single(r => r.Color == FilterColors.Silver && r.Name.Contains("[3+]"));
+        var pinkOn = on.Rules.Single(r => r.Color == FilterColors.Silver && r.Name.Contains("[3+]"));
+        Assert.DoesNotContain(pinkOff.Conditions, c => c.Type == 0);
+        var power = Assert.Single(pinkOn.Conditions, c => c.Type == 0);
+        Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
+        Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
+    }
+
+    [Fact]
+    public void Per_tier_900_gates_do_not_change_the_rule_count()
+    {
+        var off = new FilterOptions { ItemPowerTiers = false };
+        var on = new FilterOptions
+        {
+            ItemPowerTiers = false,
+            RedMinPower900 = true,
+            PinkMinPower900 = true,
+        };
+
+        Assert.Equal(RuleCount(off), RuleCount(on));
+        var gated = FilterDecoder.Decode(
+            FilterCompiler.Compile(new[] { SampleBuild() }, on, "t").ImportCode);
+        Assert.Equal(2, gated.Rules.Count(r =>
+            r.Name.Contains("[3+]") && r.Conditions.Any(c => c.Type == 0)));
+    }
+
+    [Fact]
+    public void Scope_dedup_keeps_red_gated_and_pink_ungated_rules_distinct()
+    {
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            SameRarityOptionsWithOnlyRedGated(), "t").ImportCode);
+
+        var tiers = decoded.Rules.Where(r => r.Name.Contains("[3+]"))
+            .Where(r => r.Color == FilterColors.Gold || r.Color == FilterColors.Silver)
+            .ToList();
+        Assert.Equal(2, tiers.Count);
+    }
+
+    [Fact]
+    public void Duplicate_suppression_does_not_remove_ungated_pink_when_red_is_gated()
+    {
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            SameRarityOptionsWithOnlyRedGated(), "t").ImportCode);
+
+        var pink = decoded.Rules.Single(r =>
+            r.Color == FilterColors.Silver && r.Name.Contains("[3+]"));
+        Assert.DoesNotContain(pink.Conditions, c => c.Type == 0);
+    }
+
+    [Fact]
+    public void Ancestral_and_900_gates_stack_on_the_same_tier()
+    {
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(new[] { SampleBuild() },
+            new FilterOptions
+            {
+                ItemPowerTiers = false,
+                RedAncestralOnly = true,
+                RedMinPower900 = true,
+            }, "t").ImportCode);
+
+        var red = decoded.Rules.Single(r =>
+            r.Color == FilterColors.Gold && r.Name.Contains("[3+]"));
+        Assert.Contains(red.Conditions, c => c.Type == 2);
+        var power = Assert.Single(red.Conditions, c => c.Type == 0);
+        Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
+        Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
+    }
+
+    [Fact]
+    public void Multi_build_red_900_gate_reaches_every_legendary_tier_rule()
+    {
+        var builds = MultiBuilds();
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
+            new FilterOptions { PerSlotRules = true, RedMinPower900 = true }, "t").ImportCode);
+
+        foreach (var tag in BuildTagger.Resolve(builds))
+        {
+            var legendary = decoded.Rules.Single(r =>
+                r.Name.StartsWith($"{tag} Leg ", System.StringComparison.Ordinal));
+            var power = Assert.Single(legendary.Conditions, c => c.Type == 0);
+            Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
+            Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
+        }
+    }
+
+    [Fact]
+    public void Multi_build_pink_900_gate_reaches_every_rare_tier_rule()
+    {
+        var builds = MultiBuilds();
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
+            new FilterOptions { PerSlotRules = true, PinkMinPower900 = true }, "t").ImportCode);
+
+        foreach (var tag in BuildTagger.Resolve(builds))
+        {
+            var rare = decoded.Rules.Single(r =>
+                r.Name.StartsWith($"{tag} Rare ", System.StringComparison.Ordinal));
+            var power = Assert.Single(rare.Conditions, c => c.Type == 0);
+            Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
+            Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
+        }
+    }
+
+    [Fact]
+    public void Multi_build_red_ancestral_gate_reaches_every_legendary_tier_rule()
+    {
+        var builds = MultiBuilds();
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
+            new FilterOptions { PerSlotRules = true, RedAncestralOnly = true }, "t").ImportCode);
+
+        foreach (var tag in BuildTagger.Resolve(builds))
+        {
+            var legendary = decoded.Rules.Single(r =>
+                r.Name.StartsWith($"{tag} Leg ", System.StringComparison.Ordinal));
+            Assert.Contains(legendary.Conditions, c => c.Type == 2);
+        }
+    }
+
+    [Fact]
+    public void Multi_build_pink_ancestral_gate_reaches_every_rare_tier_rule()
+    {
+        var builds = MultiBuilds();
+        var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
+            new FilterOptions { PerSlotRules = true, PinkAncestralOnly = true }, "t").ImportCode);
+
+        foreach (var tag in BuildTagger.Resolve(builds))
+        {
+            var rare = decoded.Rules.Single(r =>
+                r.Name.StartsWith($"{tag} Rare ", System.StringComparison.Ordinal));
+            Assert.Contains(rare.Conditions, c => c.Type == 2);
+        }
+    }
+
+    [Fact]
+    public void Multi_build_gates_off_preserve_the_shipped_rule_count_and_tier_conditions()
+    {
+        var builds = MultiBuilds();
+        var output = FilterCompiler.Compile(builds, new FilterOptions
+        {
+            PerSlotRules = true,
+            RedMinPower900 = false,
+            PinkMinPower900 = false,
+            RedAncestralOnly = false,
+            PinkAncestralOnly = false,
+        }, "t");
+        var decoded = FilterDecoder.Decode(output.ImportCode);
+
+        Assert.Equal(13, output.RuleCount);
+        foreach (var tag in BuildTagger.Resolve(builds))
+        {
+            var legendary = decoded.Rules.Single(r =>
+                r.Name.StartsWith($"{tag} Leg ", System.StringComparison.Ordinal));
+            var rare = decoded.Rules.Single(r =>
+                r.Name.StartsWith($"{tag} Rare ", System.StringComparison.Ordinal));
+            Assert.Equal(new[] { 1, 6 }, legendary.Conditions.Select(c => c.Type));
+            Assert.Equal(new[] { 1, 6 }, rare.Conditions.Select(c => c.Type));
+            Assert.Equal((ulong)Rarity.Legendary, legendary.Conditions[0].MaskOrCount);
+            Assert.Equal((ulong)Rarity.Rare, rare.Conditions[0].MaskOrCount);
+            Assert.Equal(3ul, legendary.Conditions[1].MaskOrCount);
+            Assert.Equal(3ul, rare.Conditions[1].MaskOrCount);
+        }
+    }
+
+    private static FilterOptions SameRarityOptionsWithOnlyRedGated() => new()
+    {
+        ItemPowerTiers = false,
+        RedRares = true,
+        RedLegendaries = true,
+        RedMinPower900 = true,
+        PinkRares = true,
+        PinkLegendaries = true,
+        PinkMinPower900 = false,
+    };
 
     [Fact]
     public void Both_rarities_off_removes_that_tier_entirely()

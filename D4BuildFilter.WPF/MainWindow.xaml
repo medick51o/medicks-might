@@ -2000,6 +2000,51 @@
                         </Grid>
                     </Grid>
 
+                    <!-- Late-game 900-only floor: one compiler rule, intentionally separate from
+                         and above every existing Filter options control. -->
+                    <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
+                            Effect="{DynamicResource Elevation.Card}" CornerRadius="{DynamicResource Radius.Card}"
+                            Padding="{DynamicResource Pad.Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <ToggleButton IsChecked="{Binding NineHundredOnlyExpanded}" Style="{StaticResource SectionToggle}" Margin="0,0,0,2"
+                                          ToolTip="Hide selected gear below item power 900. Build uniques, Codex upgrades, and Mythic Uniques are always protected.">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource SectionChevron}" />
+                                    <TextBlock Text="900 only" Style="{StaticResource SectionLabel}" Margin="0" />
+                                    <TextBlock Text="{Binding NineHundredOnlySummary, Mode=OneWay}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                               FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
+                                </StackPanel>
+                            </ToggleButton>
+                            <StackPanel ClipToBounds="True" b:Reveal.IsOpen="{Binding NineHundredOnlyExpanded}">
+                                <CheckBox Content="Enable 900-only floor" IsChecked="{Binding OptNineHundredOnly}"
+                                          Foreground="{Binding OptNineHundredOnly, Converter={StaticResource ActiveText}}" Margin="0,2,0,8" />
+                                <TextBlock Text="Apply the 900 floor to:" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <WrapPanel Margin="0,0,0,8">
+                                    <CheckBox Content="Legendaries" IsChecked="{Binding OptNineHundredOnlyLegendaries}"
+                                              IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Rares" IsChecked="{Binding OptNineHundredOnlyRares}"
+                                              IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Uniques" IsChecked="{Binding OptNineHundredOnlyUniques}"
+                                              IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Mythic Uniques — never filtered" IsChecked="True" IsEnabled="False" Margin="0,2,16,2"
+                                              ToolTip="Locked safety invariant: Mythic Uniques are never included in the hide rule." />
+                                </WrapPanel>
+                                <TextBlock Text="Slots:" FontWeight="SemiBold" Margin="0,0,0,4" />
+                                <WrapPanel>
+                                    <CheckBox Content="Helm" IsChecked="{Binding OptNineHundredOnlyHelm}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Chest" IsChecked="{Binding OptNineHundredOnlyChest}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="2H Weapon" IsChecked="{Binding OptNineHundredOnlyTwoHandedWeapon}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="1H Weapon" IsChecked="{Binding OptNineHundredOnlyOneHandedWeapon}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Gloves" IsChecked="{Binding OptNineHundredOnlyGloves}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Pants" IsChecked="{Binding OptNineHundredOnlyPants}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Boots" IsChecked="{Binding OptNineHundredOnlyBoots}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Ring" IsChecked="{Binding OptNineHundredOnlyRing}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                    <CheckBox Content="Amulet" IsChecked="{Binding OptNineHundredOnlyAmulet}" IsEnabled="{Binding OptNineHundredOnly}" Margin="0,2,16,2" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Filter options (v1.0.3): now four collapsible groups inside one card. Each
                          header row is a ToggleButton (chevron ▾/▸ + label) that shows/hides its group.
                          "Filter options" + "Charm sets" reopen on every app launch (state not saved);
@@ -2058,8 +2103,10 @@
                                                   Foreground="{Binding OptRedRares, Converter={StaticResource ActiveText}}" />
                                         <CheckBox Content="Show legendaries" IsChecked="{Binding OptRedLegendaries}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
                                                   Foreground="{Binding OptRedLegendaries, Converter={StaticResource ActiveText}}" />
-                                        <CheckBox Content="Ancestral only" IsChecked="{Binding OptRedAncestralOnly}" FontSize="{DynamicResource Type.Caption}"
+                                        <CheckBox Content="Ancestral only" IsChecked="{Binding OptRedAncestralOnly}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
                                                   Foreground="{Binding OptRedAncestralOnly, Converter={StaticResource ActiveText}}" />
+                                        <CheckBox Content="900+ item only" IsChecked="{Binding OptRedMinPower900}" FontSize="{DynamicResource Type.Caption}"
+                                                  Foreground="{Binding OptRedMinPower900, Converter={StaticResource ActiveText}}" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding RedTierSummary, Mode=OneWay}" FontSize="{DynamicResource Type.Caption}"
                                                Foreground="{DynamicResource Text.Muted}" FontStyle="Italic" Margin="32,0,14,3" TextWrapping="Wrap" />
@@ -2080,8 +2127,10 @@
                                                   Foreground="{Binding OptPinkRares, Converter={StaticResource ActiveText}}" />
                                         <CheckBox Content="Show legendaries" IsChecked="{Binding OptPinkLegendaries}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
                                                   Foreground="{Binding OptPinkLegendaries, Converter={StaticResource ActiveText}}" />
-                                        <CheckBox Content="Ancestral only" IsChecked="{Binding OptPinkAncestralOnly}" FontSize="{DynamicResource Type.Caption}"
+                                        <CheckBox Content="Ancestral only" IsChecked="{Binding OptPinkAncestralOnly}" FontSize="{DynamicResource Type.Caption}" Margin="0,0,12,0"
                                                   Foreground="{Binding OptPinkAncestralOnly, Converter={StaticResource ActiveText}}" />
+                                        <CheckBox Content="900+ item only" IsChecked="{Binding OptPinkMinPower900}" FontSize="{DynamicResource Type.Caption}"
+                                                  Foreground="{Binding OptPinkMinPower900, Converter={StaticResource ActiveText}}" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding PinkTierSummary, Mode=OneWay}" FontSize="{DynamicResource Type.Caption}"
                                                Foreground="{DynamicResource Text.Muted}" FontStyle="Italic" Margin="32,0,14,3" TextWrapping="Wrap" />

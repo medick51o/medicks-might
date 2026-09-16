@@ -72,7 +72,7 @@ public static class ItemTypeDatabase
     public static bool IsWeaponSlot(IReadOnlyList<uint> typeIds) =>
         typeIds.Count > 0 && typeIds.All(WeaponSet.Contains);
 
-    private static readonly HashSet<uint> TwoHandedSet = new(new uint[]
+    private static readonly uint[] TwoHanded =
     {
         0x0006d152, // Two-Handed Axe
         0x0006d144, // Two-Handed Mace
@@ -84,7 +84,12 @@ public static class ItemTypeDatabase
         0x0006d169, // Two-Handed Crossbow
         0x00165271, // Glaive (Spiritborn 2H — d4data body slots match Polearm's)
         0x0016d22d, // Quarterstaff (Spiritborn 2H — same)
-    });
+    };
+    private static readonly HashSet<uint> TwoHandedSet = new(TwoHanded);
+
+    /// <summary>The canonical two-handed weapon item types, exposed read-only for filter rules that
+    /// need the same handedness bucket as slot resolution.</summary>
+    public static IReadOnlyList<uint> TwoHandedWeapons { get; } = Array.AsReadOnly(TwoHanded);
 
     /// <summary>Bucket a weapon slot by handedness so a Barb gets a "1H Weapons" rule (dual-wield)
     /// separate from "2H Weapons" — they want different stats. Returns "2h" (all types 2-handed),
@@ -100,6 +105,8 @@ public static class ItemTypeDatabase
     private static readonly uint[] Bludgeoning = { 0x0006d13a, 0x0006d144 };                          // maces
     private static readonly uint[] Slashing = { 0x0006d151, 0x0006d152, 0x0006d14c, 0x0006d14f };       // axes + swords
     private static readonly uint[] OneHanded = { 0x0006d151, 0x0006d13a, 0x0006d14c, 0x0006d159, 0x0006d163, 0x0006d167, 0x0006d168, 0x00234a98 }; // + Flail (dual-wieldable: d4data body slots 14/15 like dagger/sword)
+    /// <summary>The canonical one-handed weapon item types used by slot resolution.</summary>
+    public static IReadOnlyList<uint> OneHandedWeapons { get; } = Array.AsReadOnly(OneHanded);
     private static readonly uint[] Ranged = { 0x0006d167, 0x0006d168, 0x0006d169 };                     // bow/xbow
     private static readonly uint[] Offhand = { 0x0006d16a, 0x0006d16b, 0x0006d172 };                    // focus/totem/shield
 

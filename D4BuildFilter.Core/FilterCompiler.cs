@@ -90,6 +90,23 @@ public sealed record CompileFitReport(
 /// Defaults reproduce the full recommended filter; the WPF app binds toggles to these.</summary>
 public sealed record FilterOptions
 {
+    /// <summary>Late-game 900-only floor. The master switch and every selectable rarity/slot
+    /// default off, so older callers and the app's default output remain unchanged. Mythic is an
+    /// invariant rather than an option: this feature never includes it in its rarity mask.</summary>
+    public bool NineHundredOnly { get; init; } = false;
+    public bool NineHundredOnlyLegendaries { get; init; } = false;
+    public bool NineHundredOnlyRares { get; init; } = false;
+    public bool NineHundredOnlyUniques { get; init; } = false;
+    public bool NineHundredOnlyHelm { get; init; } = false;
+    public bool NineHundredOnlyChest { get; init; } = false;
+    public bool NineHundredOnlyTwoHandedWeapon { get; init; } = false;
+    public bool NineHundredOnlyOneHandedWeapon { get; init; } = false;
+    public bool NineHundredOnlyGloves { get; init; } = false;
+    public bool NineHundredOnlyPants { get; init; } = false;
+    public bool NineHundredOnlyBoots { get; init; } = false;
+    public bool NineHundredOnlyRing { get; init; } = false;
+    public bool NineHundredOnlyAmulet { get; init; } = false;
+
     /// <summary>Affix bar per tier (v1.0.2 strict v3). Red default 3+ — and stays 3+ even under
     /// strict, because the Occultist enchant makes a 3-of-4 legendary one reroll from perfect.
     /// v1.0.2: strict IS the standard now — Red = 3+ legendaries, Pink = 3+ rares (the rarity split
@@ -153,14 +170,16 @@ public sealed record FilterOptions
     /// <summary>Per-tier rarity masks. Defaults ARE the standard strict split (v1.0.2): Red =
     /// legendaries only, Pink = rares only, both at 3+ affixes. These change the rarity BITMASK
     /// inside the existing red/pink rules — never the rule count, so the 25-cap is untouched. Both
-    /// rarities off = that tier is omitted entirely. AncestralOnly ANDs an Ancestral gate onto just
-    /// its own tier.</summary>
+    /// rarities off = that tier is omitted entirely. AncestralOnly and MinPower900 AND their gates
+    /// onto just their own tier.</summary>
     public bool RedRares { get; init; } = false;
     public bool RedLegendaries { get; init; } = true;
     public bool RedAncestralOnly { get; init; } = false;
+    public bool RedMinPower900 { get; init; } = false;
     public bool PinkRares { get; init; } = true;
     public bool PinkLegendaries { get; init; } = false;
     public bool PinkAncestralOnly { get; init; } = false;
+    public bool PinkMinPower900 { get; init; } = false;
     /// <summary>v1.0.2 (Medick): LEVELING mode. Off by default. On = adds a SILVER tier for 2+ affix
     /// RARES (gearing-up loot) AND forces combined (non-per-slot) tiers so the extra tier fits the
     /// 25-rule cap. Coarse by design — best with a leveling build loaded; endgame stays precise
@@ -193,13 +212,14 @@ public static class FilterCompiler
     /// highlight?" answered on screen, live, instead of in a tooltip. Includes the affix THRESHOLD,
     /// so the strict button's bar-raise (Red 3+→4+, Pink 2→3) is visible the moment it's clicked.</summary>
     public static string DescribeTierScope(bool tierOn, int minAffixes, bool rares,
-        bool legendaries, bool ancestralOnly)
+        bool legendaries, bool ancestralOnly, bool minPower900)
     {
         if (!tierOn || (!rares && !legendaries)) return "off — highlights nothing";
         var what = rares && legendaries ? "rares + legendaries"
             : rares ? "rares only" : "legendaries only";
         var anc = ancestralOnly ? ", ancestral tier only" : "";
-        return $"highlights {minAffixes}+ affix {what}{anc}";
+        var power = minPower900 ? ", item power 900+ only" : "";
+        return $"highlights {minAffixes}+ affix {what}{anc}{power}";
     }
 
     /// <summary>Item-power color tiers (orange = top band, cyan = high band). The numeric
@@ -396,6 +416,19 @@ public static class FilterCompiler
             return FilterBuilder.MakeRule($"{name} ({colorName})", Visibility.Recolor, conds, color);
         }
 
+        // Per-tier rarity masks plus optional ancestral and 900+ gates — refinement INSIDE the
+        // existing rules (the rule count never grows; the 25-cap stays safe).
+        byte[][] TierScope(IReadOnlyList<uint> affixes, int min, uint mask,
+            bool ancestralOnly, bool minPower900, IReadOnlyList<uint>? typeIds = null)
+        {
+            var conds = typeIds is null
+                ? new List<byte[]> { Conditions.RarityMask(mask), Conditions.Affixes(affixes, min) }
+                : new List<byte[]> { Conditions.Types(typeIds), Conditions.RarityMask(mask), Conditions.Affixes(affixes, min) };
+            if (ancestralOnly) conds.Add(Conditions.Ancestral());
+            if (minPower900) conds.Add(Conditions.ItemPower(ItemPowerOrange, ItemPowerCap));
+            return conds.ToArray();
+        }
+
         // 1. Every loaded build's OWN uniques -> one purple rule. The union keeps both loadouts'
         //    chase items purple without spending one rule per build (shared uniques are deduped).
         var buildUniqueIds = builds.SelectMany(b => b.UniqueIds).Distinct().OrderBy(id => id).ToList();
@@ -416,7 +449,42 @@ public static class FilterCompiler
         if (opts.HideUniques is { Count: > 0 } hideUniques)
             rules.Add(FilterBuilder.MakeRule("Hide Uniques", Visibility.HideAll,
                 new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(hideUniques) }));
-        // 2/3. Build-affix tiers (the core): GOLD (>=3 affixes) and SILVER (>=2 affixes). Gold is
+        // 2. Optional late-game 900-only floor. Build uniques and Codex upgrades stay above it so
+        //    first-match-wins protects them at every item power. All selected slots and rarities are
+        //    unions inside ONE rule; empty selections fail closed to no rule. Mythic is deliberately
+        //    absent from the mask and charms/seals are deliberately absent from the type list.
+        if (opts.NineHundredOnly)
+        {
+            uint rarityMask = (opts.NineHundredOnlyRares ? Rarity.Rare : 0)
+                | (opts.NineHundredOnlyLegendaries ? Rarity.Legendary : 0)
+                | (opts.NineHundredOnlyUniques ? Rarity.Unique : 0);
+            var typeIds = new HashSet<uint>();
+            void AddType(bool selected, string name)
+            {
+                if (selected) typeIds.Add(ItemTypeDatabase.ByName[name]);
+            }
+
+            AddType(opts.NineHundredOnlyHelm, "Helm");
+            AddType(opts.NineHundredOnlyChest, "Chest Armor");
+            AddType(opts.NineHundredOnlyGloves, "Gloves");
+            AddType(opts.NineHundredOnlyPants, "Pants");
+            AddType(opts.NineHundredOnlyBoots, "Boots");
+            AddType(opts.NineHundredOnlyRing, "Ring");
+            AddType(opts.NineHundredOnlyAmulet, "Amulet");
+            if (opts.NineHundredOnlyTwoHandedWeapon)
+                typeIds.UnionWith(ItemTypeDatabase.TwoHandedWeapons);
+            if (opts.NineHundredOnlyOneHandedWeapon)
+                typeIds.UnionWith(ItemTypeDatabase.OneHandedWeapons);
+
+            if (rarityMask != 0 && typeIds.Count > 0)
+                rules.Add(FilterBuilder.MakeRule("900 only", Visibility.HideAll,
+                    new[] {
+                        Conditions.Types(typeIds.OrderBy(id => id)),
+                        Conditions.RarityMask(rarityMask),
+                        Conditions.ItemPower(1, ItemPowerOrange - 1),
+                    }));
+        }
+        // 3. Build-affix tiers (the core): GOLD (>=3 affixes) and SILVER (>=2 affixes). Gold is
         //    emitted first so a 3+ item wins gold over the silver rule (D4 = first match wins).
         //  • PER-SLOT mode: each tier becomes one rule PER gear slot = ItemType(slot) AND that slot's
         //    affixes. Precise — a boots rule only matches boots, so chest/ring affixes that rolled on
@@ -445,16 +513,16 @@ public static class FilterCompiler
                     continue;
                 }
 
-                var legendaryScope = new[] { Conditions.RarityMask(Rarity.Legendary),
-                    Conditions.Affixes(b.Pool, Math.Min(Strict, b.Pool.Count)) };
+                var legendaryScope = TierScope(b.Pool, Math.Min(Strict, b.Pool.Count),
+                    Rarity.Legendary, opts.RedAncestralOnly, opts.RedMinPower900);
                 rules.Add(Recolor($"{multiTags[i]} Leg", legendaryScope, chaseColors[i]));
             }
             for (int i = 0; i < builds.Count; i++)
             {
                 var b = builds[i];
                 if (b.Pool.Count == 0) continue;
-                var rareScope = new[] { Conditions.RarityMask(Rarity.Rare),
-                    Conditions.Affixes(b.Pool, Math.Min(Strict, b.Pool.Count)) };
+                var rareScope = TierScope(b.Pool, Math.Min(Strict, b.Pool.Count),
+                    Rarity.Rare, opts.PinkAncestralOnly, opts.PinkMinPower900);
                 rules.Add(Recolor($"{multiTags[i]} Rare", rareScope, keeperColors[i]));
             }
         }
@@ -485,33 +553,26 @@ public static class FilterCompiler
                     return;
                 }
 
-                // v1.0.2: per-tier rarity masks + optional per-tier ancestral gate — refinement
-                // INSIDE the existing rules (the rule count never grows; the 25-cap stays safe).
-                byte[][] Scope(int min, uint mask, bool ancestralOnly)
-                {
-                    var conds = typeIds is null
-                        ? new List<byte[]> { Conditions.RarityMask(mask), Conditions.Affixes(affixes, min) }
-                        : new List<byte[]> { Conditions.Types(typeIds), Conditions.RarityMask(mask), Conditions.Affixes(affixes, min) };
-                    if (ancestralOnly) conds.Add(Conditions.Ancestral());
-                    return conds.ToArray();
-                }
                 // Per-tier affix bars come straight from the options (strict v3: the UI preset
                 // raises Pink to 3; Red stays 3 — enchant logic). [N+] rule names self-document.
                 int gold = Math.Min(opts.RedMinAffixes, affixes.Count);
                 int silver = Math.Min(opts.PinkMinAffixes, affixes.Count);
-                string ScopeKey(int min, uint mask, bool ancestralOnly) => string.Join("|",
+                string ScopeKey(int min, uint mask, bool ancestralOnly, bool minPower900) => string.Join("|",
                     typeIds is null ? "*" : string.Join(",", typeIds.OrderBy(id => id)),
-                    string.Join(",", affixes.Distinct().OrderBy(id => id)), min, mask, ancestralOnly);
+                    string.Join(",", affixes.Distinct().OrderBy(id => id)), min, mask, ancestralOnly, minPower900);
                 if (opts.GoldTier && redMask != 0
-                    && emittedTierScopes.Add(ScopeKey(gold, redMask, opts.RedAncestralOnly)))
-                    rules.Add(Recolor($"{label} [{gold}+]", Scope(gold, redMask, opts.RedAncestralOnly), b.Color));
+                    && emittedTierScopes.Add(ScopeKey(gold, redMask, opts.RedAncestralOnly, opts.RedMinPower900)))
+                    rules.Add(Recolor($"{label} [{gold}+]",
+                        TierScope(affixes, gold, redMask, opts.RedAncestralOnly, opts.RedMinPower900, typeIds), b.Color));
                 // Pink only when requested AND not an exact duplicate of the red rule just emitted
-                // (same threshold AND same mask AND same ancestral gate).
+                // (same threshold, mask, ancestral gate, and item-power gate).
                 bool duplicatesRed = opts.GoldTier && redMask != 0 && silver >= gold
-                    && pinkMask == redMask && opts.PinkAncestralOnly == opts.RedAncestralOnly;
+                    && pinkMask == redMask && opts.PinkAncestralOnly == opts.RedAncestralOnly
+                    && opts.PinkMinPower900 == opts.RedMinPower900;
                 if (opts.SilverTier && pinkMask != 0 && !duplicatesRed
-                    && emittedTierScopes.Add(ScopeKey(silver, pinkMask, opts.PinkAncestralOnly)))
-                    rules.Add(Recolor($"{label} [{silver}+]", Scope(silver, pinkMask, opts.PinkAncestralOnly), b.Dim));
+                    && emittedTierScopes.Add(ScopeKey(silver, pinkMask, opts.PinkAncestralOnly, opts.PinkMinPower900)))
+                    rules.Add(Recolor($"{label} [{silver}+]",
+                        TierScope(affixes, silver, pinkMask, opts.PinkAncestralOnly, opts.PinkMinPower900, typeIds), b.Dim));
                 }
 
                 // Leveling forces COMBINED tiers (coarse) so the extra silver tier fits the 25-cap;

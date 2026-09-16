@@ -1176,6 +1176,21 @@ public partial class MainViewModel : ObservableObject
     // PasteHash moved to Core.PasteStore.Hash so the paste identity can be computed server-side too.
 
     // Option toggles — each recompiles the filter live. Defaults = the full recommended filter.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NineHundredOnlySummary))]
+    private bool optNineHundredOnly;
+    [ObservableProperty] private bool optNineHundredOnlyLegendaries;
+    [ObservableProperty] private bool optNineHundredOnlyRares;
+    [ObservableProperty] private bool optNineHundredOnlyUniques;
+    [ObservableProperty] private bool optNineHundredOnlyHelm;
+    [ObservableProperty] private bool optNineHundredOnlyChest;
+    [ObservableProperty] private bool optNineHundredOnlyTwoHandedWeapon;
+    [ObservableProperty] private bool optNineHundredOnlyOneHandedWeapon;
+    [ObservableProperty] private bool optNineHundredOnlyGloves;
+    [ObservableProperty] private bool optNineHundredOnlyPants;
+    [ObservableProperty] private bool optNineHundredOnlyBoots;
+    [ObservableProperty] private bool optNineHundredOnlyRing;
+    [ObservableProperty] private bool optNineHundredOnlyAmulet;
     [ObservableProperty] private bool optLeveling;
     [ObservableProperty] private bool optPerSlot = true;   // recommended default (falls back to combined w/o slot data)
     [ObservableProperty] private bool optGoldTier = true;  // legacy option name: Red 3+ chase tier
@@ -1190,6 +1205,22 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool optCharmsSealsAncestral = true;
     [ObservableProperty] private bool optCodex = true;
     [ObservableProperty] private bool optHideRest = true;
+
+    public string NineHundredOnlySummary => OptNineHundredOnly ? "· on" : "· off";
+
+    partial void OnOptNineHundredOnlyChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyLegendariesChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyRaresChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyUniquesChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyHelmChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyChestChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyTwoHandedWeaponChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyOneHandedWeaponChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyGlovesChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyPantsChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyBootsChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyRingChanged(bool value) => Recompile();
+    partial void OnOptNineHundredOnlyAmuletChanged(bool value) => Recompile();
 
     /// <summary>v1.0.2 (Medick): LEVELING mode. Off by default — strict IS the standard now (Red 3+
     /// legendaries, Pink 3+ rares). On = adds the SILVER 2+ affix-rare tier and forces combined
@@ -1216,15 +1247,19 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool optRedRares = false;        // strict standard: Red = legendaries only
     [ObservableProperty] private bool optRedLegendaries = true;
     [ObservableProperty] private bool optRedAncestralOnly = false;
+    [ObservableProperty] private bool optRedMinPower900 = false;
     [ObservableProperty] private bool optPinkRares = true;
     [ObservableProperty] private bool optPinkLegendaries = false; // strict standard: Pink = rares only
     [ObservableProperty] private bool optPinkAncestralOnly = false;
+    [ObservableProperty] private bool optPinkMinPower900 = false;
     partial void OnOptRedRaresChanged(bool value) => Recompile();
     partial void OnOptRedLegendariesChanged(bool value) => Recompile();
     partial void OnOptRedAncestralOnlyChanged(bool value) => Recompile();
+    partial void OnOptRedMinPower900Changed(bool value) => Recompile();
     partial void OnOptPinkRaresChanged(bool value) => Recompile();
     partial void OnOptPinkLegendariesChanged(bool value) => Recompile();
     partial void OnOptPinkAncestralOnlyChanged(bool value) => Recompile();
+    partial void OnOptPinkMinPower900Changed(bool value) => Recompile();
 
     // v1.0.2 cube-bases rule (Horadric research): 2-on-build-affix MAGIC items = craft fodder.
     // Opt-in by founder call — the Crafting Coach is the on-ramp that tells players to enable it.
@@ -1238,6 +1273,7 @@ public partial class MainViewModel : ObservableObject
     //  lists DO remember their open/closed state across launches (UiStateStore) and reopen only when
     //  a DIFFERENT build loads — reloading the same build keeps them where the user left them
     //  (reset-on-different-build lives in Ingest()).
+    [ObservableProperty] private bool nineHundredOnlyExpanded;
     [ObservableProperty] private bool filterOptionsExpanded = false;
     [ObservableProperty] private bool charmSetsExpanded = true;
     [ObservableProperty] private bool uniqueCharmsExpanded = true;
@@ -1271,6 +1307,19 @@ public partial class MainViewModel : ObservableObject
 
     private FilterOptions CurrentOptions => new()
     {
+        NineHundredOnly = OptNineHundredOnly,
+        NineHundredOnlyLegendaries = OptNineHundredOnlyLegendaries,
+        NineHundredOnlyRares = OptNineHundredOnlyRares,
+        NineHundredOnlyUniques = OptNineHundredOnlyUniques,
+        NineHundredOnlyHelm = OptNineHundredOnlyHelm,
+        NineHundredOnlyChest = OptNineHundredOnlyChest,
+        NineHundredOnlyTwoHandedWeapon = OptNineHundredOnlyTwoHandedWeapon,
+        NineHundredOnlyOneHandedWeapon = OptNineHundredOnlyOneHandedWeapon,
+        NineHundredOnlyGloves = OptNineHundredOnlyGloves,
+        NineHundredOnlyPants = OptNineHundredOnlyPants,
+        NineHundredOnlyBoots = OptNineHundredOnlyBoots,
+        NineHundredOnlyRing = OptNineHundredOnlyRing,
+        NineHundredOnlyAmulet = OptNineHundredOnlyAmulet,
         PinkMinAffixes = 3,                       // strict standard: both tiers at 3+
         PerSlotRules = OptPerSlot,
         Leveling = OptLeveling && !_multiTierDefaultsApplied, // Super Builds are fixed 3+ endgame hunts
@@ -1292,9 +1341,11 @@ public partial class MainViewModel : ObservableObject
         RedRares = OptRedRares,
         RedLegendaries = OptRedLegendaries,
         RedAncestralOnly = OptRedAncestralOnly,
+        RedMinPower900 = OptRedMinPower900,
         PinkRares = OptPinkRares,
         PinkLegendaries = OptPinkLegendaries,
         PinkAncestralOnly = OptPinkAncestralOnly,
+        PinkMinPower900 = OptPinkMinPower900,
         CubeBases = OptCubeBases,
         ItemPowerTiers = OptItemPowerTiers,
         GreaterAffixes = OptGreaterAffixes,
@@ -1902,13 +1953,13 @@ public partial class MainViewModel : ObservableObject
     /// under the strict standard; the looser 2+ rares live in the opt-in Leveling silver tier.</summary>
     public string RedTierSummary => "Red " + FilterCompiler.DescribeTierScope(
         OptGoldTier, FilterCompiler.Strict,
-        OptRedRares, OptRedLegendaries, OptRedAncestralOnly)
+        OptRedRares, OptRedLegendaries, OptRedAncestralOnly, OptRedMinPower900)
         + (OptGoldTier && !OptRedRares
             ? "  (keep 'Show rares' off. it's off by design: turning it on paints your 3+ rares Red instead of Pink, and Pink stops working)"
             : "");
     public string PinkTierSummary => "Pink " + FilterCompiler.DescribeTierScope(
         OptSilverTier, FilterCompiler.Strict,
-        OptPinkRares, OptPinkLegendaries, OptPinkAncestralOnly)
+        OptPinkRares, OptPinkLegendaries, OptPinkAncestralOnly, OptPinkMinPower900)
         + (OptSilverTier && !OptPinkLegendaries
             ? "  (keep 'Show legendaries' off. it's off by design: Red already covers legendaries, so it does nothing here)"
             : "");
