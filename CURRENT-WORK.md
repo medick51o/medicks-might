@@ -3,7 +3,7 @@
 **Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `f4ebefe` · gate **412 passed / 0 failed / 5 skipped**
 (run 2026-09-15 19:02 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-15 19:16
+**Last updated:** 2026-09-15 20:06
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
