@@ -1,9 +1,9 @@
 # CURRENT WORK — Medick's Might
 
-**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `11afe9d` · gate **438 passed / 0 failed / 5 skipped**
+**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `see git log` · gate **460 passed / 0 failed / 5 skipped**
 (run 2026-09-15 23:01 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-17 22:20
+**Last updated:** 2026-09-17 22:44
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -96,7 +96,17 @@ Do not hand-enter IDs; a wrong ID silently hides loot.
   green). Goldens are never written by test code; promotion is manual. Gate 420 -> 438.
   Scope limit: 18 option combinations, not the whole option space, and it says NOTHING about whether
   Diablo 4 accepts any payload.
-- **IN FLIGHT 2026-09-17 22:15 — astra building PART B item B1**, the payload-derived preview.
+- **DONE 2026-09-17 — astra PART B item B1 built, reviewed, repaired.** `08c88bc` added
+  `FilterPreview.cs`: the result panel now DECODES the emitted `ImportCode` and shows each rule's
+  action, real scope, encoded counts and the 1-899 hide range, instead of a hardcoded legend that
+  could disagree with the payload. An independent Claude-lineage review returned
+  APPROVED_WITH_FINDINGS and verified by reading the code that the preview never touches
+  `FilterOptions` (the one thing that would have made it a mirror of the bug). It caught an
+  orphaned `BuildTierLegend` and a latent throw in the witness-card path; both repaired. It also
+  caught a FALSE evidence number in `08c88bc` — "27 characterization cases" is really 18;
+  corrected in `b5115c8`. Gate 438 -> 460, 18 byte-hash cases green throughout.
+  **The repair commit itself is not yet independently reviewed.**
+- **SUPERSEDED — earlier note said astra was building B1**, the payload-derived preview.
   It must decode the emitted `ImportCode` and show each rule's action, real scope, and encoded
   counts, so what the UI claims can no longer diverge from what shipped. Write set:
   `FilterPreview.cs` (new), `MainViewModel.cs`, `MainWindow.xaml`, `WitnessCardViewModel.cs`,
