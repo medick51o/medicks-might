@@ -59,10 +59,14 @@ in game.** Stop spending seats on it.
 ## THE SEASON 15 UNIQUE DELTA — partially open
 - `Season 15.sea.json` (86 KB) was fully enumerated: **no array resembling a legacy-unique
   restoration list.** The season file does not advertise them.
-- 4 of the 12 disputed names are ALREADY in `UniqueDatabase.cs`: Gospel of the Devotee `0x2410af`,
-  Ae'grom's Schism `0x26e5d3`, Eye of Baal `0x26e5f0`, and **"Mace of King Leoric" `0x25aff6`** —
-  note that is a different item from the reported "Leoric's Crown". **Treat the community name
-  list as unreliable**; resolve against data, not articles.
+- 3 of the disputed names are ALREADY in `UniqueDatabase.cs`: Gospel of the Devotee `0x2410af`,
+  Ae'grom's Schism `0x26e5d3`, Eye of Baal `0x26e5f0`.
+- **CORRECTION 2026-09-17 — an earlier version of this line was WRONG.** It claimed "Leoric's Crown"
+  was merely a name mismatch for "Mace of King Leoric", already present. They are two DIFFERENT
+  items. `Mace of King Leoric` = `0x25aff6` (in the database). **`Leoric's Crown` = `0x28646b`**
+  (`Helm_Unique_Generic_005`, eMagicType 2, its own flavor text, NOT in the database). Established
+  by fetching both item files and their StringLists. Resolve against data, not against this doc's
+  earlier guess.
 - Items are keyed by internal codename (`Unique_Barb_102`), so name -> ID needs a **StringList
   join**: either 61,330 individual files under `enUS_Text/meta/StringList/`, or one ~55 MB
   `CoreTOC_flat.json`.
@@ -90,3 +94,52 @@ legacy uniques craftable into charms) each carry their own snoID and are genuine
 **STILL OPEN after this observation:** the item-power ceiling. Four research attempts and the game
 data itself have all failed to settle 800 vs 900 vs 925 (see above). It remains the one thing only
 an in-game look can answer, and it gates whether the committed 900-only switch ships or is stripped.
+
+## ⛔ REGENERATION HAZARD — eMagicType 4 (Mythic) MUST NOT BE DROPPED
+The extractor classifies by the game's own `eMagicType` field: **2 = Unique, 3 = Set-charm,
+4 = Mythic**. Its `uniques.json` contains **only eMagicType 2**.
+
+**But `UniqueDatabase.cs` already MIXES mythics in with uniques** — CONFIRMED present:
+Doombringer `0x035f59`, The Grandfather `0x036827`, Andariel's Visage `0x03b10a`, Ahavarion Spear of
+Lycander `0x057afd`, Harlequin Crest `0x094e1c`, Melted Heart of Selig `0x13781f`, Ring of Starless
+Skies `0x13eee2`, Tyrael's Might `0x1d03ac`, Shroud of Khanduras `0x1d8465`, plus "(Crucible)"
+variants (`0x27b52f`, `0x27b547`).
+
+**A naive regeneration from `uniques.json` would DELETE all of them**, silently removing every
+mythic from every filter. The extractor tracks the 38 excluded eMagicType-4 items (12 of them
+charms) in `MANIFEST.json` under `eMagicTypeDistributionOfUnclassifiedItems`, so nothing is lost —
+but the regeneration MUST union tier 2 and tier 4, and a regression test must prove a known mythic
+id survives. Do not regenerate without that test.
+
+## EXTRACTOR — BUILT AND SELF-VERIFYING (2026-09-17)
+Lives in the session scratchpad (`s15-extract/extract.py` + `verify.py`), pinned to commit
+`961fe61`, fully cached (~150 MB; a re-run costs 2.8s and zero network for items/sets).
+**`verify.py` passes 11/11** against independently-known-correct ids, including the
+Banished Lord's gear/charm pairing and `Talisman_Barb_01` with all five members.
+Counts: **1,068 unique gear · 133 unique charms · 45 real sets** · 12,117/12,117 item files fetched,
+0 failures · 11 display names unresolved (1%, dev/QA items with no StringList entry, emitted `null`,
+never invented).
+Classification is **data-driven on `eMagicType`, not filename pattern-matching** — which found 118
+more true uniques than a filename guess would have.
+
+**Known extractor limits, recorded not hidden:** QA/test placeholders are deliberately NOT filtered
+out of `uniques.json` (it stays literal to `eMagicType==2`; filtering happens only in the delta
+analysis, so no real id is ever dropped on a heuristic) · `Annihilus` `0x28f5c2` is a CHARM that the
+data files as gear · one dev typo (`Talisman_Charm_Uniq_Generic_001`, "Uniq" not "Unique", display
+name "Temerity") lands in gear because it misses the prefix check · set display names are resolvable
+from `SetItemBonus_<codename>.stl.json` but were not emitted.
+
+## SEASON 15 UNIQUE DELTA — 20 items, a STRONG LEAD LIST, not an authoritative roster
+Present in `3.2.1.73552`, absent from `UniqueDatabase.cs` by both id and name, after filtering
+QA/test/(PH)/transmog-cosmetic noise out of a raw 749-entry diff. The filtering required judgment,
+so treat this as leads to confirm, not gospel:
+Amulet of Dark Omens `0x26f0f8` · Annihilus `0x28f5c2` (a charm, see above) · Antipathy Crux
+`0x14d564` ⚠ · Arioc's Needle `0x286478` · Bell of the Bovine `0x28d97b` · Bitter Flamberge
+`0x273e98` · Browbreak Maul `0x27693b` · Crucible of Undying Renown `0x23b6df` ⚠ · Godly Plate of
+the Whale `0x28f3c2` · Henri's Perquisition `0x28647a` · In-Geom `0x286476` · Kleos Spear of Athulua
+`0x26c94e` · Leoric's Crown `0x28646b` · Messerschmidt's Reaver `0x286474` · Nemesis Bracers
+`0x286472` · Squirt's Blouse `0x28646e` · Stone of Jordan `0x28647e` · The Cow King's Crown
+`0x286117` · The Furnace `0x368e9` · The Stillblade `0x1c0d2e`.
+⚠ = `_storNNN` codename matching this dump's cash-shop-cosmetic naming pattern; NOT asserted lootable.
+Community-list check: **"Blood Wail Signet" has NO match in this build's item data** — not claiming
+it exists.
