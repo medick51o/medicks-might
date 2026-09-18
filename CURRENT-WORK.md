@@ -3,7 +3,7 @@
 **Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `11afe9d` · gate **438 passed / 0 failed / 5 skipped**
 (run 2026-09-15 23:01 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-17 22:16
+**Last updated:** 2026-09-17 22:20
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -38,12 +38,24 @@ power 900 does not exist**. If true, enabling this switch hides **every drop in 
   that merely permits 900 does NOT count.
 - **Do not ship this switch until that observation exists.**
 
-## BLOCKER 2 — the whole data-refresh lane is externally blocked
+## ~~BLOCKER 2~~ — RESOLVED: the data-refresh lane is OPEN
 Catalogs are pinned to game data `3.1.0.72592`: `TalismanSetDatabase.cs:11`,
 `UniqueDatabase.cs:337`; `AffixDatabase.cs:5` to CoreTOC `3.0.3.72031`.
-**No public Season 15 data dump exists yet** — `blizzhackers/d4data` last published
-`3.1.0.72592` on 2026-07-02. New uniques, talisman IDs and affix catalogs cannot be
-regenerated until upstream publishes. This is a dependency, not an effort problem.
+**RESOLVED 2026-09-17 — the S15 dump EXISTS and this lane is OPEN.**
+`DiabloTools/d4data` published **build 3.2.1.73552 on 2026-09-15**, the day S15 launched
+(commits "Rebuilt JSON 3.2.1.73552" / "Updated definitions to 3.2.1.73552").
+**A prior note here claimed no dump existed, citing `blizzhackers/d4data`. That was WRONG**
+and cost two days: `blizzhackers/d4data` was archived 2024-07-04 with "Development halted;
+use the linked repo instead." This codebase always cited the correct successor
+(`AffixDatabase.cs:5`, `UniqueDatabase.cs:7`, `SetItemBonusDatabase.cs:5`).
+
+**The refresh path:** the compiled catalogs come from that repo's RAW dumps (CoreTOC,
+enUS_Text STLs) — see `GameDataUpdater.cs:25-26`, which documents that the processed
+per-locale files are NOT there and come from `josdemmers/Diablo4Companion` instead
+(`GameDataUpdater.cs:37`). That runtime updater is alive and unaffected.
+**There is no automated catalog generator in this repo** — `tools/` holds scrapers and
+capture scripts only. Prior refreshes were ad-hoc. Building a repeatable extractor is
+the real work, and it is now unblocked.
 Do not hand-enter IDs; a wrong ID silently hides loot.
 
 ## KNOWN TRAPS
