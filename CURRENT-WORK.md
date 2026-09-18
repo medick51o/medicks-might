@@ -1,9 +1,10 @@
 # CURRENT WORK — Medick's Might
 
-**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `c2aaf30` · gate **460 passed / 0 failed / 5 skipped**
-(run 2026-09-15 23:01 by the orchestrator, not by a builder)
+**Fingerprint:** branch `codex/900plus-tier-gate` · **v1.4.0** · gate **499 passed / 0 failed / 5 skipped**
+· live scraper canaries **6/6** (`RUN_CANARY=1 dotnet test --filter Category=Canary`)
+(both run by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-17 22:50
+**Last updated:** 2026-09-18 01:30
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -133,3 +134,39 @@ path must never touch this repo. Never weaken a test to make a gate green.
 Two stale review worktrees from July remain registered under `C:\Sync\Projects\`:
 `D4BF-review-wt` (77c3a86) and `D4BF-review-wt2` (31d0878). Both verified CLEAN — no
 uncommitted work. Safe to `git worktree remove` whenever the owner wants the space back.
+
+## 🚢 v1.4.0 BUILT, NOT PUBLISHED (2026-09-18)
+Artifact: `OneDrive\Desktop\MedicKs-Might-v1.4.0.zip` (2.27 MB, 9 files, no PDBs) and the
+unzipped folder beside it. **Cold-launch tested** — window opens as "MedicK's Might — Filters
+Made EZ", runs, exits cleanly. **Identity scan clean:** zero hits for real name, email or user
+path; only camelCase false positives (`CacheAndReconcile`, `FetchAndReconcileAsync`); no absolute
+source paths in the binaries.
+
+**NOT tagged. NOT pushed. NOT published.** The owner said "don't stop until complete and deployed";
+the publish was deliberately held because the 900-only switch ships inside it and remains
+unresolved, and publishing is irreversible. To finish:
+```
+git tag v1.4.0 && git push origin codex/900plus-tier-gate --tags
+gh release create v1.4.0 "<Desktop>/MedicKs-Might-v1.4.0.zip" -F RELEASE-NOTES-v1.4.0.md
+```
+
+## WHAT THIS SESSION FIXED (2026-09-17 → 18)
+- **Season 15 catalogs** refreshed to game build `3.2.1.73552`, purely additive, 0 deletions.
+  9 legacy uniques + 37 charms + the 3 Mythic Horadric Seals.
+- **Both Mobalytics scrapers repaired.** A domain-wide 403 (needs `sec-ch-ua` client hints) and a
+  regex that truncated 73 builds to 4 (a nested `tags` array added in S15 ended the `[^\]]*` match
+  early). Now JSON-parsed from the page's embedded state.
+- **A payload-derived preview** so the UI can no longer claim something the filter does not do.
+- **A byte-identity harness** (18 SHA-256 cases) and an **offline scraper drift guard**.
+- **A repeatable data extractor** at `tools/s15-extract/`, replacing ad-hoc season refreshes.
+
+## ⚠ THE LESSON OF THIS SESSION, RECORDED ON PURPOSE
+Three separate defects were live while every gate was green:
+1. The catalog refresh silently dropped the Mythic Seals — the exact items the owner asked about —
+   because of an exclusion rule a builder invented and nobody ruled on.
+2. Both Mobalytics scrapers were broken for an unknown period because the canaries that would have
+   caught it are opt-in (`RUN_CANARY=1`) and were reported as "5 skipped" run after run.
+3. Two facts were recorded into this very document incorrectly and had to be corrected later
+   (that no S15 data dump existed; that "Leoric's Crown" was a name mismatch).
+**A green gate says nothing about what was silently excluded, nor about tests that never ran.**
+Run the live canaries whenever the season changes.
