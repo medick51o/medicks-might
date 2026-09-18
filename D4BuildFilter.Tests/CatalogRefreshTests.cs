@@ -5,6 +5,19 @@ namespace D4BuildFilter.Tests;
 
 public class CatalogRefreshTests
 {
+    // Each row fails when the seal repair is reverted: the broad Talisman_Seal_ exclusion
+    // previously omitted all three. Exact key spelling and ID catch remapping/transcription.
+    [Theory]
+    [InlineData("Seal of the Severed Finger", 0x280339u)]
+    [InlineData("Seal of the Golden Epiphany", 0x28033bu)]
+    [InlineData("Seal of the Diamond Mind", 0x28033du)]
+    public void Mythic_seals_resolve_to_their_exact_names_and_ids(string name, uint id)
+    {
+        Assert.True(UniqueDatabase.TryGet(name, out var actual));
+        Assert.Equal(id, actual);
+        Assert.Contains(UniqueDatabase.ByName, entry => entry.Key == name && entry.Value == id);
+    }
+
     // Baseline preservation guard: a full additive-refresh revert still passes. A rebuild
     // from tier 2 alone loses the tier-4 entries; renamed/remapped entries also fail.
     // Shroud of Khanduras is tier 2 now but remains part of this historical roster.

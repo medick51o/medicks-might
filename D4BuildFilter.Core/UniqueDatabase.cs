@@ -380,12 +380,13 @@ public static class UniqueDatabase
             // Placeholder, [ph_, (PH), (DNS) substrings in display name or codename.
             // Exclude only cosmetic IDs 0x14d564 and 0x23b6df; no shop-pattern inference.
             // Defer names with multiple IDs across either tier or a different existing ID.
-            // Defer explicit non-gear/debug codenames (case-insensitive regex):
+            // Non-gear/debug deferrals (case-insensitive heuristics, not proof of non-lootability):
             // ^S07_(QST_|Socketable_)|^S08_CollectibleBossPower_|^S09_HoradricPower_|
-            // ^S11_(Essence_|.*_Power_Unlock$)|^CraftingMaterial_|^Gem_|^Talisman_Seal_|
+            // ^S11_(Essence_|.*_Power_Unlock$)|^CraftingMaterial_|^Gem_|
             // ^BossSummoning_|_TransmogItem$|(^|_)Random_.*_UI$|Debug
             // 1,092 source IDs = 335 already shipped + 104 new marker exclusions +
-            // 11 null names + 2 cosmetics + 524 name collisions + 91 non-gear/debug + 25 added.
+            // 11 null names + 2 cosmetics + 524 name collisions + 87 non-gear/debug +
+            // 1 unresolved seal classification + 28 added.
             // Marker matches total 106: shipped Halo and New Item [PH] remain unchanged.
             // Keep these shipped IDs even though absent from this dump:
             // Cleansing Prayer 0x1beb34; Iron Horn 0x1c608b; Skatsimi Tome 0x1c8956;
@@ -416,6 +417,16 @@ public static class UniqueDatabase
             ["Prudence"] = 0x28f1e9,
             ["Rain"] = 0x28f211,
             ["Godly Plate of the Whale"] = 0x28f3c2,
+
+            // S15 repair: Mythic seals are real six-charm-slot items, not non-gear noise.
+            // IDs/names: pinned mythics.json; numbered raw Item records carry the named
+            // Talisman_Charm_Slot_Count_Base = 6 attribute and a forced ancestral seal affix.
+            // Unsuffixed Talisman_Seal_MythicUnique (0x27d06b) remains deferred: NOT DERIVABLE.
+            // Its arForcedAffixes is empty and slot-count attribute has eAttribute = -1.
+            // snoBaseItem is null for all four, so it does not distinguish a template/drop.
+            ["Seal of the Severed Finger"] = 0x280339,
+            ["Seal of the Golden Epiphany"] = 0x28033b,
+            ["Seal of the Diamond Mind"] = 0x28033d,
         };
 
     public static bool TryGet(string name, out uint id) => ByName.TryGetValue(name, out id);
