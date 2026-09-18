@@ -143,3 +143,30 @@ the Whale `0x28f3c2` · Henri's Perquisition `0x28647a` · In-Geom `0x286476` ·
 ⚠ = `_storNNN` codename matching this dump's cash-shop-cosmetic naming pattern; NOT asserted lootable.
 Community-list check: **"Blood Wail Signet" has NO match in this build's item data** — not claiming
 it exists.
+
+## ⚪⚖️ OPEN RULINGS — deferred records the owner should decide on
+A builder-invented "non-gear/debug" exclusion rule produced **one confirmed false positive** (the
+Mythic Horadric Seals, since added). That rule was then re-audited clause by clause. The clauses
+below are the remaining judgment calls. **None of these are in the catalog.**
+
+| Record | Evidence | Why it is uncertain |
+|---|---|---|
+| **The Empyrean Eye** (`^Gem_`) | eMagicType 2, **three socket effects granting `All_Stats_Percent_Bonus = 0.15`, no season restriction** | A real, currently-functional unique gem. Strongest candidate of the three. |
+| **Resplendent Spark** (`^CraftingMaterial_`) | type `CraftingReagent` | Non-equipment, but people do hunt for sparks. |
+| **Superior Lair Key** (`^BossSummoning_`) | type `BossSummoning`, has a key actor | Non-equipment. Non-equipment is not the same as non-lootable. |
+| **19 × `S07_Socketable_*`** (e.g. Wicked Pact `0x20f00e`, Cornucopia `0x20fb86`) | all have type `SeasonalSocketable`, `bSeasonItem = true`, **explicit Season 7 activation requirements**, real socket effects, actors, unique-salvage refs | Functional items, but they are SEASON 7 gated. Availability in Season 15 is **NOT PROVEN**. |
+
+**The scope question underneath all four rows:** this catalog is keyed by display name because the
+app resolves uniques out of pasted build-guide text. Gems, reagents and summoning keys never appear
+in a build guide's unique list, so they arguably belong to a different surface (a materials/consumables
+filter) rather than `UniqueDatabase.cs`. That is a product decision, not a data one.
+
+**Clauses judged sound on re-audit, no action needed:** `^S08_CollectibleBossPower_` (24),
+`^S09_HoradricPower_` (11), `^S11_(Essence_|*_Power_Unlock$)` (12) — all collectible seasonal powers
+with activation requirements · `_TransmogItem$` (4) — all carry `bIsTransmog = true` · `*_Random_*_UI$`
+(11) — random-treasure-class UI proxies with no affixes · `Debug` (1) — PvP Refresher forcing
+`zzRing_PvP_DebugBuffRefresh`.
+
+**Lesson recorded:** the exclusion rule was invented by the builder, not ruled on, and it was the only
+part of a fully green, fence-clean, byte-identical change that was wrong. A green gate says nothing
+about what a filter silently left out.
