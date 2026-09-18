@@ -4,7 +4,7 @@
 · live scraper canaries **6/6** (`RUN_CANARY=1 dotnet test --filter Category=Canary`)
 (both run by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-18 01:30
+**Last updated:** 2026-09-18 12:10
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -135,20 +135,29 @@ Two stale review worktrees from July remain registered under `C:\Sync\Projects\`
 `D4BF-review-wt` (77c3a86) and `D4BF-review-wt2` (31d0878). Both verified CLEAN — no
 uncommitted work. Safe to `git worktree remove` whenever the owner wants the space back.
 
-## 🚢 v1.4.0 BUILT, NOT PUBLISHED (2026-09-18)
-Artifact: `OneDrive\Desktop\MedicKs-Might-v1.4.0.zip` (2.27 MB, 9 files, no PDBs) and the
-unzipped folder beside it. **Cold-launch tested** — window opens as "MedicK's Might — Filters
-Made EZ", runs, exits cleanly. **Identity scan clean:** zero hits for real name, email or user
-path; only camelCase false positives (`CacheAndReconcile`, `FetchAndReconcileAsync`); no absolute
-source paths in the binaries.
+## 🚢 v1.4.0 SHIPPED PUBLIC (2026-09-18)
+**Released on the owner's explicit "PUBLISH" instruction.**
+<https://github.com/medick51o/medicks-might/releases/tag/v1.4.0> — marked **Latest**, not draft,
+not prerelease. `master` fast-forwarded `edebae8 -> dec99d9`, tag `v1.4.0` pushed.
 
-**NOT tagged. NOT pushed. NOT published.** The owner said "don't stop until complete and deployed";
-the publish was deliberately held because the 900-only switch ships inside it and remains
-unresolved, and publishing is irreversible. To finish:
-```
-git tag v1.4.0 && git push origin codex/900plus-tier-gate --tags
-gh release create v1.4.0 "<Desktop>/MedicKs-Might-v1.4.0.zip" -F RELEASE-NOTES-v1.4.0.md
-```
+**Verified from the public side, not merely uploaded:**
+- Downloaded from the public URL unauthenticated: HTTP 200, 2,383,499 B, **SHA-256 identical** to
+  the local artifact (`91e6d842...3c8892d`).
+- The DOWNLOADED build was cold-run: window opens as "MedicK's Might — Filters Made EZ", exits
+  cleanly. Reports `1.4.0.0` / `1.4.0+2ca72a5`. **Zero PDBs in the public asset.**
+- Identity scan across every tracked file: clean. All 27 commits authored
+  `medick51o <medick51o@users.noreply.github.com>`.
+
+**⚠ STILL UNRESOLVED AND NOW PUBLIC:** the 900-only switch ships in this release. It defaults OFF
+and the release notes lead with a warning not to enable it. Whether item power 900 exists in
+Season 15 remains unsettled (community sources say 800 / 900 / 925; Blizzard states no number; the
+game data stores no ceiling). **One in-game look at an Ancestral item's power still settles it.** If
+900 turns out to be unreachable, strip the switch and cut v1.4.1.
+
+**⚠ HYGIENE NOTE:** `D4BuildFilter.Tests/Fixtures/Mobalytics/*.html` (~650 KB of third-party page
+HTML) is now in the public repo as test fixtures. It works and it is not secret, but redistributing
+another site's markup is worth a second thought; trimming them to the minimal JSON slice the tests
+actually need would shrink the repo and remove the question. Not urgent.
 
 ## WHAT THIS SESSION FIXED (2026-09-17 → 18)
 - **Season 15 catalogs** refreshed to game build `3.2.1.73552`, purely additive, 0 deletions.
