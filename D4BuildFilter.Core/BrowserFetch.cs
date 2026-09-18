@@ -8,11 +8,18 @@ namespace D4BuildFilter.Core;
 /// the TLS ClientHello (JA3); .NET's HttpClient gets 403'd on some sites (e.g. mobalytics.gg) while
 /// the system <c>curl.exe</c> — which ships in C:\Windows\System32 on Windows 10/11 — is allowed.
 /// So we try curl first and fall back to HttpClient (which is fine for non-strict sites like maxroll).
+/// On 2026-09-18, mobalytics.gg was found returning 403 domain-wide without sec-ch-ua client hints;
+/// UA-only requests and the full Sec-Fetch header set were both insufficient. Both fetch paths
+/// therefore send Chromium client hints in addition to the User-Agent.
 /// </summary>
 public static class BrowserFetch
 {
+    // Keep the Chrome major version in UserAgent and both Chromium brands in SecChUa in sync.
     private const string UserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    private const string SecChUa = "\"Chromium\";v=\"124\", \"Google Chrome\";v=\"124\", \"Not-A.Brand\";v=\"99\"";
+    private const string SecChUaMobile = "?0";
+    private const string SecChUaPlatform = "\"Windows\"";
 
     public static async Task<string> GetStringAsync(string url, CancellationToken ct = default)
     {
@@ -38,7 +45,10 @@ public static class BrowserFetch
             // --fail: HTTP >= 400 exits non-zero instead of handing us the error/Cloudflare-challenge
             // body. Without it a 403 page "succeeds", parses to 0 builds, and renders as a fake
             // "No builds in this list yet" — the silent season-day failure mode.
-            foreach (var a in new[] { "-s", "-L", "--fail", "--compressed", "--max-time", "30", "-A", UserAgent, url.Trim() })
+            foreach (var a in new[] { "-s", "-L", "--fail", "--compressed", "--max-time", "30", "-A", UserAgent,
+                "-H", "sec-ch-ua: " + SecChUa,
+                "-H", "sec-ch-ua-mobile: " + SecChUaMobile,
+                "-H", "sec-ch-ua-platform: " + SecChUaPlatform, url.Trim() })
                 psi.ArgumentList.Add(a);
 
             using var proc = Process.Start(psi);
@@ -88,6 +98,9 @@ public static class BrowserFetch
         };
         var h = req.Headers;
         h.TryAddWithoutValidation("User-Agent", UserAgent);
+        h.TryAddWithoutValidation("sec-ch-ua", SecChUa);
+        h.TryAddWithoutValidation("sec-ch-ua-mobile", SecChUaMobile);
+        h.TryAddWithoutValidation("sec-ch-ua-platform", SecChUaPlatform);
         h.TryAddWithoutValidation("Accept",
             "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8");
         h.TryAddWithoutValidation("Accept-Language", "en-US,en;q=0.9");
