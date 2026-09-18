@@ -3,9 +3,12 @@ using D4BuildFilter.Core;
 
 namespace D4BuildFilter.WPF.ViewModels;
 
-/// <summary>One truthful row in the share card's color key. Rows are projected from the decoded
-/// filter, not from checkbox intent, so a skipped or disabled rule can never be advertised.</summary>
-public sealed record WitnessLegendRow(string Label, string ColorName, string ColorHex);
+/// <summary>A compatibility label plus the full decoded rule for a share-card presentation.</summary>
+public sealed record WitnessLegendRow(string Label, string ColorName, string ColorHex)
+{
+    public FilterPreviewRule? EncodedRule { get; init; }
+    public string DisplayLabel => EncodedRule?.DisplayText ?? Label;
+}
 
 public sealed record WitnessBuildIdentity(string BuildName, string ClassName, string ClassColorHex);
 
@@ -20,7 +23,11 @@ public sealed record WitnessCardViewModel(
     string RuleCountLabel,
     string VersionStamp,
     string DiscordInvite,
-    IReadOnlyList<WitnessBuildIdentity> Builds);
+    IReadOnlyList<WitnessBuildIdentity> Builds)
+{
+    public FilterPreview? EncodedPreview { get; init; }
+    public string EvidenceNote => FilterPreview.EvidenceNote;
+}
 
 public sealed record WitnessCardRequest(
     string BuildName,
@@ -88,17 +95,18 @@ public static class WitnessCardComposer
                 ? $"{request.SourceName} · {request.TierKind} · {request.Tier}"
                 : null;
         var version = request.VersionOverride ?? ReadVersionStamp();
+        var preview = FilterPreview.FromImportCode(request.Output.ImportCode);
         var card = new WitnessCardViewModel(
             string.Join(" + ", builds.Select(build => build.BuildName)),
             string.Join(" + ", builds.Select(build => build.ClassName)),
             ClassColors.TryGetValue(request.ClassName, out var classColor) ? classColor : "#D4AF37",
             provenance,
-            BuildLegend(request.Output.ImportCode),
+            BuildLegend(preview),
             request.Output.ImportCode,
-            $"{request.Output.RuleCount} / {request.MaxRules} rules",
+            $"{preview.Rules.Count} / {request.MaxRules} rules",
             version,
             request.DiscordInvite,
-            builds);
+            builds) { EncodedPreview = preview };
         return new(card, null);
     }
 
@@ -119,24 +127,21 @@ public static class WitnessCardComposer
         return $"MedicK's Might v{version}";
     }
 
-    private static IReadOnlyList<WitnessLegendRow> BuildLegend(string importCode)
+    private static IReadOnlyList<WitnessLegendRow> BuildLegend(FilterPreview preview)
     {
         var rows = new List<WitnessLegendRow>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var rule in FilterDecoder.Decode(importCode).Rules.Where(r => r.Visibility == (int)Visibility.Recolor))
+        foreach (var rule in preview.Rules)
         {
-            var colorName = FilterColors.TryGetEntry(rule.Color, out var entry)
-                ? entry!.FullName
-                : FilterColors.NameOf(rule.Color);
-            var label = LegendLabel(rule, colorName);
-            var key = $"{label}|{rule.Color}";
-            if (!seen.Add(key)) continue;
-            rows.Add(new(label, colorName, $"#{rule.Color & 0xFFFFFF:X6}"));
+            bool recolor = rule.Visibility == (int)Visibility.Recolor;
+            var label = recolor ? LegendLabel(rule, rule.ColorName) : $"{rule.Action} · {rule.Name}";
+            if (!rule.Enabled) label += " [disabled]";
+            rows.Add(new(label, recolor ? rule.ColorName : rule.Action,
+                recolor ? rule.ColorHex : "#AAAAAA") { EncodedRule = rule });
         }
         return rows;
     }
 
-    private static string LegendLabel(DecodedRule rule, string colorName)
+    private static string LegendLabel(FilterPreviewRule rule, string colorName)
     {
         var affix = rule.Conditions.FirstOrDefault(c => c.Type == 6 && c.MaskOrCount.HasValue);
         var rarity = rule.Conditions.FirstOrDefault(c => c.Type == 1)?.MaskOrCount;

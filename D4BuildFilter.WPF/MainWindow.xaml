@@ -1744,6 +1744,35 @@
                                  LostFocus="FilterTitle_LostFocus"
                                  MaxLength="24" Height="34" FontSize="{DynamicResource Type.Body}" FontFamily="{DynamicResource Font.Sans}" />
                     </DockPanel>
+                    <Border Background="{DynamicResource Surface.Inset}" BorderBrush="{DynamicResource Border.Strong}"
+                            BorderThickness="1" CornerRadius="{DynamicResource Radius.Control}" Padding="12" Margin="0,12,0,4">
+                        <StackPanel>
+                            <TextBlock Text="Encoded intent — review before Copy" Style="{StaticResource SectionLabel}" />
+                            <TextBlock Text="{Binding PreviewStatus}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding PreviewEvidenceNote}" TextWrapping="Wrap" Margin="0,4,0,8"
+                                       Foreground="{DynamicResource Text.Muted}" />
+                            <TextBlock Text="{Binding EncodedPreview.HideSummary}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Foreground="#E0A030" />
+                            <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding EncodedPreview.Rules}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{DynamicResource Border.Strong}" BorderThickness="0,0,0,1" Padding="0,7">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Scope}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                                                    <TextBlock Text="{Binding Details}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                                               FontSize="{DynamicResource Type.Caption}" />
+                                                    <TextBlock Text="{Binding ProtectionNote}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                                               FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
                     <TextBlock Text="Copy your import code" Style="{StaticResource SectionLabel}" Margin="0,12,0,4" />
                     <Border BorderBrush="{DynamicResource Accent.Primary}" BorderThickness="3,0,0,0"
                             Background="{DynamicResource Surface.Inset}" CornerRadius="{DynamicResource Radius.Control}" Padding="8">
@@ -1926,9 +1955,9 @@
                                            Visibility="{Binding HasNoUniques, Converter={StaticResource BoolToVis}}" />
                             </StackPanel>
 
-                            <!-- Legend panel — title now matches the other panels' SectionLabel sizing. -->
+                            <!-- Color choices; the final decoded rules are displayed above Copy. -->
                             <StackPanel Grid.Column="1" Margin="4,0,0,0">
-                                <TextBlock Text="Legend — what the colors mean"
+                                <TextBlock Text="Build colors"
                                            Style="{StaticResource SectionLabel}"
                                            TextWrapping="Wrap" />
                                 <ItemsControl ItemsSource="{Binding VariantGroups}" Margin="0,0,0,6">
@@ -1987,13 +2016,8 @@
                                 <Border Background="{DynamicResource Surface.Inset}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1"
                                         CornerRadius="{DynamicResource Radius.Control}" Padding="10,8">
                                     <StackPanel>
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#a020f0" Text="● Purple" /><Run Text=": build uniques" /></TextBlock>
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap" Text="{Binding BuildTierLegend}" />
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#ff8c00" Text="● Orange" /><Run Foreground="#00ffff" Text="/Cyan" /><Run Text=": IP 900/850" /></TextBlock>
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#2251e8" Text="● Blue" /><Run Text=": Greater Affix items" /></TextBlock>
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#00c800" Text="● Green" /><Run Text=": Charms &amp; Seals" /></TextBlock>
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap"><Run Foreground="#ffffff" Text="● White" /><Run Text=": Codex upgrades" /></TextBlock>
-                                        <TextBlock Margin="0,1" TextWrapping="Wrap" Foreground="{DynamicResource Text.Muted}"><Run Text="◌ Hidden" /><Run Text=": everything else" /></TextBlock>
+                                        <TextBlock Text="Review the encoded intent above Copy for the final colors, scopes, thresholds, and conditional protections."
+                                                   TextWrapping="Wrap" Foreground="{DynamicResource Text.Muted}" />
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -2007,7 +2031,7 @@
                             Padding="{DynamicResource Pad.Card}" Margin="0,0,0,12">
                         <StackPanel>
                             <ToggleButton IsChecked="{Binding NineHundredOnlyExpanded}" Style="{StaticResource SectionToggle}" Margin="0,0,0,2"
-                                          ToolTip="Hide selected gear below item power 900. Build uniques, Codex upgrades, and Mythic Uniques are always protected.">
+                                          ToolTip="Hide selected gear below item power 900. Review the encoded intent above Copy: protections depend on the rules actually emitted.">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource SectionChevron}" />
                                     <TextBlock Text="900 only" Style="{StaticResource SectionLabel}" Margin="0" />

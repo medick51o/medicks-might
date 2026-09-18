@@ -979,7 +979,33 @@ public partial class MainViewModel : ObservableObject
     private string buildSubtitle = "";
 
     [ObservableProperty]
-    private string buildTierLegend = "● Red: 3+ affix legendaries · ancestral charms\n● Pink: 3+ affix rares\n● Gold: Cube Bases";
+    private string buildTierLegend = "No import code to preview.";
+
+    [ObservableProperty] private FilterPreview? encodedPreview;
+    [ObservableProperty] private string previewStatus = "No import code to preview.";
+    public string PreviewEvidenceNote => FilterPreview.EvidenceNote;
+
+    partial void OnImportCodeChanged(string value)
+    {
+        // Clear first: a failed decode or a retired compile must never leave the old intent visible.
+        EncodedPreview = null;
+        PreviewStatus = "No import code to preview.";
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            try
+            {
+                EncodedPreview = FilterPreview.FromImportCode(value);
+                PreviewStatus = EncodedPreview.Summary;
+            }
+            catch (Exception ex) when (ex is FormatException or ArgumentException
+                or InvalidDataException or IndexOutOfRangeException or OverflowException)
+            {
+                PreviewStatus = "Encoded intent unavailable — the import code could not be decoded.";
+            }
+        }
+        BuildTierLegend = EncodedPreview is { } preview
+            ? string.Join("\n", preview.Rules.Select(r => r.DisplayText)) : PreviewStatus;
+    }
 
     // The fetched build, kept so variant toggles can recompile from a subset.
     private ResolvedBuild? _resolved;
@@ -2131,7 +2157,6 @@ public partial class MainViewModel : ObservableObject
         for (int i = 0; i < compiledBuilds.Count; i++)
             VariantGroups[i].SetTierEmission(compiledBuilds[i].Pool.Count > 0,
                 "Tier colors inactive — not emitted because no filterable affixes remain in the selected variants.");
-        BuildTierLegend = BuildTierLegendFor(compiledBuilds, displayTags, output.HasCustomBuildColors);
 
         PoolLines.Clear();
         foreach (var b in compiledBuilds)
@@ -2153,6 +2178,7 @@ public partial class MainViewModel : ObservableObject
         // The compiler withholds code when empty affix mapping plus Hide the rest could produce a
         // filter that hides everything. Keeping ImportCode empty also makes CopyCodeAsync refuse it.
         ImportCode = output.IsCopyable ? output.ImportCode : "";
+        BuildTierLegend = BuildTierLegendFor(EncodedPreview, compiledBuilds, displayTags);
         // User-facing metadata: just the rule count (D4 caps at 25 — CapWarning below kicks in
         // over the limit). Byte count + round-trip status were dev-validation noise per Medick.
         // If round-trip ever fails, surface it loud — but the encoder's been stable for sessions.
@@ -2368,31 +2394,16 @@ public partial class MainViewModel : ObservableObject
         SuperBuildAdvisory = string.Join("\n", advisories.Distinct(StringComparer.Ordinal));
     }
 
-    private static string BuildTierLegendFor(IReadOnlyList<CompiledBuild> builds,
-        IReadOnlyList<string> tags, bool hasCustomColors)
+    private string BuildTierLegendFor(FilterPreview? preview, IReadOnlyList<CompiledBuild> builds,
+        IReadOnlyList<string> tags)
     {
-        if (builds.Count == 1)
-            return "● Red: 3+ affix legendaries · ancestral charms\n● Pink: 3+ affix rares\n● Gold: Cube Bases";
-
-        var lines = new List<string>
-        {
-            hasCustomColors
-                ? "Active scheme — custom colors"
-                : builds.Count == 2 ? "Active scheme — colors by build" : "Active scheme — colors by tier",
-        };
+        var lines = preview is null ? new List<string> { PreviewStatus }
+            : preview.Rules.Select(r => r.DisplayText).ToList();
+        // Retain the existing empty-pool diagnostic separately from the decoded rule projection.
+        // It supplies selection context, never a claim about an emitted rule's scope or threshold.
         for (int i = 0; i < builds.Count; i++)
-        {
             if (builds[i].Pool.Count == 0)
-            {
                 lines.Add($"○ {tags[i]}: tiers not emitted — no filterable affixes remain in the selected variants");
-                continue;
-            }
-            var chase = builds[i].ChaseColorOverride ?? FilterColors.RuledChaseColor(builds.Count, i);
-            var keeper = builds[i].KeeperColorOverride ?? FilterColors.RuledKeeperColor(builds.Count, i);
-            lines.Add($"● {FilterColors.EntryFor(chase).FullName}: {tags[i]} chase · legendaries (3+)");
-            lines.Add($"● {FilterColors.EntryFor(keeper).FullName}: {tags[i]} keeper · rares (3+)");
-        }
-        lines.Add("● Red also marks ancestral charms");
         return string.Join('\n', lines);
     }
 
