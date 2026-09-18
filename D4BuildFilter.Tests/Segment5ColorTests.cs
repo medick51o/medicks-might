@@ -22,7 +22,7 @@ public class Segment5ColorTests
             tiers.Select(rule => rule.Color));
     }
 
-    /// <summary>Reverting S5 leaves one or more public surfaces advertising a color different from the emitted rule.</summary>
+    /// <summary>Checks emitted colors against the summary bound under "Rule colors and scope" and the witness-card model.</summary>
     [Fact]
     public void Custom_chase_color_flows_through_rule_suffix_legend_and_witness_card()
     {

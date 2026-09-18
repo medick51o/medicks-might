@@ -1753,6 +1753,11 @@
                                        Foreground="{DynamicResource Text.Muted}" />
                             <TextBlock Text="{Binding EncodedPreview.HideSummary}" TextWrapping="Wrap" Margin="0,0,0,8"
                                        Foreground="#E0A030" />
+                            <TextBlock Text="Rule colors and scope" Style="{StaticResource SectionLabel}" />
+                            <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                                <TextBlock Text="{Binding BuildTierLegend}" TextWrapping="Wrap"
+                                           FontSize="{DynamicResource Type.BodySm}" />
+                            </ScrollViewer>
                             <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl ItemsSource="{Binding EncodedPreview.Rules}">
                                     <ItemsControl.ItemTemplate>
@@ -1763,6 +1768,7 @@
                                                     <TextBlock Text="{Binding Scope}" TextWrapping="Wrap" Margin="0,3,0,0" />
                                                     <TextBlock Text="{Binding Details}" TextWrapping="Wrap" Margin="0,3,0,0"
                                                                FontSize="{DynamicResource Type.Caption}" />
+                                                    <!-- ProtectionNote assumes top-down, first-match rule execution; unverified in-game. -->
                                                     <TextBlock Text="{Binding ProtectionNote}" TextWrapping="Wrap" Margin="0,3,0,0"
                                                                FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" />
                                                 </StackPanel>

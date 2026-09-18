@@ -270,7 +270,7 @@ public class SuperBuildTests
         Assert.Contains("Death Trap", vm.StatusMessage);
     }
 
-    /// <summary>Reverting this fix leaves active color pickers and legend rows visible for a build whose tiers were skipped.</summary>
+    /// <summary>Checks picker state and the bound rule summary's "not emitted" diagnostic for a build whose tiers were skipped.</summary>
     [Fact]
     public void Empty_narrowed_pool_marks_that_builds_legend_and_pickers_not_emitted()
     {

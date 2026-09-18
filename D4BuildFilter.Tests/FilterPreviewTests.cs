@@ -300,6 +300,27 @@ public class FilterPreviewTests
         AssertPayloadMatches(code, Assert.IsType<FilterPreview>(card.EncodedPreview));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" \t\r\n")]
+    public void Witness_model_blocks_missing_or_whitespace_code_before_decoding(string? code)
+    {
+        var output = new FilterOutput("Preview", code!, 1, 0, true, true, []);
+        // Whitespace passes the current copy gate, so this case exercises the composer's own guard.
+        if (!string.IsNullOrEmpty(code))
+            Assert.Null(CopySafety.BlockReason(output, 25));
+
+        var composition = WitnessCardComposer.Compose(new("Preview", "Barbarian", "Test", null, null,
+            output, 25, "https://example.test"));
+
+        Assert.True(composition.IsBlocked);
+        Assert.Null(composition.Card);
+        Assert.False(string.IsNullOrWhiteSpace(composition.BlockReason));
+        if (!string.IsNullOrEmpty(code))
+            Assert.Contains("no import code to preview", composition.BlockReason);
+    }
+
     private static FilterPreview Preview(FilterOptions options) =>
         FilterPreview.FromImportCode(FilterCompiler.Compile([Build()], options, "Preview").ImportCode);
 

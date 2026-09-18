@@ -1004,7 +1004,7 @@ public partial class MainViewModel : ObservableObject
             }
         }
         BuildTierLegend = EncodedPreview is { } preview
-            ? string.Join("\n", preview.Rules.Select(r => r.DisplayText)) : PreviewStatus;
+            ? string.Join("\n", preview.Rules.Select(r => $"{r.Heading} · {r.Scope}")) : PreviewStatus;
     }
 
     // The fetched build, kept so variant toggles can recompile from a subset.
@@ -2398,7 +2398,7 @@ public partial class MainViewModel : ObservableObject
         IReadOnlyList<string> tags)
     {
         var lines = preview is null ? new List<string> { PreviewStatus }
-            : preview.Rules.Select(r => r.DisplayText).ToList();
+            : preview.Rules.Select(r => $"{r.Heading} · {r.Scope}").ToList();
         // Retain the existing empty-pool diagnostic separately from the decoded rule projection.
         // It supplies selection context, never a claim about an emitted rule's scope or threshold.
         for (int i = 0; i < builds.Count; i++)

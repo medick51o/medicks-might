@@ -65,6 +65,9 @@ public static class WitnessCardComposer
     {
         var block = CopySafety.BlockReason(request.Output, request.MaxRules);
         if (block is not null) return new(null, block);
+        // Enforce the preview decoder's precondition locally, independent of copy-gate ordering.
+        if (string.IsNullOrWhiteSpace(request.Output.ImportCode))
+            return new(null, "⚠ Share card unavailable — no import code to preview.");
         if (request.Output.Diagnostics.Count > 0)
             return new(null, $"⚠ Share card unavailable — {request.Output.Diagnostics[0]}");
         if (!string.IsNullOrWhiteSpace(request.ActiveWarning))
