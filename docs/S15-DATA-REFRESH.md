@@ -71,3 +71,22 @@ in game.** Stop spending seats on it.
 **M.** The ID extraction is mechanical once scripted. **The hardest part is the SNO -> display-name
 join**, not the extraction. Build it as a repeatable extractor, not a one-off — this recurs every
 season.
+
+## ⚪🏁 OWNER'S IN-GAME OBSERVATIONS (highest-grade evidence in this project)
+**2026-09-17 — "there was a thing that allowed players to have 6 charm slots."**
+First direct in-game observation recorded for this app. It corroborates a community report of
+6-charm capacity that a conductor had dismissed as garbled.
+
+**Impact on the filter: NONE, and this is verified.** The type-9 talisman condition encodes a
+**set ID plus member charm item IDs only** (`TalismanSetDatabase.cs:6-7`, `D4Filter.cs:97-102`).
+There is no charm-capacity or slot-count field anywhere in the wire format. Capacity is a gameplay
+rule about what can be EQUIPPED; the filter only ever names which charm ITEMS to show. 1 slot or 6,
+the payload is identical. **Do not add capacity logic to the compiler on the strength of this.**
+
+**Impact on the CATALOG: real.** New charm ITEMS introduced in S15 (Mythic Unique Charms, and
+legacy uniques craftable into charms) each carry their own snoID and are genuinely absent from
+`UniqueCharmDatabase.cs`. That is extractor work, and it is the actual gap here.
+
+**STILL OPEN after this observation:** the item-power ceiling. Four research attempts and the game
+data itself have all failed to settle 800 vs 900 vs 925 (see above). It remains the one thing only
+an in-game look can answer, and it gates whether the committed 900-only switch ships or is stripped.
