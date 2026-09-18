@@ -9,6 +9,11 @@ public sealed record UniqueCharm(string Name, uint Id);
 /// <summary>Every S14 unique charm (the Talisman_Charm_Unique_* forms that drop on the ground),
 /// for the app's "Unique Charms" show-list (all pre-checked). GENERATED from the d4data dump
 /// (maxroll data.min.json v3.1.x), 2026-07-04 — regenerate when a patch adds unique charms.</summary>
+/// <remarks>
+/// S15 additive refresh: DiabloTools/d4data build 3.2.1.73552, eMagicType 2 + 4.
+/// Pinned commit: 961fe61288f8a03d16d5b08d03d5ece7e13184fb.
+/// Includes S15_Charm_Unique_* standalone charms; the S14 provenance above is retained.
+/// </remarks>
 public static class UniqueCharmDatabase
 {
     public static readonly IReadOnlyList<UniqueCharm> All = new[]
@@ -123,6 +128,45 @@ public static class UniqueCharmDatabase
         new UniqueCharm("Wyrdskin", 0x276dcdu),
         new UniqueCharm("X'Fal's Corroded Signet", 0x276ddbu),
         new UniqueCharm("Yen's Blessing", 0x276dc0u),
+
+        // S15 additive refresh: eMagicType 2 + 4, including standalone seasonal charms.
+        new UniqueCharm("Shard of Verathiel", 0x276de0u),
+        new UniqueCharm("Squirt's Blouse", 0x28ccc8u),
+        new UniqueCharm("The Furnace", 0x28ccd6u),
+        new UniqueCharm("Henri's Perquisition", 0x28cd29u),
+        new UniqueCharm("In-Geom", 0x28cd2bu),
+        new UniqueCharm("Arioc's Needle", 0x28cd2du),
+        new UniqueCharm("Nemesis Bracers", 0x28cd2fu),
+        new UniqueCharm("Stone of Jordan", 0x28cd31u),
+        new UniqueCharm("Gospel of the Devotee", 0x28cf08u),
+        new UniqueCharm("Infernal Homunculus", 0x28cfeau),
+        new UniqueCharm("Eye of Baal", 0x28d091u),
+        new UniqueCharm("The Hemat Stone", 0x28d093u),
+        new UniqueCharm("Hellhound's Sabatons", 0x28d095u),
+        new UniqueCharm("Ae'grom's Schism", 0x28d0e1u),
+        new UniqueCharm("Grasp of Shadow", 0x28d0efu),
+        new UniqueCharm("Hand of Apotheosis", 0x28d0f1u),
+        new UniqueCharm("Rictus of Terror", 0x28d0f3u),
+        new UniqueCharm("Thundergod's Blessing", 0x28d0f5u),
+        new UniqueCharm("Signet of Pelghain", 0x28d0f7u),
+        new UniqueCharm("The Mortacrux", 0x28d0f9u),
+        new UniqueCharm("The Third Blade", 0x28d0fbu),
+        new UniqueCharm("The Basilisk", 0x28d0fdu),
+        new UniqueCharm("Vox Omnium", 0x28d0ffu),
+        new UniqueCharm("Annihilus", 0x28f5c2u),
+        new UniqueCharm("Doombringer", 0x27d9a8u),
+        new UniqueCharm("Shattered Vow", 0x27d9d0u),
+        new UniqueCharm("The Grandfather", 0x27d9ddu),
+        new UniqueCharm("Melted Heart of Selig", 0x27d9edu),
+        new UniqueCharm("Shroud of False Death", 0x27da64u),
+        new UniqueCharm("Tyrael's Might", 0x27da6bu),
+        new UniqueCharm("Nesekem, the Herald", 0x27da72u),
+        new UniqueCharm("Andariel's Visage", 0x27da82u),
+        new UniqueCharm("Harlequin Crest", 0x27da88u),
+        new UniqueCharm("Heir of Perdition", 0x27da91u),
+        new UniqueCharm("Ring of Starless Skies", 0x27da9eu),
+        new UniqueCharm("El'Druin, Sword of Justice", 0x27daa0u),
+        new UniqueCharm("Hellfire Torch", 0x28f523u),
     };
 
     public static readonly IReadOnlyDictionary<uint, UniqueCharm> ById =

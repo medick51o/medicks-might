@@ -9,6 +9,9 @@ namespace D4BuildFilter.Core;
 /// matches this source exactly, and the unique snoId IS the filter type-8 id here (unlike
 /// D4Companion's unique SNOs, which are a different space). New/seasonal uniques absent from this
 /// build can still be captured from an in-game export and added below.
+/// S15 additive refresh: DiabloTools/d4data build 3.2.1.73552, eMagicType 2 + 4.
+/// Pinned commit: 961fe61288f8a03d16d5b08d03d5ece7e13184fb.
+/// Older provenance above is retained; existing name/id mappings are unchanged.
 /// </summary>
 public static class UniqueDatabase
 {
@@ -371,6 +374,48 @@ public static class UniqueDatabase
             ["Asheara's Khanjar (Crucible)"] = 0x27b553,
             ["The Mortacrux (Crucible)"] = 0x27b555,
             ["The Umbracrux (Crucible)"] = 0x27b557,
+
+            // S15 additive refresh (3.2.1.73552): union uniques.json + mythics.json.
+            // New rows only: reject null names and case-insensitive [PH], Test, QA,
+            // Placeholder, [ph_, (PH), (DNS) substrings in display name or codename.
+            // Exclude only cosmetic IDs 0x14d564 and 0x23b6df; no shop-pattern inference.
+            // Defer names with multiple IDs across either tier or a different existing ID.
+            // Defer explicit non-gear/debug codenames (case-insensitive regex):
+            // ^S07_(QST_|Socketable_)|^S08_CollectibleBossPower_|^S09_HoradricPower_|
+            // ^S11_(Essence_|.*_Power_Unlock$)|^CraftingMaterial_|^Gem_|^Talisman_Seal_|
+            // ^BossSummoning_|_TransmogItem$|(^|_)Random_.*_UI$|Debug
+            // 1,092 source IDs = 335 already shipped + 104 new marker exclusions +
+            // 11 null names + 2 cosmetics + 524 name collisions + 91 non-gear/debug + 25 added.
+            // Marker matches total 106: shipped Halo and New Item [PH] remain unchanged.
+            // Keep these shipped IDs even though absent from this dump:
+            // Cleansing Prayer 0x1beb34; Iron Horn 0x1c608b; Skatsimi Tome 0x1c8956;
+            // Bucrani's Visage 0x1f3434; Egg 0x273c4b.
+            // The Cow King's Crown is deferred: tier 2 0x286117 vs tier 4 0x26b91a.
+            ["The Furnace"] = 0x0368e9,
+            ["Ring of Misfortune"] = 0x1463ed,
+            ["The Stillblade"] = 0x1c0d2e,
+            ["Ring of the Jinx"] = 0x1fdb07,
+            ["Kleos, Spear of Athulua"] = 0x26c94e,
+            ["Amulet of Dark Omens"] = 0x26f0f8,
+            ["Bitter Flamberge"] = 0x273e98,
+            ["Browbreak Maul"] = 0x27693b,
+            ["Leoric's Crown"] = 0x28646b,
+            ["Squirt's Blouse"] = 0x28646e,
+            ["Nemesis Bracers"] = 0x286472,
+            ["Messerschmidt's Reaver"] = 0x286474,
+            ["In-Geom"] = 0x286476,
+            ["Arioc's Needle"] = 0x286478,
+            ["Henri's Perquisition"] = 0x28647a,
+            ["Stone of Jordan"] = 0x28647e,
+            ["Stealth"] = 0x289cf3,
+            ["Enigma"] = 0x28d642,
+            ["Bell of the Bovine"] = 0x28d97b,
+            ["Leaf"] = 0x28d9f0,
+            ["Lore"] = 0x28df3e,
+            ["Pattern"] = 0x28e2b0,
+            ["Prudence"] = 0x28f1e9,
+            ["Rain"] = 0x28f211,
+            ["Godly Plate of the Whale"] = 0x28f3c2,
         };
 
     public static bool TryGet(string name, out uint id) => ByName.TryGetValue(name, out id);
