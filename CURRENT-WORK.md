@@ -1,9 +1,9 @@
 # CURRENT WORK — Medick's Might
 
-**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `1cb9127` · gate **438 passed / 0 failed / 5 skipped**
+**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `11afe9d` · gate **438 passed / 0 failed / 5 skipped**
 (run 2026-09-15 23:01 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-15 23:02
+**Last updated:** 2026-09-17 22:16
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -84,6 +84,13 @@ Do not hand-enter IDs; a wrong ID silently hides loot.
   green). Goldens are never written by test code; promotion is manual. Gate 420 -> 438.
   Scope limit: 18 option combinations, not the whole option space, and it says NOTHING about whether
   Diablo 4 accepts any payload.
+- **IN FLIGHT 2026-09-17 22:15 — astra building PART B item B1**, the payload-derived preview.
+  It must decode the emitted `ImportCode` and show each rule's action, real scope, and encoded
+  counts, so what the UI claims can no longer diverge from what shipped. Write set:
+  `FilterPreview.cs` (new), `MainViewModel.cs`, `MainWindow.xaml`, `WitnessCardViewModel.cs`,
+  `FilterPreviewTests.cs` (new). The 18 payload-hash cases from `1cb9127` are the fence — if a
+  single emitted byte moves they go red and the ticket fails. astra cannot build in its sandbox,
+  so the orchestrator runs the gate. NOT yet reviewed; reviewer must be non-OpenAI (D3 open).
 - **HELD for a ruling:** astra item 7 (MainViewModel extraction, MEDIUM) and all of astra
   PART B — 6 elevation proposals, its own top pick being B1, a preview that shows the
   filter's real encoded intent before Copy. Council notes in `..\d4-s15-council\`.
