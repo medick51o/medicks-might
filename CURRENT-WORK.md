@@ -1,9 +1,9 @@
 # CURRENT WORK — Medick's Might
 
-**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `see git log` · gate **460 passed / 0 failed / 5 skipped**
+**Fingerprint:** branch `codex/900plus-tier-gate` · HEAD `c2aaf30` · gate **460 passed / 0 failed / 5 skipped**
 (run 2026-09-15 23:01 by the orchestrator, not by a builder)
 **Verify:** `dotnet test` from the repo root.
-**Last updated:** 2026-09-17 22:44
+**Last updated:** 2026-09-17 22:50
 
 ## WHAT THIS IS
 A Diablo 4 loot-filter compiler (WPF / .NET 10). It turns build definitions into a Base64
@@ -105,7 +105,15 @@ Do not hand-enter IDs; a wrong ID silently hides loot.
   orphaned `BuildTierLegend` and a latent throw in the witness-card path; both repaired. It also
   caught a FALSE evidence number in `08c88bc` — "27 characterization cases" is really 18;
   corrected in `b5115c8`. Gate 438 -> 460, 18 byte-hash cases green throughout.
-  **The repair commit itself is not yet independently reviewed.**
+  The repair (`b6f5d79`) then passed its OWN focused review: verdict CLEAN. Every `Assert` line in
+  the three touched test files is byte-identical - only two docstrings were reworded, accurately.
+  The new whitespace guard was proven RED by reverting it (unhandled `ArgumentException` through
+  `FilterPreview.FromImportCode`), then restored byte-identical. `BuildTierLegend` confirmed bound
+  to a genuinely visible `TextBlock` at `MainWindow.xaml:1756-1761`, inside the normal result view,
+  not collapsed and not inside an expander. Honest limit the reviewer surfaced: of the 3 new guard
+  cases only the whitespace one exercises this fix; null/empty are already caught by the
+  pre-existing `CopySafety` gate, which the test's own comment states.
+  **B1 is DONE: built, reviewed, repaired, repair verified.**
 - **SUPERSEDED — earlier note said astra was building B1**, the payload-derived preview.
   It must decode the emitted `ImportCode` and show each rule's action, real scope, and encoded
   counts, so what the UI claims can no longer diverge from what shipped. Write set:
