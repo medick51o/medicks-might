@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace D4BuildFilter.Core;
@@ -76,25 +77,39 @@ public static class TierListFetcher
         @"<a class=""tier__list__item"" href=""(?<href>/builds/[^""]+)"">\s*<img class=""tier__list__item__icon (?<cls>[A-Za-z]+)""[^>]*>(?<name>[^<]+)</a>",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
-    // ── mobalytics: embedded JSON in __PRELOADED_STATE__ has shape:
+    // ── mobalytics: embedded JSON in `window.__PRELOADED_STATE__ = {...};` (a <script> global, not
+    //   a <script type="application/json"> tag) has shape (path to it moves around inside the blob —
+    //   it's buried under an Apollo GraphQL cache keyed by query hash, so we don't hardcode the path;
+    //   see <see cref="FindArraysByPropertyName"/>):
     //   "tierLists":{"values":[{"id":"…","tierSections":[
     //     {"name":"God Tier","color":"tier-e","description":null,"ugDataItems":[
-    //       {"id":"…","iconUrl":"…classes-icons/Sorcerer.png","linkUrl":"/diablo-4/builds/sorcerer-ball-lightning","title":"Ball Lightning - Mekuna's Ballkuna","subTitle":"Mekuna"},
+    //       {"id":"…","iconUrl":"…classes-icons/Sorcerer.png","linkUrl":"/diablo-4/builds/sorcerer-ball-lightning",
+    //        "title":"Ball Lightning - Mekuna's Ballkuna","subTitle":"Mekuna",
+    //        "tags":[{"groupSlug":"class","slug":"sorcerer"},{"groupSlug":"season","slug":"season-15"},…]},
     //       …
     //     ]},
-    //     {"name":"S","color":"tier-s",…},
-    //     {"name":"A",…}, {"name":"B",…}, {"name":"C",…}, {"name":"Support",…}
+    //     {"name":"S","color":"tier-s",…}, {"name":"A",…}, {"name":"B",…}, {"name":"C",…}, {"name":"Support",…}
     //   ]}]}
-    // Slashes are JSON-escaped as / throughout.
-    // Tier sections look like {"name":"X","color":"tier-y","description":<value>,"ugDataItems":[...]}.
-    // <value> is usually null or a plain string, but the Support section uses a structured object
-    // ({"root":{"children":[…]}}) — so we just skip lazily until ugDataItems rather than enumerating
-    // all the description shapes.
-    private static readonly Regex MobaTierSection = new(
-        @"""name"":""(?<name>God Tier|S|A|B|C|D|Support)"",""color"":""tier-[a-z]"",.*?""ugDataItems"":\[(?<items>[^\]]*)\]",
-        RegexOptions.Compiled | RegexOptions.Singleline);
-
-    // Loose twin of MobaTierSection: same anchors, ANY section name. Drift tripwire — the section
+    // 2026-09-18 (S15 drift): Mobalytics added the per-item "tags" array. Its entries are themselves
+    // JSON arrays/objects, so they contain "]" and "}" characters *inside* an ugDataItems element.
+    // The old scraper found each section's item block with a non-nesting regex,
+    // `"ugDataItems":\[(?<items>[^\]]*)\]` — greedy-but-"]"-excluding — which now stops at the FIRST
+    // "]" it meets, i.e. the closing bracket of the first item's own "tags" array, silently truncating
+    // every section to ~1 build (measured live: 73 endgame builds parsed as 4). Regex can't safely
+    // balance nested brackets, and patching it to tolerate one level of nesting would just move the
+    // same failure mode to the next field Mobalytics adds. So: parse the embedded blob as real JSON
+    // (<see cref="ExtractPreloadedStateJson"/>, <see cref="ExtractMobaTierSections"/>) instead of
+    // scraping it with a regex at all — a JSON parser cannot mis-balance brackets the way a regex can.
+    //
+    // Class attribution now prefers the same "tags" array (<see cref="ClassFromTags"/>) — an explicit
+    // {"groupSlug":"class","slug":"warlock"} entry is unambiguous taxonomy data, not an incidental
+    // asset path. It is NOT the only source, though: measured live, "tags" is present and populated on
+    // the endgame list but comes back EMPTY (`"tags":[]`) for most leveling/pushing items, so
+    // <see cref="ClassFromSlugOrIcon"/> (slug-prefix, then icon-filename) stays as the fallback for
+    // those. That fallback is the fix for the ORIGINAL 2026-06-10 incident below and must keep working
+    // on its own merits — it is not being anchored on again, just kept as a second signal.
+    //
+    // Loose twin of the old section regex: same anchors, ANY section name. Drift tripwire — the section
     // canary enumerates these and fails loud if the live page carries a section the whitelist
     // above would silently drop (a renamed "God Tier", a new "S+", …).
     private static readonly Regex MobaAnySection = new(
@@ -105,17 +120,6 @@ public static class TierListFetcher
     /// whitelist <see cref="ParseMobalytics"/> applies. Canary fuel, not a parse path.</summary>
     public static IReadOnlyList<string> EnumerateMobaSectionNames(string html) =>
         MobaAnySection.Matches(html).Select(m => m.Groups["name"].Value).Distinct().ToList();
-    // Slashes appear as `/` in the raw HTML embed and as plain `/` in already-decoded JSON
-    // (or in test fixtures). The (?:\\u002F|/) alternation tolerates both.
-    // The icon is captured loosely and the CLASS is derived from the build slug (preferred) or the
-    // icon filename: Paladin/Warlock builds stopped using the classes-icons/<Class>.png convention
-    // ("uploads/images/diablo-4/Paladin.png?v1", "…/Warlock-icon.png"), and an icon-path-anchored
-    // regex was silently dropping 100% of both classes (measured live 2026-06-10: 23/62 endgame,
-    // 9/31 leveling, 17/37 pushing builds lost). `[^{}]*?` tolerates new fields between iconUrl and
-    // linkUrl without ever crossing into the next item object.
-    private static readonly Regex MobaItem = new(
-        @"""iconUrl"":""(?<icon>[^""]*)""[^{}]*?""linkUrl"":""(?:\\u002F|/)diablo-4(?:\\u002F|/)builds(?:\\u002F|/)(?<slug>[^""]+)"",""title"":""(?<title>[^""]+)""",
-        RegexOptions.Compiled);
 
     /// <summary>Classes we can attribute a Mobalytics build to. Slugs lead with the class name
     /// ("paladin-blessed-hammer"); icon filenames are the fallback. A class missing here still
@@ -194,26 +198,176 @@ public static class TierListFetcher
         return new TierList("D4Builds", D4BuildsUrl, Order(builds));
     }
 
+    private const string MobaBuildLinkPrefix = "/diablo-4/builds/";
+
     public static TierList ParseMobalytics(string html)
     {
         var builds = new List<TierBuild>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (Match section in MobaTierSection.Matches(html))
+        foreach (var (tier, items) in ExtractMobaTierSections(html))
         {
-            var rawTier = section.Groups["name"].Value;
-            var tier = rawTier == "God Tier" ? "God" : rawTier;
             if (Array.IndexOf(MobaTiers, tier) < 0) continue;
-            var itemsChunk = section.Groups["items"].Value;
-            foreach (Match m in MobaItem.Matches(itemsChunk))
+            foreach (var item in items)
             {
-                var slug = m.Groups["slug"].Value;
-                var title = Decode(m.Groups["title"].Value).Trim();
-                var cls = ClassFromSlugOrIcon(slug, m.Groups["icon"].Value);
+                if (!item.TryGetProperty("linkUrl", out var linkProp) || linkProp.ValueKind != JsonValueKind.String)
+                    continue;
+                var link = linkProp.GetString() ?? "";
+                var idx = link.IndexOf(MobaBuildLinkPrefix, StringComparison.Ordinal);
+                if (idx < 0) continue;
+                var slug = link[(idx + MobaBuildLinkPrefix.Length)..];
+
+                var title = item.TryGetProperty("title", out var titleProp) && titleProp.ValueKind == JsonValueKind.String
+                    ? Decode(titleProp.GetString() ?? "").Trim()
+                    : "";
                 if (title.Length == 0 || !seen.Add($"{title}|{tier}")) continue;
-                builds.Add(new TierBuild(title, cls, tier, "https://mobalytics.gg/diablo-4/builds/" + slug));
+
+                var icon = item.TryGetProperty("iconUrl", out var iconProp) && iconProp.ValueKind == JsonValueKind.String
+                    ? iconProp.GetString() ?? ""
+                    : "";
+                var cls = ClassFromTags(item) ?? ClassFromSlugOrIcon(slug, icon);
+                builds.Add(new TierBuild(title, cls, tier, "https://mobalytics.gg" + MobaBuildLinkPrefix + slug));
             }
         }
         return new TierList("Mobalytics", MobalyticsUrl, Order(builds));
+    }
+
+    /// <summary>Pulls every Mobalytics tier section (name + its raw ugDataItems JSON elements) out of
+    /// a tier-list page's embedded <c>window.__PRELOADED_STATE__</c> blob. Returns nothing (not a
+    /// throw) if the marker is missing or the blob doesn't parse as JSON — callers see an empty list,
+    /// same "degrade to a plain link" contract the regex-era parser had.</summary>
+    private static List<(string Tier, List<JsonElement> Items)> ExtractMobaTierSections(string html)
+    {
+        var result = new List<(string, List<JsonElement>)>();
+        var json = ExtractPreloadedStateJson(html);
+        if (json is null) return result;
+
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(json); }
+        catch (JsonException) { return result; }
+
+        using (doc)
+        {
+            // The tierSections array is nested several levels deep inside an Apollo GraphQL query
+            // cache keyed by a query hash/index that isn't stable across pages or deploys, so we
+            // search for it by property name instead of hardcoding a path.
+            foreach (var sectionsArray in FindArraysByPropertyName(doc.RootElement, "tierSections"))
+            {
+                foreach (var section in sectionsArray.EnumerateArray())
+                {
+                    if (!section.TryGetProperty("name", out var nameProp) || nameProp.ValueKind != JsonValueKind.String)
+                        continue;
+                    var rawTier = nameProp.GetString() ?? "";
+                    var tier = rawTier == "God Tier" ? "God" : rawTier;
+
+                    var items = new List<JsonElement>();
+                    if (section.TryGetProperty("ugDataItems", out var itemsProp) && itemsProp.ValueKind == JsonValueKind.Array)
+                        foreach (var item in itemsProp.EnumerateArray())
+                            items.Add(item.Clone()); // detach from `doc` — it's disposed before we return
+
+                    result.Add((tier, items));
+                }
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Finds every JSON array under a property named <paramref name="propertyName"/>,
+    /// anywhere in the tree. Used instead of a fixed path because Mobalytics' preloaded-state blob
+    /// nests <c>tierSections</c> under a GraphQL query-cache key that shifts between pages/deploys.</summary>
+    private static IEnumerable<JsonElement> FindArraysByPropertyName(JsonElement element, string propertyName)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    if (prop.NameEquals(propertyName) && prop.Value.ValueKind == JsonValueKind.Array)
+                        yield return prop.Value;
+                    foreach (var found in FindArraysByPropertyName(prop.Value, propertyName))
+                        yield return found;
+                }
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    foreach (var found in FindArraysByPropertyName(item, propertyName))
+                        yield return found;
+                break;
+        }
+    }
+
+    /// <summary>Extracts the JSON object assigned to <c>window.__PRELOADED_STATE__ = {...};</c> using
+    /// string-aware brace counting rather than a lazy regex, so a "}" or ";" that happens to appear
+    /// inside a JSON string value (a build title, a description) can't truncate the match early.</summary>
+    private static string? ExtractPreloadedStateJson(string html)
+    {
+        const string marker = "__PRELOADED_STATE__=";
+        var markerAt = html.IndexOf(marker, StringComparison.Ordinal);
+        int start;
+        if (markerAt >= 0)
+        {
+            var pos = markerAt + marker.Length;
+            while (pos < html.Length && html[pos] != '{') pos++;
+            if (pos >= html.Length) return null;
+            start = pos;
+        }
+        else
+        {
+            // No live-page wrapper found. On a real fetch this means the marker itself vanished —
+            // genuine drift, and the brace-scan below will find no balanced object (or the wrong
+            // one) and ExtractMobaTierSections degrades to empty, same as it always has. This branch
+            // also lets a test fixture hand in bare JSON (no <script> wrapper) directly.
+            start = html.IndexOf('{');
+            if (start < 0) return null;
+        }
+
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        for (var pos = start; pos < html.Length; pos++)
+        {
+            var c = html[pos];
+            if (inString)
+            {
+                if (escaped) escaped = false;
+                else if (c == '\\') escaped = true;
+                else if (c == '"') inString = false;
+                continue;
+            }
+            if (c == '"') { inString = true; continue; }
+            if (c == '{') depth++;
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0) return html[start..(pos + 1)];
+            }
+        }
+        return null; // unbalanced — page truncated or shape changed; ExtractMobaTierSections degrades gracefully
+    }
+
+    /// <summary>Class from a Mobalytics build item's explicit <c>"tags":[{"groupSlug":"class",
+    /// "slug":"warlock"},…]</c> entry — structural taxonomy data, not an incidental asset path.
+    /// Returns null (not "") when absent so <see cref="ParseMobalytics"/> can fall back to
+    /// <see cref="ClassFromSlugOrIcon"/>; measured live, "tags" is reliably populated on the endgame
+    /// list but comes back as <c>"tags":[]</c> for most leveling/pushing items.</summary>
+    private static string? ClassFromTags(JsonElement item)
+    {
+        if (!item.TryGetProperty("tags", out var tags) || tags.ValueKind != JsonValueKind.Array)
+            return null;
+        foreach (var tag in tags.EnumerateArray())
+        {
+            if (tag.ValueKind != JsonValueKind.Object) continue;
+            if (!tag.TryGetProperty("groupSlug", out var gs) || gs.ValueKind != JsonValueKind.String
+                || gs.GetString() != "class")
+                continue;
+            if (!tag.TryGetProperty("slug", out var slugProp) || slugProp.ValueKind != JsonValueKind.String)
+                continue;
+            var slug = slugProp.GetString();
+            if (string.IsNullOrEmpty(slug)) continue;
+            foreach (var c in KnownClasses)
+                if (slug.Equals(c, StringComparison.OrdinalIgnoreCase)) return c;
+            return TitleCase(slug); // a class tag we don't recognize yet — still attribute it, don't drop it
+        }
+        return null;
     }
 
     /// <summary>Sort builds by tier (God → S → A → B → C → D → Support), keeping source order
