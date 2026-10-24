@@ -31,8 +31,8 @@ public class WitnessCardTests
         var result = WitnessCardComposer.Compose(Request(output));
 
         Assert.False(result.IsBlocked);
-        Assert.Equal(["White", "Orange", "Cyan"], result.Card!.LegendRows.Select(r => r.ColorName));
-        Assert.Equal(["Codex Upgrades", "Item Power 900+", "Item Power 850+"],
+        Assert.Equal(["Orange", "Cyan", "White"], result.Card!.LegendRows.Select(r => r.ColorName));
+        Assert.Equal(["Item Power 900+", "Item Power 850+", "Codex Upgrades"],
             result.Card.LegendRows.Select(r => r.Label));
     }
 

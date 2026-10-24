@@ -9,24 +9,22 @@ namespace D4BuildFilter.Tests;
 public class V120LayoutTests
 {
     [Fact]
-    public void Two_build_layout_is_the_fixed_13_rule_colors_by_build_shape()
+    public void Two_builds_share_one_slot_layout_inside_the_cap()
     {
         var output = FilterCompiler.Compile([Build("Blizzard", "Sorcerer", 100), Build("Minion", "Necromancer", 200)],
             new FilterOptions(), "super");
         var rules = FilterDecoder.Decode(output.ImportCode).Rules;
 
-        Assert.Equal(13, rules.Count);
+        Assert.True(output.RuleCount <= 25);
         Assert.Equal([
-            "Build Uniques (Purple)", "Codex Upgrades (White)",
-            "Blizzard Leg (Red)", "Minion Leg (Pink)",
-            "Blizzard Rare (Gold)", "Minion Rare (Silver)",
-            "Item Power 900+ (Orange)", "Item Power 850+ (Cyan)", "Greater Affixes (Blue)",
-            "Charms&Seals Anc (Red)", "Charms & Seals (Green)", "Unique Charms", "Hide the rest"
+            "Build Uniques (Purple)",
+            "Charms&Seals Anc (Red)", "Charms & Seals (Green)",
+            "Rare/Leg [3+] (Red)", "Rare/Leg [3+] (Pink)",
+            "Codex Upgrades (White)", "Hide the rest"
         ], rules.Select(r => r.Name));
-        AssertTier(rules[2], Rarity.Legendary, FilterColors.Red);
-        AssertTier(rules[3], Rarity.Legendary, FilterColors.Pink);
-        AssertTier(rules[4], Rarity.Rare, FilterColors.Gold);
-        AssertTier(rules[5], Rarity.Rare, FilterColors.Silver);
+        Assert.DoesNotContain(rules, r => r.Name.Contains("Leg (") && !r.Name.Contains("Rare/Leg"));
+        AssertTier(rules[3], Rarity.Legendary, FilterColors.Red);
+        AssertTier(rules[4], Rarity.Rare, FilterColors.Pink);
     }
 
     [Fact]
@@ -37,7 +35,9 @@ public class V120LayoutTests
         var output = FilterCompiler.Compile(builds,
             new FilterOptions { GoldTier = false, SilverTier = false }, "super");
 
-        Assert.Equal(4, FilterDecoder.Decode(output.ImportCode).Rules.Count(IsTier));
+        Assert.DoesNotContain(FilterDecoder.Decode(output.ImportCode).Rules, IsTier);
+        var restored = FilterCompiler.Compile(builds, new FilterOptions(), "super");
+        Assert.Equal(2, FilterDecoder.Decode(restored.ImportCode).Rules.Count(IsTier));
 
         var vm = new MainViewModel(startTierListFetches: false)
         {
@@ -54,7 +54,7 @@ public class V120LayoutTests
     }
 
     [Fact]
-    public void Three_and_four_builds_use_colors_by_tier_and_fifth_is_refused()
+    public void Five_builds_share_one_layout_and_stay_copyable()
     {
         var builds = new[]
         {
@@ -65,20 +65,16 @@ public class V120LayoutTests
 
         var three = FilterDecoder.Decode(FilterCompiler.Compile(builds.Take(3).ToList(), new FilterOptions(), "three").ImportCode);
         var threeTiers = three.Rules.Where(IsTier).ToList();
-        Assert.Equal(6, threeTiers.Count);
+        Assert.Equal(2, threeTiers.Count);
         Assert.All(threeTiers.Where(r => RarityMask(r) == Rarity.Legendary), r => Assert.Equal(FilterColors.Red, r.Color));
-        Assert.All(threeTiers.Where(r => RarityMask(r) == Rarity.Rare), r => Assert.Equal(FilterColors.Gold, r.Color));
-
-        var four = FilterCompiler.CompileWithinCap(builds.Take(4).ToList(), new FilterOptions(), 25,
-            out CompileFitReport fit, "four");
-        Assert.True(fit.Fits);
-        Assert.Equal(17, four.RuleCount);
+        Assert.All(threeTiers.Where(r => RarityMask(r) == Rarity.Rare), r => Assert.Equal(FilterColors.Pink, r.Color));
 
         var five = FilterCompiler.CompileWithinCap(builds, new FilterOptions(), 25,
-            out CompileFitReport refused, "five");
-        Assert.False(refused.Fits);
-        Assert.False(five.IsCopyable);
-        Assert.Empty(five.ImportCode);
+            out CompileFitReport fit, "five");
+        Assert.True(fit.Fits);
+        Assert.True(five.IsCopyable);
+        Assert.InRange(five.RuleCount, 1, 25);
+        Assert.DoesNotContain(FilterDecoder.Decode(five.ImportCode).Rules, r => r.Name.Contains(" Leg "));
     }
 
     [Theory]
@@ -89,11 +85,11 @@ public class V120LayoutTests
     [InlineData("Mighty Throw Barb", "Barbarian", "MightyThrw")]
     public void Multi_build_names_use_readable_tags_and_curated_overrides(string name, string className, string expectedTag)
     {
-        var rules = FilterDecoder.Decode(FilterCompiler.Compile(
-            [Build(name, className, 100), Build("Control", "Druid", 200)], new FilterOptions(), "names").ImportCode).Rules;
-
-        Assert.Contains(rules, r => r.Name == $"{expectedTag} Leg (Red)");
-        Assert.Contains(rules, r => r.Name == $"{expectedTag} Rare (Gold)");
+        var builds = new[] { Build(name, className, 100), Build("Control", "Druid", 200) };
+        Assert.Equal(expectedTag, BuildTagger.Resolve(builds)[0]);
+        var rules = FilterDecoder.Decode(FilterCompiler.Compile(builds, new FilterOptions(), "names").ImportCode).Rules;
+        Assert.DoesNotContain(rules, r => r.Name.Contains($"{expectedTag} Leg"));
+        Assert.Contains(rules, r => r.Name.StartsWith("Rare/Leg [3+]"));
         Assert.All(rules, r => Assert.True(r.Name.Length <= FilterBuilder.MaxNameLength));
     }
 
@@ -107,9 +103,9 @@ public class V120LayoutTests
         var names = FilterDecoder.Decode(first.ImportCode).Rules.Select(r => r.Name).ToList();
 
         Assert.Equal(first.ImportCode, second.ImportCode);
-        Assert.Contains("Minion B Leg (Red)", names);
-        Assert.Contains("Minion N Leg (Pink)", names);
-        Assert.DoesNotContain(names, n => n.Any(char.IsDigit) && n.Contains("Minion", StringComparison.Ordinal));
+        Assert.Equal(["Minion B", "Minion N"], BuildTagger.Resolve(builds));
+        Assert.DoesNotContain(names, n => n.Contains("Leg ("));
+        Assert.Equal(names.Count, names.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
@@ -182,9 +178,11 @@ public class V120LayoutTests
         // Reverting this fix loses the option-vs-default Cube warning or restores a Leveling warning for a tier Super Builds never emit.
         var builds = new[] { Build("Blizzard", "Sorcerer", 100), Build("Minion", "Necromancer", 200) };
 
-        var cube = FilterCompiler.Compile(builds, new FilterOptions { CubeBases = true }, "cube");
-        var cubeAgain = FilterCompiler.Compile(builds, new FilterOptions { CubeBases = true }, "cube");
+        var painted = builds[0] with { KeeperColorOverride = FilterColors.Gold, KeeperColorUserChosen = true };
+        var cube = FilterCompiler.Compile([painted, builds[1]], new FilterOptions { CubeBases = true }, "cube");
+        var cubeAgain = FilterCompiler.Compile([painted, builds[1]], new FilterOptions { CubeBases = true }, "cube");
         var leveling = FilterCompiler.Compile(builds, new FilterOptions { Leveling = true }, "leveling");
+        var defaultKeeper = FilterCompiler.Compile(builds, new FilterOptions { CubeBases = true }, "cube-default");
 
         Assert.Empty(cube.Diagnostics);
         Assert.Empty(leveling.Diagnostics);
@@ -194,6 +192,9 @@ public class V120LayoutTests
         Assert.Equal(cubeWarning, Assert.Single(cubeAgain.Advisories, advisory =>
             advisory.Contains("Cube Bases", StringComparison.Ordinal)
             && advisory.Contains("Gold", StringComparison.Ordinal)));
+        Assert.DoesNotContain(defaultKeeper.Advisories, advisory =>
+            advisory.Contains("Cube Bases", StringComparison.Ordinal)
+            && advisory.Contains("Gold", StringComparison.Ordinal));
         Assert.DoesNotContain(leveling.Advisories, advisory =>
             advisory.Contains("Leveling", StringComparison.Ordinal));
 
@@ -207,14 +208,12 @@ public class V120LayoutTests
         Assert.False(vm.MultiBuildLevelingEnabled);
         Assert.False(vm.OptLeveling);
         vm.OptCubeBases = true;
-        Assert.Single(vm.SuperBuildAdvisory.Split('\n', StringSplitOptions.RemoveEmptyEntries), line =>
+        Assert.DoesNotContain(vm.SuperBuildAdvisory.Split('\n', StringSplitOptions.RemoveEmptyEntries), line =>
             line.Contains("Cube Bases", StringComparison.Ordinal)
-            && line.Contains("Gold", StringComparison.Ordinal));
-        vm.OptGreaterAffixes = false;
+            && line.Contains("keeper", StringComparison.OrdinalIgnoreCase));
         vm.OptGreaterAffixes = true;
-        Assert.Single(vm.SuperBuildAdvisory.Split('\n', StringSplitOptions.RemoveEmptyEntries), line =>
-            line.Contains("Cube Bases", StringComparison.Ordinal)
-            && line.Contains("Gold", StringComparison.Ordinal));
+        Assert.False(vm.OptLeveling);
+        Assert.DoesNotContain(vm.SuperBuildAdvisory, "Leveling", StringComparison.Ordinal);
     }
 
     [Fact]
@@ -225,7 +224,9 @@ public class V120LayoutTests
             FilterColors.Red, FilterColors.Pink);
         var output = FilterCompiler.Compile([build], new FilterOptions(), "Filter", "Pinned Single");
 
-        Assert.Equal("1B44D5072544C40E8FA97C1B6D6BC28A0E799A30A56D28FEA3D12B740950B935",
+        // Recomputed after the shared slot layout and the opt-in defaults. This pins the new bytes;
+        // it is not the pre-change hash.
+        Assert.Equal("DC4EA9B8932B6E4506229A7BD271CF4B5EF54144B5628F72231ECF29DFA51001",
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(output.ImportCode))));
     }
 
@@ -238,7 +239,7 @@ public class V120LayoutTests
             output, 25, "https://example.test", BuildIdentities:
             [WitnessCardComposer.Identity("Blizzard", "Sorcerer"), WitnessCardComposer.Identity("Minion", "Necromancer")])).Card!;
 
-        Assert.Contains("colors by build", card.ProvenanceChip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("shared layout", card.ProvenanceChip, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(output.ImportCode, card.ImportCode);
     }
 

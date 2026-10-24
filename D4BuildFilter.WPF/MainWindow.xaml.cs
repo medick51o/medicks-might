@@ -13,11 +13,30 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Loaded += (_, _) => FitToWorkArea();
         // Pin the landing column to the ScrollViewer's viewport width. A Disabled-horizontal
         // ScrollViewer still sizes its content to the widest child (the tier WrapPanels), which
         // throws off centering and clips a column; forcing a finite width makes them wrap and center.
         InputScroll.SizeChanged += (_, _) => SyncInputColumnWidth();
         InputScroll.ScrollChanged += (_, _) => SyncInputColumnWidth();
+    }
+
+    /// <summary>A 1080p screen, especially at 125% scaling, is shorter than a tall default window.
+    /// Clamp to the work area so the paste box and the pinned compile button stay on one monitor.</summary>
+    private void FitToWorkArea()
+    {
+        var area = SystemParameters.WorkArea;
+        if (area.Width < 100 || area.Height < 100) return;
+        MaxWidth = Math.Max(MinWidth, area.Width);
+        MaxHeight = Math.Max(MinHeight, area.Height);
+        if (Width > area.Width) Width = Math.Max(MinWidth, area.Width - 8);
+        if (Height > area.Height) Height = Math.Max(MinHeight, area.Height - 8);
+        if (Left < area.Left || Top < area.Top
+            || Left + Width > area.Right || Top + Height > area.Bottom)
+        {
+            Left = area.Left + Math.Max(0, (area.Width - Width) / 2);
+            Top = area.Top + Math.Max(0, (area.Height - Height) / 2);
+        }
     }
 
     private void SyncInputColumnWidth()

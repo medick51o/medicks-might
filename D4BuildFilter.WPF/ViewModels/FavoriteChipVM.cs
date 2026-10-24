@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -24,14 +25,20 @@ public sealed partial class FavoriteChipVM : ObservableObject
     /// <summary>Hover text showing the full URL + dates so power users can audit.</summary>
     public string Tip { get; }
 
+    public string PersonalGroupLabel =>
+        string.IsNullOrWhiteSpace(Entry.PersonalGroup) ? "Unranked" : Entry.PersonalGroup!;
+
     private readonly Action<string> _load;
     private readonly Action<FavoriteChipVM> _remove;
+    private readonly Action<FavoriteChipVM, string?> _rank;
 
-    public FavoriteChipVM(FavoriteEntry entry, Action<string> load, Action<FavoriteChipVM> remove)
+    public FavoriteChipVM(FavoriteEntry entry, Action<string> load, Action<FavoriteChipVM> remove,
+        Action<FavoriteChipVM, string?> rank)
     {
         Entry = entry;
         _load = load;
         _remove = remove;
+        _rank = rank;
         ClassColor = TierBuildVM.ClassBrush(entry.ClassName);
         Provenance = BuildProvenance(entry);
         // Paste favorites re-load a frozen local snapshot — the one favorite type that can NOT
@@ -49,6 +56,13 @@ public sealed partial class FavoriteChipVM : ObservableObject
 
     [RelayCommand] private void Load() => _load(Url);
     [RelayCommand] private void Remove() => _remove(this);
+
+    /// <summary>Blank or "Unranked" clears the personal group. Community tier letters are untouched.</summary>
+    [RelayCommand]
+    private void SetGroup(string? group) =>
+        _rank(this, string.IsNullOrWhiteSpace(group) || group.Equals("Unranked", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : group.Trim());
 
     private static string BuildProvenance(FavoriteEntry e)
     {
@@ -80,5 +94,20 @@ public sealed partial class FavoriteChipVM : ObservableObject
         if (diff.TotalDays >= 1) return $"{(int)diff.TotalDays}d ago";
         if (diff.TotalHours >= 1) return $"{(int)diff.TotalHours}h ago";
         return "just now";
+    }
+}
+
+/// <summary>One row of the player's personal tier list. Community S/A/B groups are a different type.</summary>
+public sealed class PersonalTierGroupVM
+{
+    public string Name { get; }
+    public bool IsRanked { get; }
+    public ObservableCollection<FavoriteChipVM> Entries { get; }
+
+    public PersonalTierGroupVM(string name, bool isRanked, IEnumerable<FavoriteChipVM> entries)
+    {
+        Name = name;
+        IsRanked = isRanked;
+        Entries = new ObservableCollection<FavoriteChipVM>(entries);
     }
 }

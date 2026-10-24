@@ -9,8 +9,9 @@
         mc:Ignorable="d"
         Title="MedicK's Might — Filters Made EZ"
         Icon="Assets/mk_logo.png"
-        Height="920" Width="1160"
-        MinHeight="640" MinWidth="860"
+        Height="720" Width="1100"
+        MinHeight="480" MinWidth="720"
+        WindowStartupLocation="CenterScreen"
         Background="{DynamicResource Surface.Page}">
     <Window.DataContext>
         <vm:MainViewModel />
@@ -670,7 +671,7 @@
                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
                                           HorizontalAlignment="Left" VerticalAlignment="Top"
                                           Margin="5,5,0,0" Panel.ZIndex="2"
-                                          ToolTip="Add this build to a Super Build (up to 4)" />
+                                          ToolTip="Add this build to a Super Build (up to 12)" />
                                 <ComboBox Width="42" Height="22"
                                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                           Margin="0,0,5,5" Panel.ZIndex="3"
@@ -871,7 +872,7 @@
                    WrapPanels wrap against a finite width and centering works (a plain Disabled
                    ScrollViewer otherwise sizes its content to the widest tier row). -->
               <Grid>
-                <StackPanel x:Name="InputColumn" HorizontalAlignment="Left" Margin="0,4,0,16">
+                <StackPanel x:Name="InputColumn" HorizontalAlignment="Left" Margin="0,4,0,72">
 
                 <!-- ══════ Landing manifesto + tagline ══════
                      The MK monogram + wordmark already sits in the slim 56px chrome above; this
@@ -929,32 +930,19 @@
                                    TextWrapping="Wrap" TextAlignment="Center" />
                         <TextBox Text="{Binding MaxrollUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Width="620" Height="34" FontSize="{DynamicResource Type.Body}" />
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                            <Button Content="Make my loot filter"
-                                    Command="{Binding CompileCommand}"
-                                    Width="200" Height="44" FontSize="{DynamicResource Type.Body}" Margin="0,0,12,0" />
-                            <Button Content="Try it with a sample build"
-                                    Command="{Binding LoadSampleCommand}"
-                                    Style="{StaticResource SecondaryButton}"
-                                    Width="220" Height="44" FontSize="{DynamicResource Type.Body}" />
-                        </StackPanel>
                     </StackPanel>
 
                     <!-- Paste mode (universal: any build guide) -->
                     <StackPanel Visibility="{Binding IsPasteMode, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="Paste an affix list from any build guide"
                                    FontSize="{DynamicResource Type.H2}" HorizontalAlignment="Center" Margin="0,0,0,4" />
-                        <TextBlock Text="One affix per line (or comma-separated); include unique item names. Works with d4builds, Mobalytics, Icy Veins, Discord…"
+                        <TextBlock Text="One affix per line (or comma-separated), unique names, or an in-game filter export. Works with d4builds, Mobalytics, Icy Veins, Discord…"
                                    FontSize="{DynamicResource Type.Caption}" Foreground="{DynamicResource Text.Muted}" HorizontalAlignment="Center"
                                    TextWrapping="Wrap" TextAlignment="Center" MaxWidth="620" Margin="0,0,0,12" />
                         <TextBox Text="{Binding PastedText, UpdateSourceTrigger=PropertyChanged}"
-                                 Width="620" Height="200" FontSize="{DynamicResource Type.BodySm}"
+                                 Width="620" Height="120" MaxHeight="160" FontSize="{DynamicResource Type.BodySm}"
                                  AcceptsReturn="True" TextWrapping="Wrap"
                                  VerticalScrollBarVisibility="Auto" />
-                        <Button Content="Make my loot filter"
-                                Command="{Binding CompilePasteCommand}"
-                                Width="220" Height="44" FontSize="{DynamicResource Type.Body}"
-                                HorizontalAlignment="Center" Margin="0,16,0,0" />
                     </StackPanel>
 
                     <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource Caution.Fg}"
@@ -1296,63 +1284,72 @@
                     <Border Background="{DynamicResource Surface.Card}" BorderBrush="{DynamicResource Border.Strong}" BorderThickness="1" Effect="{DynamicResource Elevation.Card}"
                             CornerRadius="{DynamicResource Radius.Card}" Padding="14,12"
                             Visibility="{Binding HasFavorites, Converter={StaticResource BoolToVis}}">
-                        <ItemsControl ItemsSource="{Binding Favorites}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                        <ItemsControl ItemsSource="{Binding PersonalTierGroups}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <!-- Two-line favorite chip: name on top in class color, provenance
-                                         subtitle below ("Maxroll · Endgame · S · added 3d ago"). Whole
-                                         chip clicks = re-fetch + load; the ✕ in the corner removes the
-                                         favorite without loading it. -->
-                                    <Grid Margin="0,0,8,8" Width="220">
-                                        <Button Command="{Binding LoadCommand}" ToolTip="{Binding Tip}"
-                                                Background="{DynamicResource Surface.Card}" BorderThickness="0"
-                                                HorizontalContentAlignment="Stretch"
-                                                Padding="10,7" Cursor="Hand">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border x:Name="fb" Background="{TemplateBinding Background}"
-                                                            CornerRadius="{DynamicResource Radius.Card}" Padding="{TemplateBinding Padding}">
-                                                        <ContentPresenter />
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="fb" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Name}" Foreground="{Binding ClassColor}"
-                                                           FontSize="{DynamicResource Type.BodySm}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Provenance}" Foreground="{DynamicResource Text.Muted}"
-                                                           FontSize="{DynamicResource Type.Caption}" Margin="0,3,0,0" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Command="{Binding RemoveCommand}"
-                                                Content="✕" FontSize="{DynamicResource Type.Caption}"
-                                                Background="Transparent" BorderThickness="0" Padding="0"
-                                                Foreground="{DynamicResource Text.Muted}" Cursor="Hand"
-                                                MinWidth="18" MinHeight="18"
-                                                HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                Margin="0,4,6,0"
-                                                ToolTip="Remove from favorites">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="Button">
-                                                    <Border Background="Transparent">
-                                                        <TextBlock Text="{TemplateBinding Content}"
-                                                                   Foreground="{TemplateBinding Foreground}"
-                                                                   FontSize="{TemplateBinding FontSize}"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
-                                    </Grid>
+                                    <StackPanel Margin="0,0,0,10">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}"
+                                                   FontSize="{DynamicResource Type.Caption}" Margin="0,0,0,4" />
+                                        <ItemsControl ItemsSource="{Binding Entries}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,8,8" Width="220">
+                                                        <Button Command="{Binding LoadCommand}" ToolTip="{Binding Tip}"
+                                                                Background="{DynamicResource Surface.Card}" BorderThickness="0"
+                                                                HorizontalContentAlignment="Stretch" Padding="10,7,10,22" Cursor="Hand">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border x:Name="fb" Background="{TemplateBinding Background}"
+                                                                            CornerRadius="{DynamicResource Radius.Card}" Padding="{TemplateBinding Padding}">
+                                                                        <ContentPresenter />
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                                            <Setter TargetName="fb" Property="Background" Value="{DynamicResource Surface.Card.Hover}" />
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Name}" Foreground="{Binding ClassColor}"
+                                                                           FontSize="{DynamicResource Type.BodySm}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                                <TextBlock Text="{Binding Provenance}" Foreground="{DynamicResource Text.Muted}"
+                                                                           FontSize="{DynamicResource Type.Caption}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                                                    Margin="8,0,0,4" Panel.ZIndex="4">
+                                                            <Button Content="S" Command="{Binding SetGroupCommand}" CommandParameter="S" Style="{StaticResource LinkButton}" Padding="4,0" Margin="0,0,2,0" />
+                                                            <Button Content="A" Command="{Binding SetGroupCommand}" CommandParameter="A" Style="{StaticResource LinkButton}" Padding="4,0" Margin="0,0,2,0" />
+                                                            <Button Content="B" Command="{Binding SetGroupCommand}" CommandParameter="B" Style="{StaticResource LinkButton}" Padding="4,0" Margin="0,0,2,0" />
+                                                            <Button Content="C" Command="{Binding SetGroupCommand}" CommandParameter="C" Style="{StaticResource LinkButton}" Padding="4,0" Margin="0,0,2,0" />
+                                                            <Button Content="·" Command="{Binding SetGroupCommand}" CommandParameter="Unranked" Style="{StaticResource LinkButton}" Padding="4,0" ToolTip="Clear your personal rank" />
+                                                        </StackPanel>
+                                                        <Button Command="{Binding RemoveCommand}" Content="✕" FontSize="{DynamicResource Type.Caption}"
+                                                                Background="Transparent" BorderThickness="0" Padding="0"
+                                                                Foreground="{DynamicResource Text.Muted}" Cursor="Hand"
+                                                                MinWidth="18" MinHeight="18"
+                                                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,6,0"
+                                                                ToolTip="Remove from favorites">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Border Background="Transparent">
+                                                                        <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                                                                   FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                    </Border>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -1417,6 +1414,36 @@
                      (utility). Cards + chips at 25% opacity so the warlord background bleeds through. -->
                 <StackPanel HorizontalAlignment="Stretch" Margin="0,8,0,0"
                             Visibility="{Binding IsBrowseTab, Converter={StaticResource BoolToVis}}">
+                    <!-- Personal ranks sit above the community lists. Old favorites.json files omit the field. -->
+                    <StackPanel Margin="0,0,0,12"
+                                Visibility="{Binding HasRankedFavorites, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="Your tier list" FontSize="{DynamicResource Type.H2}" FontWeight="Bold"
+                                   Foreground="{DynamicResource Accent.Primary}" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding PersonalTierGroups}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,8"
+                                                Visibility="{Binding IsRanked, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource Accent.Primary}"
+                                                   FontSize="{DynamicResource Type.Caption}" Margin="0,0,0,4" />
+                                        <ItemsControl ItemsSource="{Binding Entries}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="{Binding Name}" Command="{Binding LoadCommand}"
+                                                            Margin="0,0,6,6" Padding="10,4" Cursor="Hand"
+                                                            Foreground="{Binding ClassColor}"
+                                                            ToolTip="Load this saved build" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="This season's top builds" FontSize="{DynamicResource Type.H2}" FontWeight="Bold"
                                    Foreground="{DynamicResource Accent.Primary}" VerticalAlignment="Center" />
@@ -1578,6 +1605,24 @@
                 </StackPanel>
               </Grid>
             </ScrollViewer>
+
+            <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,8"
+                    Padding="12,8" Background="{DynamicResource Surface.Panel}"
+                    CornerRadius="{DynamicResource Radius.Control}"
+                    Visibility="{Binding ShowPinnedCompileActions, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                Visibility="{Binding IsUrlMode, Converter={StaticResource BoolToVis}}">
+                        <Button Content="Make my loot filter" Command="{Binding CompileCommand}"
+                                Width="200" Height="40" Margin="0,0,12,0" />
+                        <Button Content="Try it with a sample build" Command="{Binding LoadSampleCommand}"
+                                Style="{StaticResource SecondaryButton}" Width="220" Height="40" />
+                    </StackPanel>
+                    <Button Content="Make my loot filter" Command="{Binding CompilePasteCommand}"
+                            Width="220" Height="40" HorizontalAlignment="Center"
+                            Visibility="{Binding IsPasteMode, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </Border>
 
             <!-- ─── LOADING STATE ─── -->
             <Grid Visibility="{Binding IsLoadingState, Converter={StaticResource BoolToVis}}">
@@ -1806,6 +1851,14 @@
                     </Border>
                     <!-- Persistent copy confirmation (v1.0.4): the intended success line was never wired
                          into the result state; bind it here so Copy gives lasting feedback, not a blink. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Extra rules (off by default)" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   Foreground="{DynamicResource Text.Muted}" FontSize="{DynamicResource Type.Caption}" />
+                        <CheckBox Content="Greater Affixes" IsChecked="{Binding OptGreaterAffixes}" Margin="0,0,12,0" />
+                        <CheckBox Content="900+ / 850+ item power" IsChecked="{Binding OptItemPowerTiers}" Margin="0,0,12,0" />
+                        <CheckBox Content="Cube bases" IsChecked="{Binding OptCubeBases}" Margin="0,0,12,0" />
+                        <CheckBox Content="Show unique charms" IsChecked="{Binding OptShowUniqueCharms}" />
+                    </StackPanel>
                     <TextBlock Text="{Binding CopyConfirmation}" TextWrapping="Wrap" Margin="2,6,0,0"
                                FontSize="{DynamicResource Type.BodySm}" FontWeight="SemiBold" Foreground="#57C46A"
                                Visibility="{Binding CopyConfirmation, Converter={StaticResource StringToVis}}" />

@@ -39,10 +39,7 @@ public class Segment4PriorityTests
         Assert.Equal([1, 2], vm.VariantGroups.Select(group => group.Priority));
         var tierNames = FilterDecoder.Decode(vm.ImportCode).Rules
             .Where(IsTier).Select(rule => rule.Name).ToList();
-        Assert.Equal([
-            "Beta Leg (Red)", "Alpha Leg (Pink)",
-            "Beta Rare (Gold)", "Alpha Rare (Silver)"
-        ], tierNames);
+        Assert.Equal(["Rare/Leg [3+] (Red)", "Rare/Leg [3+] (Pink)"], tierNames);
         Assert.Equal("Beta + Alpha", vm.FilterTitle);
         Assert.Equal(["Harlequin Crest (Beta, Alpha)"], vm.UniquePurpleLines);
         Assert.Equal(["Beta", "Alpha"],
@@ -56,7 +53,7 @@ public class Segment4PriorityTests
         var vm = new MainViewModel(startTierListFetches: false,
             compileWithinCap: (builds, options, _, label, title) =>
             {
-                var output = FilterCompiler.CompileWithinCap(builds, options, 10,
+                var output = FilterCompiler.CompileWithinCap(builds, options, 4,
                     out CompileFitReport fit, label, title);
                 return (output, fit);
             });
@@ -163,18 +160,13 @@ public class Segment4PriorityTests
         Assert.Equal(1, vm.VariantGroups.Single(group => group.BuildName == "Gamma").Priority);
         Assert.Equal(2, vm.VariantGroups.Single(group => group.BuildName == "Alpha").Priority);
 
-        var compiledBuilds = FilterDecoder.Decode(vm.ImportCode).Rules
-            .Where(rule => rule.Name.EndsWith(" Leg (Red)", StringComparison.Ordinal)
-                || rule.Name.EndsWith(" Leg (Pink)", StringComparison.Ordinal))
-            .Select(rule => rule.Name[..rule.Name.IndexOf(" Leg (", StringComparison.Ordinal)])
-            .Order(StringComparer.Ordinal)
-            .ToList();
         var armoryBuilds = vm.ArmoryBuildNames.Split("  +  ", StringSplitOptions.None)
             .Order(StringComparer.Ordinal)
             .ToList();
-
-        Assert.Equal(["Alpha", "Gamma"], compiledBuilds);
-        Assert.Equal(compiledBuilds, armoryBuilds);
+        Assert.Equal(["Alpha", "Gamma"], armoryBuilds);
+        Assert.Contains(vm.UniquePurpleLines, line => line.Contains("Harlequin Crest", StringComparison.Ordinal));
+        Assert.Contains(vm.UniquePurpleLines, line => line.Contains("Heir of Perdition", StringComparison.Ordinal));
+        Assert.DoesNotContain(vm.UniquePurpleLines, line => line.Contains("Tyrael's Might", StringComparison.Ordinal));
     }
 
     /// <summary>Reverting this fix stores Alpha's URL and snapshot under Beta's result-page name after a priority swap.</summary>

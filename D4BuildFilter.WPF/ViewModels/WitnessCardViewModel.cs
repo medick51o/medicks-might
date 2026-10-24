@@ -91,7 +91,7 @@ public static class WitnessCardComposer
             ? $"Super Build · {builds.Count} builds · "
                 + (request.Output.HasCustomBuildColors
                     ? "custom colors"
-                    : builds.Count == 2 ? "colors by build" : "colors by tier")
+                    : "shared layout")
             : !string.IsNullOrWhiteSpace(request.SourceName)
             && !string.IsNullOrWhiteSpace(request.TierKind)
             && !string.IsNullOrWhiteSpace(request.Tier)

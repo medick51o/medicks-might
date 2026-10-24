@@ -17,7 +17,8 @@ public sealed record ResolvedSlot(string Slot, IReadOnlyList<string> Affixes);
 /// the local catalog, so the UI can explain why it safely fell back to showing every set.</summary>
 public sealed record ResolvedVariant(string Name, IReadOnlyList<string> Affixes, IReadOnlyList<string> Uniques,
     IReadOnlyList<ResolvedSlot>? Slots = null, IReadOnlyList<string>? TalismanSets = null,
-    IReadOnlyList<string>? UnknownTalismanSets = null, IReadOnlyList<string>? SlotlessAffixes = null);
+    IReadOnlyList<string>? UnknownTalismanSets = null, IReadOnlyList<string>? SlotlessAffixes = null,
+    IReadOnlyList<string>? CharmUniques = null);
 
 /// <summary>A whole maxroll build resolved to affix names, ready for the AffixMapper/encoder.
 /// Serializes (camelCase) to the same shape the Tester reads from build_resolved.json.
@@ -164,6 +165,7 @@ public static class MaxrollFetcher
             var affixes = new List<string>();
             var slotlessAffixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var uniqueNames = new List<string>();
+            var charmUniqueNames = new List<string>();
             var resolvedSlots = new List<ResolvedSlot>();
             var seenUnique = new HashSet<string>(StringComparer.Ordinal);
             var talismanSets = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -193,6 +195,15 @@ public static class MaxrollFetcher
                                 talismanSets.Add(tset.Name);
                             else
                                 unknownTalismanSets.Add(itemId);
+                        }
+                        else if (RunewordCatalog.TryGetByCodename(itemId, out var runeword))
+                        {
+                            if (seenUnique.Add(runeword.Name)) uniqueNames.Add(runeword.Name);
+                        }
+                        else if (itemId.Contains("Charm", StringComparison.OrdinalIgnoreCase)
+                            && uniques.Resolve(itemId) is { } charmName)
+                        {
+                            if (seenUnique.Add("charm:" + charmName)) charmUniqueNames.Add(charmName);
                         }
                         else if (uniques.Resolve(itemId) is { } un) { if (seenUnique.Add(un)) uniqueNames.Add(un); }
                         else if (LooksLikeGearUnique(itemId)) unknownUniqueIds.Add(itemId);
@@ -244,7 +255,8 @@ public static class MaxrollFetcher
             variants.Add(new ResolvedVariant(vName, affixes, uniqueNames, resolvedSlots,
                 talismanSets.Count > 0 ? talismanSets.ToList() : null,
                 unknownTalismanSets.Count > 0 ? unknownTalismanSets.ToList() : null,
-                slotlessAffixes.ToList()));
+                slotlessAffixes.ToList(),
+                charmUniqueNames.Count > 0 ? charmUniqueNames : null));
         }
         return new ResolvedBuild(build, cls, variants,
             unknownNids.Select(n => n.ToString()).ToList(), unknownUniqueIds.ToList());
@@ -278,6 +290,9 @@ public static class MaxrollFetcher
     /// "Chest_Unique_Barb_100" -> "Chest"). null if none resolves (e.g. Talisman → no per-slot rule).</summary>
     private static string? SlotLabel(string itemId)
     {
+        if (RunewordCatalog.TryGetByCodename(itemId, out var runeword)
+            && ItemTypeDatabase.ResolveSlot(runeword.SlotLabel) is not null)
+            return runeword.SlotLabel;
         foreach (var seg in itemId.Split('_'))
             if (ItemTypeDatabase.ResolveSlot(seg) is not null) return seg;
         return null;

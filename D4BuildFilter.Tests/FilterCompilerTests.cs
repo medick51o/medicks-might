@@ -92,8 +92,8 @@ public class FilterCompilerTests
         var floor = rules.FindIndex(r => r.Name == "900 only");
 
         Assert.True(rules.FindIndex(r => r.Name.Contains("Build Uniques")) < floor);
-        Assert.True(rules.FindIndex(r => r.Name.Contains("Codex Upgrades")) < floor);
         Assert.True(floor < rules.FindIndex(r => r.Name.Contains("[3+]")));
+        Assert.True(rules.FindIndex(r => r.Name.Contains("[3+]")) < rules.FindIndex(r => r.Name.Contains("Codex Upgrades")));
     }
 
     [Fact]
@@ -345,21 +345,22 @@ public class FilterCompilerTests
     }
 
     [Fact]
-    public void Codex_upgrades_outrank_the_affix_and_ga_tiers()
+    public void Codex_upgrades_sit_after_the_affix_tiers_and_before_hide()
     {
-        // v1.0.2 (Medick's methodology): a codex upgrade is a permanent account-wide aspect unlock,
-        // so it must win first-match over the Red/Pink/GA tiers — a 3+ legendary that's ALSO a codex
-        // upgrade reads White (codex), never Red.
+        // The hand-built endgame filters put Codex immediately before Hide the rest, after the
+        // gear tiers. A 3+ legendary that is also a codex upgrade keeps the gear color.
         var rules = FilterDecoder.Decode(
-            FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "t").ImportCode).Rules.ToList();
+            FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions { GreaterAffixes = true }, "t").ImportCode).Rules.ToList();
         int codex = rules.FindIndex(r => r.Name.Contains("Codex"));
         int red = rules.FindIndex(r => r.Color == FilterColors.Gold && r.Name.Contains("[3+]"));
         int pink = rules.FindIndex(r => r.Color == FilterColors.Silver && r.Name.Contains("[3+]"));
         int ga = rules.FindIndex(r => r.Name.Contains("Greater Affixes"));
-        Assert.True(codex >= 0 && red >= 0 && pink >= 0 && ga >= 0);
-        Assert.True(codex < red, "Codex must sit above Red");
-        Assert.True(codex < pink, "Codex must sit above Pink");
-        Assert.True(codex < ga, "Codex must sit above Greater Affixes");
+        int hide = rules.FindIndex(r => r.Name.Contains("Hide"));
+        Assert.True(codex >= 0 && red >= 0 && pink >= 0 && ga >= 0 && hide >= 0);
+        Assert.True(codex > red, "Codex sits below the chase tier");
+        Assert.True(codex > pink, "Codex sits below the keeper tier");
+        Assert.True(codex > ga, "Codex sits below Greater Affixes");
+        Assert.True(codex < hide, "Codex sits above Hide the rest");
     }
 
     private static CompiledBuild LevelingSampleBuild() => FilterCompiler.Analyze(
@@ -517,10 +518,12 @@ public class FilterCompilerTests
         var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
             new FilterOptions { PerSlotRules = true, RedMinPower900 = true }, "t").ImportCode);
 
-        foreach (var tag in BuildTagger.Resolve(builds))
+        var legendaryTiers = decoded.Rules.Where(r =>
+            r.Conditions.Any(c => c.Type == 1 && c.MaskOrCount == Rarity.Legendary)
+            && r.Conditions.Any(c => c.Type == 6)).ToList();
+        Assert.NotEmpty(legendaryTiers);
+        foreach (var legendary in legendaryTiers)
         {
-            var legendary = decoded.Rules.Single(r =>
-                r.Name.StartsWith($"{tag} Leg ", System.StringComparison.Ordinal));
             var power = Assert.Single(legendary.Conditions, c => c.Type == 0);
             Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
             Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
@@ -534,10 +537,12 @@ public class FilterCompilerTests
         var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
             new FilterOptions { PerSlotRules = true, PinkMinPower900 = true }, "t").ImportCode);
 
-        foreach (var tag in BuildTagger.Resolve(builds))
+        var rareTiers = decoded.Rules.Where(r =>
+            r.Conditions.Any(c => c.Type == 1 && c.MaskOrCount == Rarity.Rare)
+            && r.Conditions.Any(c => c.Type == 6)).ToList();
+        Assert.NotEmpty(rareTiers);
+        foreach (var rare in rareTiers)
         {
-            var rare = decoded.Rules.Single(r =>
-                r.Name.StartsWith($"{tag} Rare ", System.StringComparison.Ordinal));
             var power = Assert.Single(rare.Conditions, c => c.Type == 0);
             Assert.Equal((ulong)FilterCompiler.ItemPowerOrange, power.MaskOrCount);
             Assert.Equal((ulong)FilterCompiler.ItemPowerCap, power.Max);
@@ -551,12 +556,12 @@ public class FilterCompilerTests
         var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
             new FilterOptions { PerSlotRules = true, RedAncestralOnly = true }, "t").ImportCode);
 
-        foreach (var tag in BuildTagger.Resolve(builds))
-        {
-            var legendary = decoded.Rules.Single(r =>
-                r.Name.StartsWith($"{tag} Leg ", System.StringComparison.Ordinal));
+        var legendaryTiers = decoded.Rules.Where(r =>
+            r.Conditions.Any(c => c.Type == 1 && c.MaskOrCount == Rarity.Legendary)
+            && r.Conditions.Any(c => c.Type == 6)).ToList();
+        Assert.NotEmpty(legendaryTiers);
+        foreach (var legendary in legendaryTiers)
             Assert.Contains(legendary.Conditions, c => c.Type == 2);
-        }
     }
 
     [Fact]
@@ -566,12 +571,12 @@ public class FilterCompilerTests
         var decoded = FilterDecoder.Decode(FilterCompiler.Compile(builds,
             new FilterOptions { PerSlotRules = true, PinkAncestralOnly = true }, "t").ImportCode);
 
-        foreach (var tag in BuildTagger.Resolve(builds))
-        {
-            var rare = decoded.Rules.Single(r =>
-                r.Name.StartsWith($"{tag} Rare ", System.StringComparison.Ordinal));
+        var rareTiers = decoded.Rules.Where(r =>
+            r.Conditions.Any(c => c.Type == 1 && c.MaskOrCount == Rarity.Rare)
+            && r.Conditions.Any(c => c.Type == 6)).ToList();
+        Assert.NotEmpty(rareTiers);
+        foreach (var rare in rareTiers)
             Assert.Contains(rare.Conditions, c => c.Type == 2);
-        }
     }
 
     [Fact]
@@ -588,20 +593,21 @@ public class FilterCompilerTests
         }, "t");
         var decoded = FilterDecoder.Decode(output.ImportCode);
 
-        Assert.Equal(13, output.RuleCount);
-        foreach (var tag in BuildTagger.Resolve(builds))
-        {
-            var legendary = decoded.Rules.Single(r =>
-                r.Name.StartsWith($"{tag} Leg ", System.StringComparison.Ordinal));
-            var rare = decoded.Rules.Single(r =>
-                r.Name.StartsWith($"{tag} Rare ", System.StringComparison.Ordinal));
-            Assert.Equal(new[] { 1, 6 }, legendary.Conditions.Select(c => c.Type));
-            Assert.Equal(new[] { 1, 6 }, rare.Conditions.Select(c => c.Type));
-            Assert.Equal((ulong)Rarity.Legendary, legendary.Conditions[0].MaskOrCount);
-            Assert.Equal((ulong)Rarity.Rare, rare.Conditions[0].MaskOrCount);
-            Assert.Equal(3ul, legendary.Conditions[1].MaskOrCount);
-            Assert.Equal(3ul, rare.Conditions[1].MaskOrCount);
-        }
+        // One shared chase tier and one shared keeper tier. Opt-in item-power, GA, and unique-charm
+        // rules are off, so two builds without slots are purple + two charm rules + two tiers + codex + hide.
+        Assert.Equal(7, output.RuleCount);
+        var legendary = Assert.Single(decoded.Rules, r =>
+            r.Conditions.Any(c => c.Type == 1 && c.MaskOrCount == Rarity.Legendary)
+            && r.Conditions.Any(c => c.Type == 6));
+        var rare = Assert.Single(decoded.Rules, r =>
+            r.Conditions.Any(c => c.Type == 1 && c.MaskOrCount == Rarity.Rare)
+            && r.Conditions.Any(c => c.Type == 6));
+        Assert.Equal(new[] { 1, 6 }, legendary.Conditions.Select(c => c.Type));
+        Assert.Equal(new[] { 1, 6 }, rare.Conditions.Select(c => c.Type));
+        Assert.Equal((ulong)Rarity.Legendary, legendary.Conditions[0].MaskOrCount);
+        Assert.Equal((ulong)Rarity.Rare, rare.Conditions[0].MaskOrCount);
+        Assert.Equal(3ul, legendary.Conditions[1].MaskOrCount);
+        Assert.Equal(3ul, rare.Conditions[1].MaskOrCount);
     }
 
     private static FilterOptions SameRarityOptionsWithOnlyRedGated() => new()
@@ -623,7 +629,7 @@ public class FilterCompilerTests
             new FilterOptions { PinkRares = false, PinkLegendaries = false }, "t");
         var dec = FilterDecoder.Decode(o.ImportCode);
         Assert.DoesNotContain(dec.Rules, r => r.Name.Contains("[2+]"));
-        Assert.Equal(10, o.RuleCount);                            // matches SilverTier=false baseline
+        Assert.Equal(6, o.RuleCount);                            // default 7 minus the keeper tier
     }
 
     [Fact]
@@ -674,7 +680,7 @@ public class FilterCompilerTests
             new FilterOptions { TalismanSets = System.Array.Empty<TalismanSet>() }, "t");
         var dec = FilterDecoder.Decode(o.ImportCode);
         Assert.DoesNotContain(dec.Rules, r => r.Name.Contains("Seals"));   // set charm rules gone (Unique Charms stays)
-        Assert.Equal(9, o.RuleCount);   // the 11 defaults minus green minus ancestral-red
+        Assert.Equal(5, o.RuleCount);   // the 7 defaults minus green minus ancestral-red
     }
 
     [Fact]
@@ -792,7 +798,7 @@ public class FilterCompilerTests
         // v1.0.2 (Medick): every unique charm is a keeper, rescued by a Show rule that sits just
         // above the hide. Seals are a different item type, so they aren't in this rule and still
         // hide. Charm type must be the d4data/fnuecke id 0x0022ed05, NOT the reversed seal id.
-        var o = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions(), "t");
+        var o = FilterCompiler.Compile(new[] { SampleBuild() }, new FilterOptions { ShowUniqueCharms = true }, "t");
         var rules = FilterDecoder.Decode(o.ImportCode).Rules.ToList();
         var showIdx = rules.FindIndex(r => r.Name == "Unique Charms");
         var hideIdx = rules.FindIndex(r => r.Visibility == (int)Visibility.HideAll);
@@ -821,7 +827,7 @@ public class FilterCompilerTests
         // App panel with some unchecked → show ONLY the checked ids (type-8 by id).
         var pick = UniqueCharmDatabase.All.Take(3).Select(c => c.Id).ToList();
         var o = FilterCompiler.Compile(new[] { SampleBuild() },
-            new FilterOptions { UniqueCharms = pick }, "t");
+            new FilterOptions { ShowUniqueCharms = true, UniqueCharms = pick }, "t");
         var show = FilterDecoder.Decode(o.ImportCode).Rules.Single(r => r.Name == "Unique Charms");
         Assert.Equal((int)Visibility.Show, show.Visibility);
         var ids = show.Conditions.Single(c => c.Type == 8).Ids;   // type-8 = Unique-by-id
@@ -835,7 +841,7 @@ public class FilterCompilerTests
         // NOT a 110-id list. (Same shape as the null/default.)
         var all = UniqueCharmDatabase.All.Select(c => c.Id).ToList();
         var o = FilterCompiler.Compile(new[] { SampleBuild() },
-            new FilterOptions { UniqueCharms = all }, "t");
+            new FilterOptions { ShowUniqueCharms = true, UniqueCharms = all }, "t");
         var show = FilterDecoder.Decode(o.ImportCode).Rules.Single(r => r.Name == "Unique Charms");
         Assert.Contains(show.Conditions, c => c.Type == 5);      // item-type rule, not an id list
         Assert.DoesNotContain(show.Conditions, c => c.Type == 8);
@@ -846,7 +852,7 @@ public class FilterCompilerTests
     {
         // Every box unchecked → no show rule; unique charms fall to the hide.
         var o = FilterCompiler.Compile(new[] { SampleBuild() },
-            new FilterOptions { UniqueCharms = System.Array.Empty<uint>() }, "t");
+            new FilterOptions { ShowUniqueCharms = true, UniqueCharms = System.Array.Empty<uint>() }, "t");
         Assert.DoesNotContain(FilterDecoder.Decode(o.ImportCode).Rules, r => r.Name == "Unique Charms");
     }
 
@@ -970,35 +976,35 @@ public class FilterCompilerTests
     [Fact]
     public void Default_options_yield_eleven_rules_and_cube_bases_is_opt_in()
     {
-        // purple + red + pink + 2 item-power + GA + red-ancestral-charms + green-charms + codex +
-        // unique-charms + hide = 11. Cube-bases (gold) is the opt-in 12th — unchecked by default.
-        Assert.Equal(11, RuleCount(new FilterOptions()));
-        Assert.Equal(12, RuleCount(new FilterOptions { CubeBases = true }));
+        // purple + chase + keeper + ancestral charms + charms + codex + hide = 7.
+        // Item power, Greater Affixes, and unique-charm show are opt-in. Cube bases is the 8th.
+        Assert.Equal(7, RuleCount(new FilterOptions()));
+        Assert.Equal(8, RuleCount(new FilterOptions { CubeBases = true }));
     }
 
     [Theory]
-    [InlineData(nameof(FilterOptions.HideRest), 10)]             // -1
-    [InlineData(nameof(FilterOptions.ItemPowerTiers), 9)]        // -2 (orange + cyan)
-    [InlineData(nameof(FilterOptions.SilverTier), 10)]           // -1
-    [InlineData(nameof(FilterOptions.BuildUniques), 10)]         // -1
-    [InlineData(nameof(FilterOptions.GreaterAffixes), 10)]       // -1
-    [InlineData(nameof(FilterOptions.CharmsSeals), 10)]          // -1
-    [InlineData(nameof(FilterOptions.CharmsSealsAncestral), 10)] // -1 (red ancestral rule)
-    [InlineData(nameof(FilterOptions.Codex), 10)]                // -1
-    [InlineData(nameof(FilterOptions.ShowUniqueCharms), 10)]     // -1 (the unique-charm show rule)
-    public void Turning_off_one_option_changes_rule_count(string option, int expected)
+    [InlineData(nameof(FilterOptions.HideRest), 6)]
+    [InlineData(nameof(FilterOptions.ItemPowerTiers), 9)]        // opt-in adds orange + cyan
+    [InlineData(nameof(FilterOptions.SilverTier), 6)]
+    [InlineData(nameof(FilterOptions.BuildUniques), 6)]
+    [InlineData(nameof(FilterOptions.GreaterAffixes), 8)]        // opt-in adds the blue rule
+    [InlineData(nameof(FilterOptions.CharmsSeals), 6)]
+    [InlineData(nameof(FilterOptions.CharmsSealsAncestral), 6)]
+    [InlineData(nameof(FilterOptions.Codex), 6)]
+    [InlineData(nameof(FilterOptions.ShowUniqueCharms), 8)]      // opt-in adds the show rule
+    public void Turning_one_option_changes_rule_count(string option, int expected)
     {
         var o = option switch
         {
             nameof(FilterOptions.HideRest) => new FilterOptions { HideRest = false },
-            nameof(FilterOptions.ItemPowerTiers) => new FilterOptions { ItemPowerTiers = false },
+            nameof(FilterOptions.ItemPowerTiers) => new FilterOptions { ItemPowerTiers = true },
             nameof(FilterOptions.SilverTier) => new FilterOptions { SilverTier = false },
             nameof(FilterOptions.BuildUniques) => new FilterOptions { BuildUniques = false },
-            nameof(FilterOptions.GreaterAffixes) => new FilterOptions { GreaterAffixes = false },
+            nameof(FilterOptions.GreaterAffixes) => new FilterOptions { GreaterAffixes = true },
             nameof(FilterOptions.CharmsSeals) => new FilterOptions { CharmsSeals = false },
             nameof(FilterOptions.CharmsSealsAncestral) => new FilterOptions { CharmsSealsAncestral = false },
             nameof(FilterOptions.Codex) => new FilterOptions { Codex = false },
-            nameof(FilterOptions.ShowUniqueCharms) => new FilterOptions { ShowUniqueCharms = false },
+            nameof(FilterOptions.ShowUniqueCharms) => new FilterOptions { ShowUniqueCharms = true },
             _ => new FilterOptions(),
         };
         Assert.Equal(expected, RuleCount(o));

@@ -56,7 +56,7 @@ public class FilterPreviewTests
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(false, false)]
-    public void Floor_protections_only_name_emitted_build_unique_and_codex_rules(bool uniques, bool codex)
+    public void Floor_protections_name_only_shows_that_sit_above_the_900_rule(bool uniques, bool codex)
     {
         var build = Build() with { UniqueIds = [0x17d2dcu] };
         var options = Quiet() with
@@ -65,11 +65,15 @@ public class FilterPreviewTests
             BuildUniques = uniques, Codex = codex,
         };
         var output = FilterCompiler.Compile([build], options, "Preview");
-        var hide = Assert.Single(FilterPreview.FromImportCode(output.ImportCode).Rules, r => r.Action == "Hide");
+        var rules = FilterPreview.FromImportCode(output.ImportCode).Rules;
+        var hide = Assert.Single(rules, r => r.Action == "Hide");
 
+        // Codex is emitted after the gear tiers, so it cannot protect a drop from the floor.
         Assert.Equal(uniques, hide.ProtectionNote.Contains("Build Uniques", StringComparison.Ordinal));
-        Assert.Equal(codex, hide.ProtectionNote.Contains("Codex Upgrades", StringComparison.Ordinal));
-        if (uniques || codex) Assert.Contains("must match its own conditions", hide.ProtectionNote);
+        Assert.DoesNotContain("Codex Upgrades", hide.ProtectionNote);
+        if (codex)
+            Assert.True(rules.ToList().FindIndex(r => r.Name.Contains("Codex Upgrades")) > hide.Order - 1);
+        if (uniques) Assert.Contains("must match its own conditions", hide.ProtectionNote);
         else Assert.Contains("No earlier enabled Show", hide.ProtectionNote);
     }
 
@@ -116,8 +120,9 @@ public class FilterPreviewTests
 
         Assert.True(report.Fits);
         Assert.Contains("per-slot precision", report.DisabledFeatures);
-        Assert.Equal(6, before.Rules.Count);
-        Assert.All(before.Rules, r => Assert.Contains(r.Conditions, c => c.Type == 5));
+        Assert.Equal(8, before.Rules.Count);
+        Assert.Equal(6, before.Rules.Count(r => r.Conditions.Any(c => c.Type == 5)));
+        Assert.Contains(before.Rules, r => r.Name.Contains("Other Gear") && r.Conditions.All(c => c.Type != 5));
         Assert.Equal(2, after.Rules.Count);
         Assert.All(after.Rules, r =>
         {

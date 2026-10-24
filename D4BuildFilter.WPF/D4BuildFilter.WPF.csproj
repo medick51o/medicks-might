@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- Linux CI and cloud agents have the Windows targeting pack but not a Windows desktop
+         runtime. This flag lets `dotnet build` succeed there; it is a no-op on Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>D4BuildFilter</AssemblyName>
     <!-- Version flows into the exe metadata AND the in-app footer stamp (with build time), so
          anyone can tell at a glance which build they're running (Medick's ask, 2026-07-02).

@@ -46,6 +46,10 @@ public sealed record CompiledBuild(
     /// <summary>Collision advice is only generated for colors the player explicitly chose.</summary>
     public bool ChaseColorUserChosen { get; init; }
     public bool KeeperColorUserChosen { get; init; }
+
+    /// <summary>Abyssal soul-splinter item ids this build asked to keep. Legendary splinters are not
+    /// uniques, so they are not folded into the purple unique rule.</summary>
+    public IReadOnlyList<uint> SoulSplinterIds { get; init; } = [];
 }
 
 /// <summary>One compiled filter: the base64 import code plus its safety diagnostics and self-check.</summary>
@@ -134,10 +138,12 @@ public sealed record FilterOptions
     /// the build has no slot data (e.g. pasted builds). Uses more rules — with BOTH tiers on, a big
     /// build (many slots) can approach the 25-rule cap; <see cref="FilterOutput.RuleCount"/> tells.</summary>
     public bool PerSlotRules { get; init; }
-    /// <summary>Item-power tiers: 900+ → orange, 850+ → cyan.</summary>
-    public bool ItemPowerTiers { get; init; } = true;
-    /// <summary>Any rare/legendary with a Greater Affix → blue.</summary>
-    public bool GreaterAffixes { get; init; } = true;
+    /// <summary>Item-power tiers: 900+ → orange, 850+ → cyan. Off by default — at endgame nearly
+    /// every drop is max item power, so the bands are clutter and they spend two rule slots.</summary>
+    public bool ItemPowerTiers { get; init; } = false;
+    /// <summary>Any rare/legendary with a Greater Affix → blue. Off by default; it is not
+    /// build-specific and it spends a rule the 25-cap needs for slot tiers.</summary>
+    public bool GreaterAffixes { get; init; } = false;
     /// <summary>Charms &amp; Seals → green.</summary>
     public bool CharmsSeals { get; init; } = true;
     /// <summary>Ancestral charms &amp; seals → red. Emitted ABOVE the green rule so ancestral
@@ -150,7 +156,11 @@ public sealed record FilterOptions
     /// above the hide. Unique charms are keepers; this rescues them before the talisman-aware hide
     /// sweeps them. Seals aren't charms, so they still fall to the hide. One rule (id-list, no cost
     /// per extra charm). Default on.</summary>
-    public bool ShowUniqueCharms { get; init; } = true;
+    public bool ShowUniqueCharms { get; init; } = false;
+    /// <summary>In per-slot mode, also emit an untyped "Other Gear" tier for the whole affix pool
+    /// so a stat that is wanted but not pinned to one slot still matches. Auto-fit drops this
+    /// before it gives up per-slot precision.</summary>
+    public bool OtherGear { get; init; } = true;
     /// <summary>v1.0.2 (Medick's per-charm list): the specific unique-charm ids to SHOW. Null (or a
     /// full set) = show every unique charm by type — one tiny rule that also auto-covers charms a
     /// future patch adds before we catalog them. A subset = the app's checkbox panel with some
@@ -284,15 +294,45 @@ public static class FilterCompiler
             foreach (var u in v.Uniques) buildUniques.Add(u);
 
         var uniqueIds = new List<uint>();
+        var uniqueSeen = new HashSet<uint>();
         var uniquesTargeted = new List<string>();
         var uniquesPending = new List<string>();
+        var soulSplinters = new List<uint>();
         // S14 Mythic 3.0: mythic is a quality any unique can have, not a fixed list — so every build
         // unique is treated uniformly. Known id -> purple per-unique targeting; unknown -> pending
         // (surfaced, never silently dropped). A unique that drops as / upgrades to mythic is still
         // never hidden: the "Hide the rest" rule spares the Unique + Mythic rarities.
+        void AddUnique(uint id)
+        {
+            if (uniqueSeen.Add(id)) uniqueIds.Add(id);
+        }
         foreach (var un in buildUniques)
-            if (UniqueDatabase.TryGet(un, out var uid)) { uniqueIds.Add(uid); uniquesTargeted.Add(un); }
+        {
+            if (SoulSplinterCatalog.TryGet(un, out var splinterId))
+            {
+                if (!soulSplinters.Contains(splinterId)) soulSplinters.Add(splinterId);
+                uniquesTargeted.Add(un);
+                continue;
+            }
+            var runewordIds = RunewordCatalog.IdsForName(un);
+            if (runewordIds.Count > 0)
+            {
+                foreach (var id in runewordIds) AddUnique(id);
+                uniquesTargeted.Add(un);
+                continue;
+            }
+            if (UniqueDatabase.TryGet(un, out var uid)) { AddUnique(uid); uniquesTargeted.Add(un); }
             else uniquesPending.Add(un);
+        }
+        foreach (var charmName in build.Variants.SelectMany(v => v.CharmUniques ?? []))
+            if (UniqueCharmDatabase.TryGetByName(charmName, out var charm))
+            {
+                AddUnique(charm.Id);
+                if (!uniquesTargeted.Contains(charmName, StringComparer.OrdinalIgnoreCase))
+                    uniquesTargeted.Add(charmName);
+            }
+            else if (!uniquesPending.Contains(charmName, StringComparer.OrdinalIgnoreCase))
+                uniquesPending.Add(charmName);
 
         // The build's talisman SETS (S14 display names), aggregated across the kept variants —
         // drives which per-class set checkboxes come pre-checked in the UI.
@@ -366,17 +406,17 @@ public static class FilterCompiler
             Source = build.Source,
             UnresolvedSlotPools = unresolvedSlotPools.ToList(),
             UnknownTalismanSets = unknownTalismanSets.ToList(),
+            SoulSplinterIds = soulSplinters,
         };
     }
 
     /// <summary>
     /// Assemble the filter and produce its import code. D4 applies rules TOP-DOWN, first match
     /// wins, so rules are emitted MOST-SPECIFIC first and a scoped hide-all sits last.
-    /// <paramref name="opts"/> selects optional rules, including single-build chase/keeper tiers.
-    /// The single-build path deduplicates identical tier scopes and omits keepers already covered
-    /// by the chase tier. Super Builds emit separate legendary chase and rare keeper rules per
-    /// mapped build, with fixed 3+ thresholds capped at each pool's count; shared scopes are not
-    /// deduplicated across builds. Their colors use count/priority defaults unless overridden.
+    /// <paramref name="opts"/> selects optional rules, including the shared chase/keeper tiers.
+    /// Every build count uses one unioned slot layout. The first build's colors paint it.
+    /// Identical tier scopes are deduplicated, and a keeper already covered by the chase tier
+    /// is omitted. Thresholds stay at 3+ and are capped at each pool's affix count.
     /// </summary>
     public static FilterOutput Compile(IReadOnlyList<CompiledBuild> builds, FilterOptions opts,
         string label, string filterName = "D4BuildFilter") =>
@@ -398,17 +438,17 @@ public static class FilterCompiler
         var diagnostics = new List<string>();
         var advisories = new List<string>();
         bool multiBuild = builds.Count > 1;
-        var multiTags = multiBuild ? BuildTagger.Resolve(builds) : [];
-        var chaseColors = multiBuild
-            ? builds.Select((build, index) => build.ChaseColorOverride ?? FilterColors.RuledChaseColor(builds.Count, index)).ToArray()
-            : [];
-        var keeperColors = multiBuild
-            ? builds.Select((build, index) => build.KeeperColorOverride ?? FilterColors.RuledKeeperColor(builds.Count, index)).ToArray()
-            : [];
-        bool hasCustomBuildColors = multiBuild && builds.Select((build, index) =>
-                chaseColors[index] != FilterColors.RuledChaseColor(builds.Count, index)
-                || keeperColors[index] != FilterColors.RuledKeeperColor(builds.Count, index))
-            .Any(custom => custom);
+        // One unioned layout for every build count. The first build's colors (or its explicit
+        // overrides) paint the shared chase/keeper tiers. Later builds contribute uniques and
+        // affixes; they do not spend another pair of rules.
+        var layout = builds.Count == 0 ? null : BuildMerge.Union(builds);
+        uint chaseColor = layout is null ? FilterColors.Red
+            : layout.ChaseColorOverride ?? layout.Color;
+        uint keeperColor = layout is null ? FilterColors.Pink
+            : layout.KeeperColorOverride ?? layout.Dim;
+        bool hasCustomBuildColors = layout is not null && (
+            (layout.ChaseColorOverride is uint chosenChase && chosenChase != layout.Color)
+            || (layout.KeeperColorOverride is uint chosenKeeper && chosenKeeper != layout.Dim));
         // Every recolor rule is named "<what> (<Color>)" so a player can scroll the in-game filter
         // list and toggle by color (e.g. turn "Charms & Seals (Green)" off). D4 caps rule names at
         // 24 chars (FilterBuilder clamps); the names below stay short enough that the color survives.
@@ -438,14 +478,8 @@ public static class FilterCompiler
         var buildUniqueIds = builds.SelectMany(b => b.UniqueIds).Distinct().OrderBy(id => id).ToList();
         if (opts.BuildUniques && buildUniqueIds.Count > 0)
             rules.Add(Recolor("Build Uniques",
-                new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(buildUniqueIds) }, FilterColors.Purple));
-        // 1b. Codex-of-Power upgrades -> white, HIGH priority (Medick's methodology, v1.0.2): a codex
-        //     upgrade is a permanent, account-wide aspect unlock — worth more than any single 3+ item
-        //     or GA drop. Emitted ABOVE the affix / GA / item-power tiers (first-match wins) so a
-        //     legendary that is BOTH a 3+ item AND a codex upgrade reads as White (codex), not Red —
-        //     the player never grabs a "red" and belatedly notices it was the unlock.
-        if (opts.Codex)
-            rules.Add(Recolor("Codex Upgrades", new[] { Conditions.Codex() }, FilterColors.White));
+                new[] { Conditions.RarityMask(Rarity.Unique | Rarity.Mythic), Conditions.Uniques(buildUniqueIds) },
+                FilterColors.Purple));
         // 1c. Hide Uniques (Medick's list): the specific uniques the player UNCHECKED in the app's
         //     "Uniques" list. Uniques show by default, so this is a hide-list (mirror of the charm
         //     show-list). Gated on Unique rarity so a MYTHIC version of any unique is NEVER hidden;
@@ -453,10 +487,12 @@ public static class FilterCompiler
         if (opts.HideUniques is { Count: > 0 } hideUniques)
             rules.Add(FilterBuilder.MakeRule("Hide Uniques", Visibility.HideAll,
                 new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(hideUniques) }));
-        // 2. Optional late-game 900-only floor. Build uniques and Codex upgrades stay above it so
-        //    first-match-wins protects them at every item power. All selected slots and rarities are
-        //    unions inside ONE rule; empty selections fail closed to no rule. Mythic is deliberately
-        //    absent from the mask and charms/seals are deliberately absent from the type list.
+        // 2. Optional late-game 900-only floor. Build uniques stay above it so first-match-wins
+        //    protects them at every item power. Codex sits with the other late rules, below the
+        //    gear tiers, so a codex upgrade under 900 in a selected slot is hidden by this floor.
+        //    All selected slots and rarities are unions inside ONE rule; empty selections fail
+        //    closed to no rule. Mythic is deliberately absent from the mask and charms/seals are
+        //    deliberately absent from the type list.
         if (opts.NineHundredOnly)
         {
             uint rarityMask = (opts.NineHundredOnlyRares ? Rarity.Rare : 0)
@@ -488,147 +524,9 @@ public static class FilterCompiler
                         Conditions.ItemPower(1, ItemPowerOrange - 1),
                     }));
         }
-        // 3. Build-affix tiers (the core): chase before keeper (D4 = first match wins).
-        //    Single-build thresholds and rarities are configurable; defaults are 3+ legendary
-        //    chase and 3+ rare keeper, with thresholds capped at the available affix count.
-        //  • PER-SLOT mode: each tier becomes one rule PER gear slot = ItemType(slot) AND that slot's
-        //    affixes. Precise — a boots rule only matches boots, so chest/ring affixes that rolled on
-        //    boots no longer trigger a false "keep".
-        //  • COMBINED mode (fallback when a build has no slot data): one pool across all slots.
-        //    Simpler but matches by affix COUNT regardless of which slot they belong on (a Blizzard
-        //    loot-filter limitation) → some cross-slot false positives.
-        // The single-build keeper is skipped when the chase covers it with matching rarity and
-        // gates; identical tier scopes are deduplicated within the single-build path.
-        if (multiBuild)
-        {
-            // Super Builds have a deliberately fixed endgame shape: one combined legendary rule
-            // and one combined rare rule per build, using up to the strict 3+ threshold. Two builds
-            // use colors by build; three or four use colors by tier. Names carry identity in both
-            // schemes.
-            for (int i = 0; i < builds.Count; i++)
-            {
-                var b = builds[i];
-                foreach (var deadSlot in b.UnmappedSlotPools)
-                    diagnostics.Add($"No affixes could be mapped for {deadSlot} in build '{b.Name}' — that slot has no rule; "
-                        + "the filter cannot honestly cover every selected build.");
-                if (b.Pool.Count == 0)
-                {
-                    diagnostics.Add($"No affixes could be mapped for build '{b.Name}' — its tiers were skipped; "
-                        + "the filter may hide loot this build wants — consider disabling 'Hide the rest'.");
-                    continue;
-                }
-
-                var legendaryScope = TierScope(b.Pool, Math.Min(Strict, b.Pool.Count),
-                    Rarity.Legendary, opts.RedAncestralOnly, opts.RedMinPower900);
-                rules.Add(Recolor($"{multiTags[i]} Leg", legendaryScope, chaseColors[i]));
-            }
-            for (int i = 0; i < builds.Count; i++)
-            {
-                var b = builds[i];
-                if (b.Pool.Count == 0) continue;
-                var rareScope = TierScope(b.Pool, Math.Min(Strict, b.Pool.Count),
-                    Rarity.Rare, opts.PinkAncestralOnly, opts.PinkMinPower900);
-                rules.Add(Recolor($"{multiTags[i]} Rare", rareScope, keeperColors[i]));
-            }
-        }
-        else
-        {
-            var emittedTierScopes = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var b in builds)
-            {
-                // A wholly unmappable slot is uncovered in BOTH modes. Combined mode can still match
-                // the build's other affixes, but it cannot invent a chase signal for this slot. Keep the
-                // warning outside the per-slot branch so an auto-fit trade-down cannot erase it.
-                foreach (var deadSlot in b.UnmappedSlotPools)
-                    diagnostics.Add($"No affixes could be mapped for {deadSlot} in build '{b.Name}' — that slot has no rule; "
-                        + "the filter cannot honestly cover every selected build.");
-                if (b.UnresolvedSlotPools.Count > 0)
-                    diagnostics.Add($"Combined rules are being used for build '{b.Name}' because these source slot labels "
-                        + $"could not be resolved: {string.Join(", ", b.UnresolvedSlotPools)}.");
-
-                void Emit(string label, IReadOnlyList<uint> affixes, IReadOnlyList<uint>? typeIds)
-                {
-                // An empty pool would clamp both thresholds to zero and emit a [0+] rule, which
-                // matches every rare/legendary. Fail closed: omitting this tier may miss wanted loot,
-                // but it can never silently paint all drops as build matches.
-                if (affixes.Count == 0)
-                {
-                    diagnostics.Add($"No affixes could be mapped for {label} in build '{b.Name}' — that tier was skipped; "
-                        + "the filter may hide loot this build wants — consider disabling 'Hide the rest'.");
-                    return;
-                }
-
-                // Per-tier affix bars come straight from the options (strict v3: the UI preset
-                // raises Pink to 3; Red stays 3 — enchant logic). [N+] rule names self-document.
-                int gold = Math.Min(opts.RedMinAffixes, affixes.Count);
-                int silver = Math.Min(opts.PinkMinAffixes, affixes.Count);
-                string ScopeKey(int min, uint mask, bool ancestralOnly, bool minPower900) => string.Join("|",
-                    typeIds is null ? "*" : string.Join(",", typeIds.OrderBy(id => id)),
-                    string.Join(",", affixes.Distinct().OrderBy(id => id)), min, mask, ancestralOnly, minPower900);
-                if (opts.GoldTier && redMask != 0
-                    && emittedTierScopes.Add(ScopeKey(gold, redMask, opts.RedAncestralOnly, opts.RedMinPower900)))
-                    rules.Add(Recolor($"{label} [{gold}+]",
-                        TierScope(affixes, gold, redMask, opts.RedAncestralOnly, opts.RedMinPower900, typeIds), b.Color));
-                // Pink only when requested AND not an exact duplicate of the red rule just emitted
-                // (same threshold, mask, ancestral gate, and item-power gate).
-                bool duplicatesRed = opts.GoldTier && redMask != 0 && silver >= gold
-                    && pinkMask == redMask && opts.PinkAncestralOnly == opts.RedAncestralOnly
-                    && opts.PinkMinPower900 == opts.RedMinPower900;
-                if (opts.SilverTier && pinkMask != 0 && !duplicatesRed
-                    && emittedTierScopes.Add(ScopeKey(silver, pinkMask, opts.PinkAncestralOnly, opts.PinkMinPower900)))
-                    rules.Add(Recolor($"{label} [{silver}+]",
-                        TierScope(affixes, silver, pinkMask, opts.PinkAncestralOnly, opts.PinkMinPower900, typeIds), b.Dim));
-                }
-
-                // Leveling forces COMBINED tiers (coarse) so the extra silver tier fits the 25-cap;
-                // endgame keeps precise per-slot. Either way Red (3+ leg) + Pink (3+ rare) emit here.
-                var slotCoveredAffixes = b.SlotPools.SelectMany(sp => sp.AffixIds).ToHashSet();
-                bool completeSlotCoverage = b.UnresolvedSlotPools.Count == 0
-                    && b.Pool.All(slotCoveredAffixes.Contains);
-                if (opts.PerSlotRules && b.SlotPools.Count > 0 && !opts.Leveling && completeSlotCoverage)
-                {
-                    foreach (var sp in b.SlotPools) Emit(sp.Label, sp.AffixIds, sp.ItemTypeIds);
-                }
-                else
-                {
-                    if (opts.PerSlotRules && b.SlotPools.Count > 0 && !opts.Leveling && !completeSlotCoverage)
-                        diagnostics.Add($"Per-slot precision was disabled for build '{b.Name}' because its slot breakdown "
-                            + "does not cover every wanted affix; combined rules keep that loot visible.");
-                    Emit("Rare/Leg", b.Pool, null);
-                }
-                // v1.0.2 LEVELING silver: 2+ affix RARES for gearing up — one combined rule BELOW the 3+
-                // tiers (a 3+ rare hits Pink first). Rares only (Medick's spec), silver color. Skipped
-                // when its bar wouldn't sit under Pink's (tiny pools), so it never duplicates a tier.
-                if (opts.Leveling && b.Pool.Count > 0
-                    && Math.Min(2, b.Pool.Count) < Math.Min(opts.PinkMinAffixes, b.Pool.Count))
-                    rules.Add(Recolor("Leveling [2+]",
-                        new[] { Conditions.RarityMask(Rarity.Rare), Conditions.Affixes(b.Pool, Math.Min(2, b.Pool.Count)) },
-                        FilterColors.Silver));
-            }
-        }
-        // 4. Item-power tiers (the numeric "Item Power Range" condition: type 0, field4=min, field5=max).
-        //    Top band -> orange, high band -> cyan. "Affixes conquer all": these sit BELOW the build
-        //    tiers so a real build match wins. Orange precedes cyan (first match wins).
-        if (opts.ItemPowerTiers)
-        {
-            rules.Add(Recolor($"Item Power {ItemPowerOrange}+",
-                new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerOrange, ItemPowerCap) }, FilterColors.Orange));
-            rules.Add(Recolor($"Item Power {ItemPowerCyan}+",
-                new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerCyan, ItemPowerCap) }, FilterColors.Cyan));
-        }
-        // 5. Greater Affixes -> blue: any rare/leg with >=1 GA not already matched above.
-        if (opts.GreaterAffixes)
-            rules.Add(Recolor("Greater Affixes",
-                new[] { Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1) }, FilterColors.Blue));
-        // 6a/6b. Charms & Seals. v1.0.1: when a talisman-set selection is present (the per-class
-        //     checkbox list), BOTH rules scope to exactly the checked sets via the type-9 set
-        //     condition (per-item refinement; pinned to Medick's hand-built 3.1 export). v1.0.2
-        //     (Medick, in-game): the paired Item Power floor is 1 (not the game's bare min-0, which
-        //     he found "acts strange") — every talisman has power >= 1, so scoping is unchanged.
-        //     Unchecked sets get no rule at all and fall to "Hide the rest". An unknown-class build
-        //     or any source-recorded unknown set MUST fail open: catalog checkboxes cannot represent
-        //     that loot, so collapse to the type rule that rescues every charm and seal above the hide.
-        //     Null selection keeps that legacy catch-all behavior for older callers. Ancestral red wins.
+        // Charms sit above gear tiers so a charm is never painted as a rare/legendary gear match.
+        // Set scope wins over the type-based catch-all. An unknown class or an unrecognized set
+        // fails open to every charm and seal so Hide the rest cannot eat them.
         bool classUnknown = builds.Any(b => !TalismanSetDatabase.IsKnownClass(b.Class));
         bool unknownSetsDetected = builds.Any(b => b.UnknownTalismanSets.Count > 0);
         var setScope = !classUnknown && !unknownSetsDetected && opts.TalismanSets is { } tsel
@@ -646,19 +544,106 @@ public static class FilterCompiler
                     ? new[] { Conditions.Types(new[] { ItemTypes.Charm, ItemTypes.Seal }) }
                     : new[] { Conditions.ItemPower(1, ItemPowerMax), Conditions.TalismanSetBonus(setScope) },
                 FilterColors.Green));
-        // 6c. Cube bases (v1.0.2, Horadric research + the founder's persona spec): the bar for a
-        //     blue being worth a STOP is both affixes on-build AND >=1 Greater Affix — plain
-        //     2-roll blues aren't worth a speedfarmer's time. Gold = the crafting color. Opt-in.
-        //     (GA-on-Magic is contested in the datamine; the armed users are the field experiment.)
-        if (opts.CubeBases)
+        // 3. Build-affix tiers (the core): chase before keeper (D4 = first match wins).
+        //    Single-build thresholds and rarities are configurable; defaults are 3+ legendary
+        //    chase and 3+ rare keeper, with thresholds capped at the available affix count.
+        //  • PER-SLOT mode: each tier becomes one rule PER gear slot = ItemType(slot) AND that slot's
+        //    affixes. Precise — a boots rule only matches boots, so chest/ring affixes that rolled on
+        //    boots no longer trigger a false "keep".
+        //  • COMBINED mode (fallback when a build has no slot data): one pool across all slots.
+        //    Simpler but matches by affix COUNT regardless of which slot they belong on (a Blizzard
+        //    loot-filter limitation) → some cross-slot false positives.
+        // The single-build keeper is skipped when the chase covers it with matching rarity and
+        // gates; identical tier scopes are deduplicated within the single-build path.
+        if (layout is { } union)
+        {
             foreach (var b in builds)
-                if (b.Pool.Count > 0)
-                    rules.Add(Recolor("Cube Bases", new[] {
-                        Conditions.RarityMask(Rarity.Magic),
-                        Conditions.Affixes(b.Pool, Math.Min(2, b.Pool.Count)),
-                        Conditions.GreaterAffix(1) }, FilterColors.Gold));
-        // 7. (Codex Upgrades moved UP to step 1b — Medick's methodology: a codex unlock outranks any
-        //    3+ / GA drop, so it must win first-match over the affix tiers.)
+            {
+                foreach (var deadSlot in b.UnmappedSlotPools)
+                    diagnostics.Add($"No affixes could be mapped for {deadSlot} in build '{b.Name}' — that slot has no rule; "
+                        + "the filter cannot honestly cover every selected build.");
+                if (b.UnresolvedSlotPools.Count > 0)
+                    diagnostics.Add($"Combined rules are being used for build '{b.Name}' because these source slot labels "
+                        + $"could not be resolved: {string.Join(", ", b.UnresolvedSlotPools)}.");
+                if (b.Pool.Count == 0)
+                    diagnostics.Add($"No affixes could be mapped for build '{b.Name}' — its tiers were skipped; "
+                        + "the filter may hide loot this build wants — consider disabling 'Hide the rest'.");
+            }
+
+            var emittedTierScopes = new HashSet<string>(StringComparer.Ordinal);
+            void Emit(string tierLabel, IReadOnlyList<uint> affixes, IReadOnlyList<uint>? typeIds)
+            {
+                if (affixes.Count == 0)
+                {
+                    diagnostics.Add($"No affixes could be mapped for {tierLabel} in build '{union.Name}' — that tier was skipped; "
+                        + "the filter may hide loot this build wants — consider disabling 'Hide the rest'.");
+                    return;
+                }
+
+                int gold = Math.Min(opts.RedMinAffixes, affixes.Count);
+                int silver = Math.Min(opts.PinkMinAffixes, affixes.Count);
+                string ScopeKey(int min, uint mask, bool ancestralOnly, bool minPower900) => string.Join("|",
+                    typeIds is null ? "*" : string.Join(",", typeIds.OrderBy(id => id)),
+                    string.Join(",", affixes.Distinct().OrderBy(id => id)), min, mask, ancestralOnly, minPower900);
+                if (opts.GoldTier && redMask != 0
+                    && emittedTierScopes.Add(ScopeKey(gold, redMask, opts.RedAncestralOnly, opts.RedMinPower900)))
+                    rules.Add(Recolor($"{tierLabel} [{gold}+]",
+                        TierScope(affixes, gold, redMask, opts.RedAncestralOnly, opts.RedMinPower900, typeIds), chaseColor));
+                bool duplicatesRed = opts.GoldTier && redMask != 0 && silver >= gold
+                    && pinkMask == redMask && opts.PinkAncestralOnly == opts.RedAncestralOnly
+                    && opts.PinkMinPower900 == opts.RedMinPower900;
+                if (opts.SilverTier && pinkMask != 0 && !duplicatesRed
+                    && emittedTierScopes.Add(ScopeKey(silver, pinkMask, opts.PinkAncestralOnly, opts.PinkMinPower900)))
+                    rules.Add(Recolor($"{tierLabel} [{silver}+]",
+                        TierScope(affixes, silver, pinkMask, opts.PinkAncestralOnly, opts.PinkMinPower900, typeIds), keeperColor));
+            }
+
+            var slotCoveredAffixes = union.SlotPools.SelectMany(sp => sp.AffixIds).ToHashSet();
+            bool uncoveredAffix = union.Pool.Any(id => !slotCoveredAffixes.Contains(id));
+            bool precise = opts.PerSlotRules && union.SlotPools.Count > 0 && !opts.Leveling
+                && union.UnresolvedSlotPools.Count == 0
+                && (opts.OtherGear || !uncoveredAffix);
+            if (precise)
+            {
+                foreach (var sp in union.SlotPools)
+                    Emit(sp.Label, sp.AffixIds, sp.ItemTypeIds.Count > 0 ? sp.ItemTypeIds : null);
+                if (opts.OtherGear && union.Pool.Count > 0)
+                    Emit("Other Gear", union.Pool, null);
+            }
+            else if (union.Pool.Count > 0 || union.SlotPools.Count > 0)
+            {
+                if (opts.PerSlotRules && union.SlotPools.Count > 0 && !opts.Leveling && uncoveredAffix && !opts.OtherGear)
+                    diagnostics.Add($"Per-slot precision was disabled for build '{union.Name}' because its slot breakdown "
+                        + "does not cover every wanted affix; combined rules keep that loot visible.");
+                Emit("Rare/Leg", union.Pool, null);
+            }
+
+            if (opts.Leveling && union.Pool.Count > 0
+                && Math.Min(2, union.Pool.Count) < Math.Min(opts.PinkMinAffixes, union.Pool.Count))
+                rules.Add(Recolor("Leveling [2+]",
+                    new[] { Conditions.RarityMask(Rarity.Rare), Conditions.Affixes(union.Pool, Math.Min(2, union.Pool.Count)) },
+                    FilterColors.Silver));
+        }
+        // 4. Item-power tiers (the numeric "Item Power Range" condition: type 0, field4=min, field5=max).
+        //    Top band -> orange, high band -> cyan. "Affixes conquer all": these sit BELOW the build
+        //    tiers so a real build match wins. Orange precedes cyan (first match wins).
+        if (opts.ItemPowerTiers)
+        {
+            rules.Add(Recolor($"Item Power {ItemPowerOrange}+",
+                new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerOrange, ItemPowerCap) }, FilterColors.Orange));
+            rules.Add(Recolor($"Item Power {ItemPowerCyan}+",
+                new[] { Conditions.RarityMask(RareLeg), Conditions.ItemPower(ItemPowerCyan, ItemPowerCap) }, FilterColors.Cyan));
+        }
+        // 5. Greater Affixes -> blue: any rare/leg with >=1 GA not already matched above.
+        if (opts.GreaterAffixes)
+            rules.Add(Recolor("Greater Affixes",
+                new[] { Conditions.RarityMask(RareLeg), Conditions.GreaterAffix(1) }, FilterColors.Blue));
+        // Cube bases: one rule on the unioned pool. A per-build copy would blow the 25-rule cap.
+        if (opts.CubeBases && layout is { Pool.Count: > 0 } cubeLayout)
+            rules.Add(Recolor("Cube Bases", new[] {
+                Conditions.RarityMask(Rarity.Magic),
+                Conditions.Affixes(cubeLayout.Pool, Math.Min(2, cubeLayout.Pool.Count)),
+                Conditions.GreaterAffix(1) }, FilterColors.Gold));
         // 7b. Show ALL unique charms in their traditional color (Medick, in-game): unique charms are
         //     keepers he always wants to see, so rescue them ABOVE the hide with a Show rule
         //     (Charm-type AND Unique-rarity). Seals are a different item type, so they aren't matched
@@ -680,6 +665,15 @@ public static class FilterCompiler
                     new[] { Conditions.RarityMask(Rarity.Unique), Conditions.Uniques(sel) }));
             // sel empty (every box unchecked) → no show rule; unique charms fall to the hide.
         }
+        var soulSplinters = builds.SelectMany(b => b.SoulSplinterIds).Distinct().OrderBy(id => id).ToList();
+        if (soulSplinters.Count > 0)
+            rules.Add(FilterBuilder.MakeRule("Soul Splinters", Visibility.Show,
+                new[] { Conditions.Uniques(soulSplinters) }));
+        // Codex sits after the gear tiers and the opt-in rules, immediately before Hide the rest,
+        // matching the hand-built endgame filters. A codex upgrade that is also a 3+ legendary
+        // reads as the gear color; the white rule still catches every other upgrade.
+        if (opts.Codex)
+            rules.Add(Recolor("Codex Upgrades", new[] { Conditions.Codex() }, FilterColors.White));
         // 8. Hide the clutter: Common / Magic / Rare / Legendary AND Talismans (charms & seals) that
         //    nothing above matched. v1.0.2 (Medick, in-game): without the Talisman bit, every charm
         //    that wasn't the build's selected set leaked through and kept showing. NOT Unique (build
@@ -697,7 +691,7 @@ public static class FilterCompiler
         // Cube Bases is itself an explicit user choice, so it warns against even a default Gold
         // keeper. Leveling is absent here because Super Builds deliberately emit only 3+ tiers.
         if (multiBuild)
-            AddMultiBuildColorAdvisories(builds, opts, multiTags, chaseColors, keeperColors, advisories);
+            AddMultiBuildColorAdvisories(builds, opts, chaseColor, keeperColor, advisories);
 
         var filterBytes = FilterBuilder.MakeFilter(filterName, rules);
         var ruleCount = ProtobufReader.Read(filterBytes).Count(f => f is { Field: 1, WireType: 2 });
@@ -730,17 +724,14 @@ public static class FilterCompiler
         bool IsChase = false, bool UserChosen = false);
 
     private static void AddMultiBuildColorAdvisories(IReadOnlyList<CompiledBuild> builds, FilterOptions opts,
-        IReadOnlyList<string> tags, IReadOnlyList<uint> chaseColors, IReadOnlyList<uint> keeperColors,
-        ICollection<string> advisories)
+        uint chaseColor, uint keeperColor, ICollection<string> advisories)
     {
         var meanings = new List<ColorMeaning>();
-        for (int i = 0; i < builds.Count; i++)
+        var primary = builds.FirstOrDefault(build => build.Pool.Count > 0);
+        if (primary is not null)
         {
-            if (builds[i].Pool.Count == 0) continue;
-            meanings.Add(new($"build:{i}:chase", $"{tags[i]} chase tier", chaseColors[i], i, true,
-                builds[i].ChaseColorUserChosen));
-            meanings.Add(new($"build:{i}:keeper", $"{tags[i]} keeper tier", keeperColors[i], i, false,
-                builds[i].KeeperColorUserChosen));
+            meanings.Add(new("union:chase", "chase tier", chaseColor, 0, true, primary.ChaseColorUserChosen));
+            meanings.Add(new("union:keeper", "keeper tier", keeperColor, 0, false, primary.KeeperColorUserChosen));
         }
 
         bool talismanRulesActive = opts.TalismanSets is not { Count: 0 };
@@ -797,22 +788,13 @@ public static class FilterCompiler
         return output;
     }
 
-    /// <summary>Fit in one fixed order: (1) combined rules replace per-slot precision, then
-    /// (2) the keeper/Pink tier is disabled for single builds only. Super Build tiers are fixed.
-    /// Builds are never removed. If that minimum still exceeds the cap, no import code is returned
-    /// and the lowest-priority build (the final build in priority order) is named to drop.</summary>
+    /// <summary>Fit in one fixed order: drop opt-in rules first (900-only, item power, Greater
+    /// Affixes, cube bases, unique-charm show, leveling), then the untyped Other Gear tier, then
+    /// per-slot precision, then the keeper tier. Builds are never removed. A copyable result is
+    /// never returned above <paramref name="maxRules"/>.</summary>
     public static FilterOutput CompileWithinCap(IReadOnlyList<CompiledBuild> builds, FilterOptions opts,
         int maxRules, out CompileFitReport report, string label = "Filter", string filterName = "D4BuildFilter")
     {
-        if (builds.Count > 4)
-        {
-            var excessBuild = builds.Last().Name;
-            var tooManyDiagnostic = $"No filter code was produced because Super Builds support at most 4 builds. "
-                + $"Deselect build '{excessBuild}' and compile again.";
-            report = new(0, 0, [], false, excessBuild);
-            return new FilterOutput(label, "", 0, 0, true, false, [tooManyDiagnostic]);
-        }
-
         var requested = Compile(builds, opts, label, filterName);
         if (requested.RuleCount <= maxRules)
         {
@@ -824,39 +806,42 @@ public static class FilterCompiler
         var workingOptions = opts;
         var working = requested;
 
-        // ORDER IS LOAD-BEARING. Add future trade-downs only after these two steps.
-        if (workingOptions.PerSlotRules && !workingOptions.Leveling)
+        void Consider(FilterOptions candidateOptions, string feature)
         {
-            var candidateOptions = workingOptions with { PerSlotRules = false };
+            if (working.RuleCount <= maxRules) return;
             var candidate = Compile(builds, candidateOptions, label, filterName);
-            if (candidate.RuleCount < working.RuleCount)
-            {
-                disabled.Add("per-slot precision");
-                workingOptions = candidateOptions;
-                working = candidate;
-                if (working.RuleCount <= maxRules)
-                {
-                    report = new(requested.RuleCount, working.RuleCount, disabled, true, null);
-                    return working;
-                }
-            }
+            if (candidate.RuleCount >= working.RuleCount) return;
+            disabled.Add(feature);
+            workingOptions = candidateOptions;
+            working = candidate;
         }
 
-        if (builds.Count == 1 && workingOptions.SilverTier)
+        if (workingOptions.NineHundredOnly)
+            Consider(workingOptions with { NineHundredOnly = false }, "the 900-only floor");
+        if (workingOptions.ItemPowerTiers)
+            Consider(workingOptions with { ItemPowerTiers = false }, "item-power tiers");
+        if (workingOptions.GreaterAffixes)
+            Consider(workingOptions with { GreaterAffixes = false }, "Greater Affixes");
+        if (workingOptions.CubeBases)
+            Consider(workingOptions with { CubeBases = false }, "cube bases");
+        if (workingOptions.ShowUniqueCharms)
+            Consider(workingOptions with { ShowUniqueCharms = false }, "unique-charm highlighting");
+        if (workingOptions.Leveling)
+            Consider(workingOptions with { Leveling = false }, "the leveling tier");
+        if (workingOptions.OtherGear)
+            Consider(workingOptions with { OtherGear = false }, "Other Gear");
+        if (workingOptions.PerSlotRules && !workingOptions.Leveling)
+            Consider(workingOptions with { PerSlotRules = false }, "per-slot precision");
+        if (workingOptions.SilverTier)
+            Consider(workingOptions with { SilverTier = false }, "the keeper (Pink) tier");
+
+        if (working.RuleCount <= maxRules)
         {
-            var candidateOptions = workingOptions with { SilverTier = false };
-            var candidate = Compile(builds, candidateOptions, label, filterName);
-            if (candidate.RuleCount < working.RuleCount)
-            {
-                disabled.Add("the keeper (Pink) tier");
-                workingOptions = candidateOptions;
-                working = candidate;
-                if (working.RuleCount <= maxRules)
-                {
-                    report = new(requested.RuleCount, working.RuleCount, disabled, true, null);
-                    return working;
-                }
-            }
+            report = new(requested.RuleCount, working.RuleCount, disabled, true, null);
+            // A trade-down that is itself not copyable (empty pool, unmapped slot) must stay withheld.
+            if (!working.IsCopyable)
+                return working with { ImportCode = "" };
+            return working;
         }
 
         var buildToDrop = builds.LastOrDefault()?.Name ?? "the lowest-priority build";

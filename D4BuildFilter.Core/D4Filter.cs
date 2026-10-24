@@ -133,21 +133,23 @@ public static class FilterBuilder
         name.Length <= MaxNameLength ? name : name[..MaxNameLength].TrimEnd();
 
     public static byte[] MakeRule(string name, Visibility visibility, IReadOnlyList<byte[]> conditions,
-        uint color = FilterColors.Default, bool enabled = true)
+        uint color = FilterColors.Default, bool enabled = true, bool clampName = true)
     {
-        var rule = Wire.Concat(Wire.Efs(1, Clamp(name)), Wire.Efv(2, (ulong)visibility), Wire.Ef32(3, color));
+        var written = clampName ? Clamp(name) : name;
+        var rule = Wire.Concat(Wire.Efs(1, written), Wire.Efv(2, (ulong)visibility), Wire.Ef32(3, color));
         foreach (var c in conditions) rule = Wire.Concat(rule, c);
         rule = Wire.Concat(rule, Wire.Efv(5, enabled ? 1ul : 0ul)); // field 5: rule enabled (1) / disabled-but-present (0)
         return Wire.Efb(1, rule);
     }
 
     /// <summary>Rules must be supplied in encoded order (lowest priority first).</summary>
-    public static byte[] MakeFilter(string name, IReadOnlyList<byte[]> rules)
+    public static byte[] MakeFilter(string name, IReadOnlyList<byte[]> rules, bool clampName = true)
     {
         var data = Array.Empty<byte>();
         foreach (var rule in rules) data = Wire.Concat(data, rule);
         // field 3 is NOT a rule count (a real 13-rule filter sets it to 1); treat as a format flag.
-        data = Wire.Concat(data, Wire.Efs(2, Clamp(name)), Wire.Efv(3, 1), Wire.Efv(4, 1));
+        var written = clampName ? Clamp(name) : name;
+        data = Wire.Concat(data, Wire.Efs(2, written), Wire.Efv(3, 1), Wire.Efv(4, 1));
         return data;
     }
 

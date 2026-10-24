@@ -9612,4 +9612,322 @@
     ],
     "AllowedItemLabels": []
   }
+,
+  {
+    "IdSno": "2663876",
+    "IdName": "2HPolearm_Unique_Generic_003",
+    "IdSnoList": [
+      "2663876"
+    ],
+    "IdNameList": [
+      "2HPolearm_Unique_Generic_003"
+    ],
+    "IdNameItem": "2HPolearm_Unique_Generic_002;Talisman_Charm_Unique_2HPolearm_Unique_Generic_002",
+    "IdNameItemList": [
+      "2HPolearm_Unique_Generic_002",
+      "Talisman_Charm_Unique_2HPolearm_Unique_Generic_002"
+    ],
+    "IdNameItemActor": "twoHandPolearm_uniq21",
+    "Name": "Arioc's Needle",
+    "Description": "Gain #% Deadly Strike Chance. Your Deadly Strikes deal #% increased damage.",
+    "DescriptionClean": "Gain Deadly Strike Chance. Your Deadly Strikes deal increased damage.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}Gain {c_number}[50|0%+|]{/c}{if:SF.IsMythic}{c_mythic}{/if} {u}{c_important}Deadly Strike{/c}{/u} Chance. Your {u}{c_important}Deadly Strikes{/c}{/u} deal {/u}{if:SF.IsMythic}{/c_mythic}{/if}{if:SF.IsMythic}{c_number}{else}{c_random}{/if}[Affix_Value_1*2|0%x|]{/c} increased damage.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2677118",
+    "IdName": "OPAL_Amulet_Unique_Generic_100",
+    "IdSnoList": [
+      "2677118"
+    ],
+    "IdNameList": [
+      "OPAL_Amulet_Unique_Generic_100"
+    ],
+    "IdNameItem": "OPAL_Amulet_Unique_Generic_100",
+    "IdNameItemList": [
+      "OPAL_Amulet_Unique_Generic_100"
+    ],
+    "IdNameItemActor": "Icons_X2_Fish_Junk_CowBell_01",
+    "Name": "Bell of the Bovine",
+    "Description": "Lucky Hit: Up to a #% chance to Moo when hitting an enemy.\r\n\r\nLucky Moo: Up to a #% chance to summon a Cow that explodes for # Fire damage. This damage is increased by #% on Tuesdays. ",
+    "DescriptionClean": "Lucky Hit: Up to a chance to Moo when hitting an enemy. Lucky Moo: Up to a chance to summon a Cow that explodes for Fire damage. This damage is increased by on Tuesdays.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}{c_label}Lucky Hit:{/c} Up to a {c_number}[Affix.\"Static Value 0\"|%|]{/c} chance to {c_important}{u}Moo{/u}{/c} when hitting an enemy.\r\n\r\n{c_label}Lucky Moo:{/c} Up to a {c_number}[Affix.\"Static Value 1\"|%|]{/c} chance to summon a Cow that explodes for {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[(Owner.Weapon_Damage_Min_Total + Owner.Weapon_Damage_Delta_Total) * Affix_Value_1]{/c} Fire damage. This damage is increased by {c_number}[Affix.\"Static Value 2\"|%|]{/c} on Tuesdays. {if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2668752",
+    "IdName": "1HFocus_Unique_Generic_001",
+    "IdSnoList": [
+      "2668752"
+    ],
+    "IdNameList": [
+      "1HFocus_Unique_Generic_001"
+    ],
+    "IdNameItem": "1HFocus_Unique_Generic_001;Talisman_Charm_Unique_1HFocus_Unique_Generic_001",
+    "IdNameItemList": [
+      "1HFocus_Unique_Generic_001",
+      "Talisman_Charm_Unique_1HFocus_Unique_Generic_001"
+    ],
+    "IdNameItemActor": "Generic_Charm_Flippy",
+    "Name": "Henri's Perquisition",
+    "Description": "You gain Primary Stat equal to #% of your Dexterity.",
+    "DescriptionClean": "You gain Primary Stat equal to of your Dexterity.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}You gain Primary Stat equal to {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[Affix_Value_1|0%x|]{/c} of your {c_important}Dexterity{/c}.{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2663049",
+    "IdName": "1HSword_Unique_Generic_103",
+    "IdSnoList": [
+      "2663049"
+    ],
+    "IdNameList": [
+      "1HSword_Unique_Generic_103"
+    ],
+    "IdNameItem": "1HSword_Unique_Generic_103;Talisman_Charm_Unique_1HSword_Unique_Generic_103",
+    "IdNameItemList": [
+      "1HSword_Unique_Generic_103",
+      "Talisman_Charm_Unique_1HSword_Unique_Generic_103"
+    ],
+    "IdNameItemActor": "sword_uniq29",
+    "Name": "In-Geom",
+    "Description": "Defeating an Elite pack reduces your Skill Cooldowns by # seconds for # seconds.",
+    "DescriptionClean": "Defeating an Elite pack reduces your Skill Cooldowns by seconds for seconds.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}Defeating an Elite pack reduces your Skill Cooldowns by {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[Affix_Value_1]{/c} seconds for {c_number}[Affix.\"Static Value 0\"]{/c} seconds.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2662414",
+    "IdName": "Helm_Unique_Generic_005",
+    "IdSnoList": [
+      "2662414"
+    ],
+    "IdNameList": [
+      "Helm_Unique_Generic_005"
+    ],
+    "IdNameItem": "Helm_Unique_Generic_005",
+    "IdNameItemList": [
+      "Helm_Unique_Generic_005"
+    ],
+    "IdNameItemActor": "HLM_gnrc132",
+    "Name": "Leoric's Crown",
+    "Description": "This item counts as Jewelry and increases the effect of any gem socketed into the helm by #%",
+    "DescriptionClean": "This item counts as Jewelry and increases the effect of any gem socketed into the helm by",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}This item counts as {c_important}Jewelry{/c} and increases the effect of any gem socketed into the helm by {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[Affix_Value_1|0%x|]{/c}{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2665279",
+    "IdName": "2HAxe_Unique_Generic_001",
+    "IdSnoList": [
+      "2665279"
+    ],
+    "IdNameList": [
+      "2HAxe_Unique_Generic_001"
+    ],
+    "IdNameItem": "2HAxe_Unique_Generic_001",
+    "IdNameItemList": [
+      "2HAxe_Unique_Generic_001"
+    ],
+    "IdNameItemActor": "twoHandAxe_uniq16",
+    "Name": "Messerschmidt's Reaver",
+    "Description": "Lucky Hit: Attacks have up to a #% chance to explode, dealing # Fire Damage and reducing your Cooldowns by 1 second.",
+    "DescriptionClean": "Lucky Hit: Attacks have up to a chance to explode, dealing Fire Damage and reducing your Cooldowns by 1 second.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}{c_label}Lucky Hit:{/c} Attacks have up to a {c_random}[Affix_Value_1|%|]{/c} chance to explode, dealing {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[(Owner.Weapon_Damage_Min_Total + Owner.Weapon_Damage_Delta_Total) * Affix.\"Static Value 0\"]{/c} Fire Damage and reducing your Cooldowns by {c_number}1{/c} second.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2663078",
+    "IdName": "Gloves_Unique_Generic_006",
+    "IdSnoList": [
+      "2663078"
+    ],
+    "IdNameList": [
+      "Gloves_Unique_Generic_006"
+    ],
+    "IdNameItem": "Gloves_Unique_Generic_006;Talisman_Charm_Unique_Gloves_Unique_Generic_006",
+    "IdNameItemList": [
+      "Gloves_Unique_Generic_006",
+      "Talisman_Charm_Unique_Gloves_Unique_Generic_006"
+    ],
+    "IdNameItemActor": "Generic_Charm_Flippy",
+    "Name": "Nemesis Bracers",
+    "Description": "Shrines will spawn an Elite Pack.",
+    "DescriptionClean": "Shrines will spawn an Elite Pack.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}Shrines will spawn an Elite Pack.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2666112",
+    "IdName": "Chest_Unique_Generic_104",
+    "IdSnoList": [
+      "2666112"
+    ],
+    "IdNameList": [
+      "Chest_Unique_Generic_104"
+    ],
+    "IdNameItem": "Chest_Unique_Generic_104;Talisman_Charm_Unique_Chest_Unique_Generic_104",
+    "IdNameItemList": [
+      "Chest_Unique_Generic_104",
+      "Talisman_Charm_Unique_Chest_Unique_Generic_104"
+    ],
+    "IdNameItemActor": "TRS_gnrc128",
+    "Name": "Squirt's Blouse",
+    "Description": "While not taking damage, you take up to 50% more damage and deal up to #% more damage. This bonus is reset upon getting hit.",
+    "DescriptionClean": "While not taking damage, you take up to 50 more damage and deal up to more damage. This bonus is reset upon getting hit.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}While not taking damage, you take up to {c_number}50%{/c} more damage and deal up to {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[100*Affix_Value_1|0%x|]{/c} more damage. This bonus is reset upon getting hit.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "2672415",
+    "IdName": "Ring_Unique_Generic_108",
+    "IdSnoList": [
+      "2672415"
+    ],
+    "IdNameList": [
+      "Ring_Unique_Generic_108"
+    ],
+    "IdNameItem": "Ring_Unique_Generic_108;Talisman_Charm_Unique_Ring_Unique_Generic_108",
+    "IdNameItemList": [
+      "Ring_Unique_Generic_108",
+      "Talisman_Charm_Unique_Ring_Unique_Generic_108"
+    ],
+    "IdNameItemActor": "Icons_Ring_Legacy_StoneofJordan",
+    "Name": "Stone of Jordan",
+    "Description": "Your Resistances are each equal to your highest, and you deal #% more damage of that Element.",
+    "DescriptionClean": "Your Resistances are each equal to your highest, and you deal more damage of that Element.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}Your Resistances are each equal to your highest, and you deal {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[Affix_Value_1*100|0%x|]{/c} more damage of that Element.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  },
+  {
+    "IdSno": "578836",
+    "IdName": "2HMace_Unique_Generic_001",
+    "IdSnoList": [
+      "578836"
+    ],
+    "IdNameList": [
+      "2HMace_Unique_Generic_001"
+    ],
+    "IdNameItem": "2HMace_Unique_Generic_001;Talisman_Charm_Unique_2HMace_Unique_Generic_001",
+    "IdNameItemList": [
+      "2HMace_Unique_Generic_001",
+      "Talisman_Charm_Unique_2HMace_Unique_Generic_001"
+    ],
+    "IdNameItemActor": "twoHandMace_uniq21",
+    "Name": "The Furnace",
+    "Description": "You deal #% more damage to Elites.",
+    "DescriptionClean": "You deal more damage to Elites.",
+    "Localisation": "{if:SF.IsMythic}{c_mythic}{/if}You deal {if:SF.IsMythic}{c_number}{else}{c_random}{/if}[Affix_Value_1|0%x|]{/c} more damage to Elites.{if:SF.IsMythic}{/c_mythic}{/if}",
+    "MagicType": 2,
+    "AllowedForPlayerClass": [
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "AllowedItemLabels": []
+  }
 ]

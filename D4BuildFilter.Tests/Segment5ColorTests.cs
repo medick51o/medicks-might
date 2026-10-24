@@ -17,9 +17,11 @@ public class Segment5ColorTests
         Assert.Equal(["Red", "Pink"], vm.VariantGroups.Select(group => group.ChaseColor.FullName));
         Assert.Equal(["Gold", "Silver"], vm.VariantGroups.Select(group => group.KeeperColor.FullName));
 
+        // Pickers still show the old per-build defaults. The filter itself uses one shared
+        // pair: the first build's legendary Red and rare Pink. The second build does not
+        // spend a Gold/Silver pair.
         var tiers = TierRules(vm.ImportCode);
-        Assert.Equal([FilterColors.Red, FilterColors.Pink, FilterColors.Gold, FilterColors.Silver],
-            tiers.Select(rule => rule.Color));
+        Assert.Equal([FilterColors.Red, FilterColors.Pink], tiers.Select(rule => rule.Color));
     }
 
     /// <summary>Checks emitted colors against the summary bound under "Rule colors and scope" and the witness-card model.</summary>
@@ -30,17 +32,15 @@ public class Segment5ColorTests
 
         vm.VariantGroups[0].ChaseColor = Palette("Turquoise");
 
-        var chase = Assert.Single(TierRules(vm.ImportCode), rule =>
-            rule.Name.StartsWith("Alpha Leg", StringComparison.Ordinal));
-        Assert.Equal(FilterColors.Turquoise, chase.Color);
+        var chase = Assert.Single(TierRules(vm.ImportCode), rule => rule.Color == FilterColors.Turquoise);
+        Assert.StartsWith("Rare/Leg [3+]", chase.Name);
         Assert.EndsWith("(Turq)", chase.Name);
         Assert.Contains("Turquoise", vm.BuildTierLegend);
-        Assert.Contains("Alpha", vm.BuildTierLegend);
 
         var card = Assert.IsType<WitnessCardViewModel>(vm.CurrentWitnessCard);
         Assert.Contains("custom colors", card.ProvenanceChip, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(card.LegendRows, row => row.ColorName == "Turquoise"
-            && row.Label.Contains("Alpha", StringComparison.Ordinal));
+            && row.Label.Contains("legendaries", StringComparison.Ordinal));
     }
 
     /// <summary>Reverting S5 either misses a warning class, warns on defaults, or lets cosmetic advice block copy/share.</summary>
@@ -48,23 +48,23 @@ public class Segment5ColorTests
     public void Color_warnings_are_deduplicated_advisories_and_defaults_never_warn()
     {
         var vm = TwoBuildViewModel();
-        Assert.Empty(vm.SuperBuildAdvisory);
+        Assert.DoesNotContain("won't be able to tell them apart", vm.SuperBuildAdvisory);
+        Assert.DoesNotContain("hard to see", vm.SuperBuildAdvisory);
         Assert.Empty(vm.CapWarning);
         Assert.True(vm.CanShareWitnessCard);
 
+        // The second build's picker does not paint a rule, so it cannot collide with Greater Affixes.
+        vm.OptGreaterAffixes = true;
         vm.VariantGroups[1].ChaseColor = Palette("Blue");
-        Assert.Single(LinesContaining(vm.SuperBuildAdvisory, "Greater Affixes"));
-        Assert.Contains("Beta chase tier", vm.SuperBuildAdvisory);
-        Assert.Contains("Blue", vm.SuperBuildAdvisory);
+        Assert.DoesNotContain("Greater Affixes", vm.SuperBuildAdvisory);
         Assert.Empty(vm.CapWarning);
         Assert.True(vm.CanShareWitnessCard);
 
         vm.VariantGroups[0].ChaseColor = Palette("Turquoise");
         vm.VariantGroups[0].KeeperColor = Palette("Turquoise");
-        Assert.Single(LinesContaining(vm.SuperBuildAdvisory, "Alpha chase tier", "Alpha keeper tier"));
+        Assert.Single(LinesContaining(vm.SuperBuildAdvisory, "chase tier", "keeper tier", "Turquoise"));
 
         vm.VariantGroups[0].ChaseColor = Palette("Black");
-        vm.VariantGroups[1].KeeperColor = Palette("Black");
         Assert.Single(LinesContaining(vm.SuperBuildAdvisory, "hard to see on Sanctuary's ground"));
         Assert.DoesNotContain("hard to see", vm.CapWarning, StringComparison.OrdinalIgnoreCase);
         Assert.True(vm.CanShareWitnessCard);

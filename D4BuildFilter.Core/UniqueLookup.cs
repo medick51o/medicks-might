@@ -30,9 +30,20 @@ public sealed class UniqueLookup
             var name = nameEl.GetString();
             if (string.IsNullOrWhiteSpace(name)) continue;
 
+            void AddKey(string? key)
+            {
+                if (string.IsNullOrWhiteSpace(key)) return;
+                map.TryAdd(key, name);
+                foreach (var part in key.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    map.TryAdd(part, name);
+            }
+
             foreach (var key in new[] { "IdNameItem", "IdName" })
                 if (e.TryGetProperty(key, out var kEl) && kEl.GetString() is { Length: > 0 } k)
-                    map.TryAdd(k, name);   // IdNameItem wins; IdName only fills gaps
+                    AddKey(k);   // IdNameItem wins; IdName only fills gaps
+            if (e.TryGetProperty("IdNameItemList", out var list) && list.ValueKind == JsonValueKind.Array)
+                foreach (var item in list.EnumerateArray())
+                    AddKey(item.GetString());
         }
         return new UniqueLookup(map);
     }
