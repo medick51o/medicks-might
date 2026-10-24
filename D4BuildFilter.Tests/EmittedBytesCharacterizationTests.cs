@@ -52,10 +52,11 @@ public class EmittedBytesCharacterizationTests
         }),
         ("unique-charms-subset", new FilterOptions
         {
+            ShowUniqueCharms = true,
             // Accord of the Wilds, Anathema of the Primes, Arcadia (catalog order).
             UniqueCharms = new[] { 0x276d9eu, 0x2790c7u, 0x27824du },
         }),
-        ("unique-charms-empty", new FilterOptions { UniqueCharms = Array.Empty<uint>() }),
+        ("unique-charms-empty", new FilterOptions { ShowUniqueCharms = true, UniqueCharms = Array.Empty<uint>() }),
         ("cube-bases", new FilterOptions { CubeBases = true }),
         ("tier-gates", new FilterOptions
         {

@@ -124,7 +124,7 @@ public static class ItemTypeDatabase
         return s switch
         {
             "helm" => new[] { 0x0006d16eu },
-            "chest armor" or "chest" => new[] { 0x0006d16du },
+            "chest armor" or "chest" or "chestarmor" => new[] { 0x0006d16du },
             "gloves" => new[] { 0x0006d171u },
             "pants" => new[] { 0x0006d16fu },
             "boots" => new[] { 0x0006d170u },
@@ -141,11 +141,11 @@ public static class ItemTypeDatabase
             "weapon" or "two handed weapon" => AllWeapons,
             // maxroll item-id prefixes give the EXACT weapon type (e.g. "1HMace", "2HSword").
             "mace" or "1hmace" => new[] { 0x0006d13au },
-            "2hmace" => new[] { 0x0006d144u },
+            "2hmace" or "mace2h" => new[] { 0x0006d144u },
             "sword" or "1hsword" => new[] { 0x0006d14cu },
-            "2hsword" => new[] { 0x0006d14fu },
+            "2hsword" or "sword2h" => new[] { 0x0006d14fu },
             "axe" or "1haxe" => new[] { 0x0006d151u },
-            "2haxe" => new[] { 0x0006d152u },
+            "2haxe" or "axe2h" => new[] { 0x0006d152u },
             "dagger" or "1hdagger" => new[] { 0x0006d159u },
             "polearm" or "2hpolearm" => new[] { 0x0006d15du },
             "scythe" or "1hscythe" => new[] { 0x0006d154u },
@@ -154,7 +154,7 @@ public static class ItemTypeDatabase
             "wand" or "1hwand" => new[] { 0x0006d163u },
             "bow" or "2hbow" => new[] { 0x0006d167u },
             "crossbow" or "1hcrossbow" => new[] { 0x0006d168u },
-            "2hcrossbow" => new[] { 0x0006d169u },
+            "2hcrossbow" or "crossbow2h" => new[] { 0x0006d169u },
             // Newer-class weapons. Game item ids use bare "Quarterstaff_"/"Glaive_" but "1HFlail_"
             // (per bundled Uniques.enUS.json); the 1H/2H-prefixed aliases are accepted both ways.
             "flail" or "1hflail" => new[] { 0x00234a98u },

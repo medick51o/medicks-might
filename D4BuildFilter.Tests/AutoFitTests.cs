@@ -44,15 +44,16 @@ public class AutoFitTests
         var opts = new FilterOptions { PerSlotRules = true };
 
         var perSlot = FilterCompiler.Compile(new[] { b }, opts, "t");
-        Assert.True(perSlot.RuleCount > Cap, $"expected per-slot to exceed the cap, got {perSlot.RuleCount}");
+        Assert.True(perSlot.RuleCount <= Cap, $"per-slot with Other Gear should fit 25, got {perSlot.RuleCount}");
+        const int tight = 10;
+        Assert.True(perSlot.RuleCount > tight);
 
-        var fitted = FilterCompiler.CompileWithinCap(new[] { b }, opts, Cap, out bool autoFit, "t");
-        Assert.True(autoFit);                       // it fell back AND the fallback fits
-        Assert.True(fitted.RuleCount <= Cap);       // importable
+        var fitted = FilterCompiler.CompileWithinCap(new[] { b }, opts, tight, out bool autoFit, "t");
+        Assert.True(autoFit);
+        Assert.True(fitted.RuleCount <= tight);
         Assert.True(fitted.RoundTripOk);
 
-        // The chosen output is exactly the combined compile (not some half-measure).
-        var combined = FilterCompiler.Compile(new[] { b }, opts with { PerSlotRules = false }, "t");
+        var combined = FilterCompiler.Compile(new[] { b }, opts with { PerSlotRules = false, OtherGear = false }, "t");
         Assert.Equal(combined.RuleCount, fitted.RuleCount);
         Assert.Equal(combined.ImportCode, fitted.ImportCode);
     }
@@ -101,7 +102,7 @@ public class AutoFitTests
         var b = BigPerSlotBarb() with { UnmappedSlotPools = ["Amulet"] };
         var opts = new FilterOptions { PerSlotRules = true };
 
-        var fitted = FilterCompiler.CompileWithinCap([b], opts, Cap,
+        var fitted = FilterCompiler.CompileWithinCap([b], opts, 10,
             out CompileFitReport fit, "t");
 
         Assert.Contains("per-slot precision", fit.DisabledFeatures);

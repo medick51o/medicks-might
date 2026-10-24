@@ -22,7 +22,9 @@ public sealed record FavoriteEntry(
     string? PrevTier = null,           // tier before the most recent re-rank (null = never moved)
     DateTime? TierCheckedUtc = null,   // when Tier was last confirmed against a live list
     bool Delisted = false,             // absent from its own (Source, TierKind) list on last check
-    BuildSnapshot? Snapshot = null);   // last successfully compiled guide content; null = no drift opinion
+    BuildSnapshot? Snapshot = null,    // last successfully compiled guide content; null = no drift opinion
+    string? PersonalGroup = null,      // the player's own tier, separate from community S/A/B
+    int PersonalOrder = 0);
 
 /// <summary>Persisted list of starred builds. Defaults to
 /// <c>%LOCALAPPDATA%\MedicKsMight\favorites.json</c> so it survives app re-installs (the publish zip

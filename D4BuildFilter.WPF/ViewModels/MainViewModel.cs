@@ -34,9 +34,11 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsLoadingState))]
     [NotifyPropertyChangedFor(nameof(IsResultState))]
     [NotifyPropertyChangedFor(nameof(IsNotInputState))]
+    [NotifyPropertyChangedFor(nameof(ShowPinnedCompileActions))]
     private AppState state = AppState.Input;
 
     public bool IsInputState => State == AppState.Input;
+    public bool ShowPinnedCompileActions => IsInputState && IsCompileTab;
     public bool IsLoadingState => State == AppState.Loading;
     public bool IsResultState => State == AppState.Result;
     /// <summary>Header swaps between a big "wtf Immortan Joe" splash (landing) and a slim banner
@@ -49,8 +51,9 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsCompileTab))]
     [NotifyPropertyChangedFor(nameof(IsFavTab))]
     [NotifyPropertyChangedFor(nameof(IsArtworkTab))]
-    [NotifyPropertyChangedFor(nameof(IsCoachTab))]
-    private InputTab activeTab = InputTab.Browse;
+        [NotifyPropertyChangedFor(nameof(IsCoachTab))]
+        [NotifyPropertyChangedFor(nameof(ShowPinnedCompileActions))]
+        private InputTab activeTab = InputTab.Browse;
 
     public bool IsBrowseTab => ActiveTab == InputTab.Browse;
     public bool IsCompileTab => ActiveTab == InputTab.Compile;
@@ -114,7 +117,7 @@ public partial class MainViewModel : ObservableObject
     private readonly Dictionary<string, BuildColorCustomization> _buildColorCustomizations =
         new(StringComparer.OrdinalIgnoreCase);
     public int SelectedBuildCount => _selectedTierBuilds.Count;
-    public bool CanCompileSuperBuild => SelectedBuildCount is >= 2 and <= 4;
+    public bool CanCompileSuperBuild => SelectedBuildCount >= 2;
     public string SuperBuildActionLabel => $"Compile {SelectedBuildCount} builds";
     [ObservableProperty] private string superBuildSelectionStatus = "";
     [ObservableProperty] private string superBuildAdvisory = "";
@@ -200,7 +203,12 @@ public partial class MainViewModel : ObservableObject
     private readonly Func<string, Task<(ResolvedBuild build, string sourceLabel)>> _resolveBuild;
     private readonly CompileWithinCapDelegate _compileWithinCap;
     public ObservableCollection<FavoriteChipVM> Favorites { get; } = new();
+    /// <summary>The player's own S/A/B/C (or custom) groups, separate from community tier lists.
+    /// Unranked favorites are the last group.</summary>
+    public ObservableCollection<PersonalTierGroupVM> PersonalTierGroups { get; } = new();
     public bool HasFavorites => Favorites.Count > 0;
+    public bool HasRankedFavorites =>
+        _favorites.All.Any(entry => !string.IsNullOrWhiteSpace(entry.PersonalGroup));
     /// <summary>Inverse of <see cref="HasFavorites"/>, for XAML visibility (BooleanToVisibilityConverter
     /// doesn't support inversion). Drives the "Star any build below…" empty-state hint on the landing.</summary>
     public bool HasNoFavorites => Favorites.Count == 0;
@@ -412,6 +420,18 @@ public partial class MainViewModel : ObservableObject
         RefreshFavoritesUi();
     }
 
+    private void SetPersonalGroup(FavoriteChipVM chip, string? group)
+    {
+        var existing = _favorites.Find(chip.Url);
+        if (existing is null) return;
+        var order = group is null
+            ? 0
+            : _favorites.All.Count(entry =>
+                string.Equals(entry.PersonalGroup, group, StringComparison.OrdinalIgnoreCase));
+        _favorites.Update(existing with { PersonalGroup = group, PersonalOrder = order });
+        RefreshFavoritesUi();
+    }
+
     private void RemoveFavorite(FavoriteChipVM chip)
     {
         _favorites.Remove(chip.Url);
@@ -433,10 +453,18 @@ public partial class MainViewModel : ObservableObject
             Favorites.Add(new FavoriteChipVM(entry, ignoredUrl =>
             {
                 _ = LoadBuildFromFavoriteAsync(entry);
-            }, RemoveFavorite));
+            }, RemoveFavorite, SetPersonalGroup));
+        }
+        PersonalTierGroups.Clear();
+        foreach (var group in PersonalTierList.Group(_favorites.All))
+        {
+            var chips = group.Entries.Select(entry => Favorites.First(chip =>
+                chip.Url.Equals(entry.Url, StringComparison.OrdinalIgnoreCase))).ToList();
+            PersonalTierGroups.Add(new PersonalTierGroupVM(group.Name, group.Name != "Unranked", chips));
         }
         OnPropertyChanged(nameof(HasFavorites));
         OnPropertyChanged(nameof(HasNoFavorites));
+        OnPropertyChanged(nameof(HasRankedFavorites));
         OnPropertyChanged(nameof(FavoritesCountLabel));
 
         var favUrls = new HashSet<string>(_favorites.All.Select(f => f.Url),
@@ -682,9 +710,9 @@ public partial class MainViewModel : ObservableObject
             s.Url.Equals(vm.Url, StringComparison.OrdinalIgnoreCase));
         if (selected && existing < 0)
         {
-            if (_selectedTierBuilds.Count >= 4)
+            if (_selectedTierBuilds.Count >= 12)
             {
-                SuperBuildSelectionStatus = $"You can select up to 4 builds. Deselect one before adding '{vm.Name}'.";
+                SuperBuildSelectionStatus = $"You can select up to 12 builds. Deselect one before adding '{vm.Name}'.";
                 return false;
             }
             _selectedTierBuilds.Add(new(vm.Name, vm.ClassName, vm.Url, vm.Source, vm.TierKind, vm.Tier,
@@ -713,7 +741,7 @@ public partial class MainViewModel : ObservableObject
     {
         var changedIndex = _selectedTierBuilds.FindIndex(build =>
             build.Url.Equals(vm.Url, StringComparison.OrdinalIgnoreCase));
-        if (changedIndex < 0 || requestedPriority is < 1 or > 4
+        if (changedIndex < 0 || requestedPriority < 1
             || requestedPriority > _selectedTierBuilds.Count)
             return false;
 
@@ -755,8 +783,8 @@ public partial class MainViewModel : ObservableObject
     private void RefreshSuperBuildSelectionUi()
     {
         var advisories = new List<string>();
-        if (_selectedTierBuilds.Count > 3)
-            advisories.Add("4 builds uses colors by tier: Red marks every build's legendaries and Gold marks every build's rares; rule names identify the build.");
+        if (_selectedTierBuilds.Count > 1)
+            advisories.Add("Selected builds are merged into one shared slot layout, so the filter stays inside 25 rules.");
         if (_selectedTierBuilds.Select(b => b.Source).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
             advisories.Add("These builds come from different sites. Maxroll and Mobalytics describe builds differently, so their affix lists may not be directly comparable — sticking to one source usually gives a tighter filter.");
         if (_selectedTierBuilds.Select(b => b.ClassName).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
@@ -773,7 +801,7 @@ public partial class MainViewModel : ObservableObject
     private async Task CompileSelectedBuildsAsync()
     {
         var selections = _selectedTierBuilds.OrderBy(selection => selection.Priority).ToList();
-        if (selections.Count is < 2 or > 4) return;
+        if (selections.Count < 2) return;
 
         StatusMessage = $"Loading {selections.Count} builds…";
         State = AppState.Loading;
@@ -1183,6 +1211,8 @@ public partial class MainViewModel : ObservableObject
     /// <summary>D4 drops filter/rule names over 24 chars on import (verified in-game), so the title
     /// field is capped here and the encoder clamps too.</summary>
     public const int MaxTitleLength = 24;
+    private readonly List<CompiledBuild> _importedPlans = new();
+    private bool _importPristine;
     private bool _suppressRecompile;
     private bool _filterTitleDirty;
     private string? _titleSelectionKey;
@@ -1226,7 +1256,8 @@ public partial class MainViewModel : ObservableObject
     // clutter and aren't build-scoped. We want OUR build's items (the Red/Pink match). Leaving it
     // off also frees 2 rules — a 10-slot Barb with both tiers fits 25 instead of 27. A gearing aid only.
     [ObservableProperty] private bool optItemPowerTiers;
-    [ObservableProperty] private bool optGreaterAffixes = true;
+    [ObservableProperty] private bool optGreaterAffixes;
+    [ObservableProperty] private bool optShowUniqueCharms;
     [ObservableProperty] private bool optCharmsSeals = true;
     [ObservableProperty] private bool optCharmsSealsAncestral = true;
     [ObservableProperty] private bool optCodex = true;
@@ -1262,6 +1293,7 @@ public partial class MainViewModel : ObservableObject
         Recompile();
     }
     partial void OnOptGreaterAffixesChanged(bool value) => Recompile();
+    partial void OnOptShowUniqueCharmsChanged(bool value) => Recompile();
     partial void OnOptCharmsSealsChanged(bool value) => Recompile();
     partial void OnOptCharmsSealsAncestralChanged(bool value) => Recompile();
     partial void OnOptCodexChanged(bool value) => Recompile();
@@ -1375,6 +1407,7 @@ public partial class MainViewModel : ObservableObject
         CubeBases = OptCubeBases,
         ItemPowerTiers = OptItemPowerTiers,
         GreaterAffixes = OptGreaterAffixes,
+        ShowUniqueCharms = OptShowUniqueCharms,
         CharmsSeals = OptCharmsSeals,
         CharmsSealsAncestral = OptCharmsSealsAncestral,
         Codex = OptCodex,
@@ -1416,6 +1449,11 @@ public partial class MainViewModel : ObservableObject
             StatusMessage = "Paste a maxroll planner URL first (or click \"Load sample build\").";
             return;
         }
+        if (FilterExchange.LooksLikeImportCode(source))
+        {
+            AcceptFilterImport(source);
+            return;
+        }
 
         StatusMessage = "Fetching build…";
         State = AppState.Loading;
@@ -1448,7 +1486,17 @@ public partial class MainViewModel : ObservableObject
             // If the build came from a tier chip, LoadBuildFromChip already pre-seeded
             // TierKind/Tier; here we refine Source to whatever the fetcher actually resolved.
             SetCurrentSource(srcLabel, source);
-            Ingest(resolved, srcLabel);
+            bool alreadyLoaded = _resolved is not null
+                && !string.Equals(_resolved.SourceUrl, source, StringComparison.OrdinalIgnoreCase);
+            if (alreadyLoaded)
+            {
+                var existing = LoadedBuilds();
+                Ingest(existing[0], existing[0].Source, existing.Skip(1).Append(resolved).ToList(), replaceImports: false);
+            }
+            else if (_importedPlans.Count > 0 && _resolved is null)
+                Ingest(resolved, srcLabel, replaceImports: false);
+            else
+                Ingest(resolved, srcLabel);
         }
         catch (Exception ex)
         {
@@ -1475,6 +1523,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var pasted = PastedText;
+            if (FilterExchange.LooksLikeImportCode(pasted))
+            {
+                AcceptFilterImport(pasted);
+                return;
+            }
             var resolved = await Task.Run(() => PastedBuild.Parse(pasted, "Pasted Build"));
             // Community paste favorites: synthesize a stable "paste://<hash>" pseudo-URL so the
             // favorite is starrable + identifiable, AND drop the raw text into the PasteStore
@@ -1502,9 +1555,67 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    private List<ResolvedBuild> LoadedBuilds()
+    {
+        if (VariantGroups.Count == 0 && _resolved is not null) return [_resolved];
+        return VariantGroups.Select(group =>
+        {
+            var selected = group.Variants.Where(v => v.IsSelected).Select(v => v.Variant).ToList();
+            return group.Build with { Variants = selected.Count > 0 ? selected : group.Build.Variants };
+        }).ToList();
+    }
+
+    private void AcceptFilterImport(string text)
+    {
+        if (!FilterExchange.TryImport(text, out var decoded))
+        {
+            StatusMessage = "That text isn't a build URL or an in-game filter export.";
+            State = AppState.Input;
+            return;
+        }
+
+        var plan = FilterExchange.ToCompiledBuild(decoded);
+        if (_resolved is null && _importedPlans.Count == 0)
+        {
+            _importedPlans.Add(plan);
+            _importPristine = true;
+            BuildName = decoded.Name;
+            SetFilterTitleWithoutDirtying(string.IsNullOrWhiteSpace(decoded.Name) ? BrandName : decoded.Name);
+            ImportCode = FilterExchange.Export(decoded);
+            FilterInfo = $"{decoded.Rules.Count} / {MaxRules} rules · imported from the game";
+            State = AppState.Result;
+            StatusMessage = "Imported the in-game filter. Copy it back, or change an option to reshape it.";
+            _lastFilterOutput = new FilterOutput("imported", ImportCode, decoded.Rules.Count,
+                ImportCode.Length, true, true, []);
+            return;
+        }
+
+        _importPristine = false;
+        _importedPlans.Add(plan);
+        Recompile(RecompileCause.BuildContextChanged);
+        State = AppState.Result;
+        StatusMessage = "Merged that filter into the current layout.";
+    }
+
+    private void CompileImportedOnly()
+    {
+        var title = string.IsNullOrWhiteSpace(FilterTitle) ? _importedPlans[0].Name : FilterTitle.Trim();
+        var (output, fitReport) = _compileWithinCap(_importedPlans, CurrentOptions, MaxRules, "Filter", title);
+        _copyBlockReason = CopySafety.BlockReason(output, MaxRules);
+        ImportCode = output.IsCopyable ? output.ImportCode : "";
+        BuildName = _importedPlans[0].Name;
+        FilterInfo = output.IsCopyable
+            ? $"1 build · {output.RuleCount} / {MaxRules} rules"
+            : "1 build · ⚠ Filter not generated — see the safety warning below";
+        CapWarning = !fitReport.Fits ? "⚠ " + fitReport.Describe(_importedPlans.Count, MaxRules) : "";
+        _lastFilterOutput = output;
+        State = AppState.Result;
+        StatusMessage = "";
+    }
+
     /// <summary>Shared: take a resolved build, fill the variant checklist, compile, show results.</summary>
     internal void Ingest(ResolvedBuild resolved, string source,
-        IReadOnlyList<ResolvedBuild>? additionalSuperBuilds = null)
+        IReadOnlyList<ResolvedBuild>? additionalSuperBuilds = null, bool replaceImports = true)
     {
         if (string.IsNullOrWhiteSpace(resolved.Source)) resolved = resolved with { Source = source };
         if (string.IsNullOrWhiteSpace(resolved.SourceUrl) && !string.IsNullOrWhiteSpace(_currentSourceUrl))
@@ -1525,6 +1636,11 @@ public partial class MainViewModel : ObservableObject
         BuildDriftNote = "";
         _singleBuildDriftNote = "";
         CopyConfirmation = "";
+        if (replaceImports)
+        {
+            _importedPlans.Clear();
+            _importPristine = false;
+        }
         _secondResolved = null;
         _superResolved.Clear();
         if (additionalSuperBuilds is not null) _superResolved.AddRange(additionalSuperBuilds);
@@ -1632,6 +1748,12 @@ public partial class MainViewModel : ObservableObject
         try
         {
             var input = ArmorySource.Trim();
+            if (FilterExchange.LooksLikeImportCode(input))
+            {
+                AcceptFilterImport(input);
+                ArmoryStatus = "";
+                return;
+            }
             bool isUrl = Uri.TryCreate(input, UriKind.Absolute, out var uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
             var resolved = isUrl
@@ -1824,7 +1946,7 @@ public partial class MainViewModel : ObservableObject
     private void ChangeBuildPriority(BuildVariantGroup changed, int requestedPriority)
     {
         if (!VariantGroups.Contains(changed)
-            || requestedPriority is < 1 or > 4
+            || requestedPriority < 1
             || requestedPriority > VariantGroups.Count)
             return;
 
@@ -1917,11 +2039,8 @@ public partial class MainViewModel : ObservableObject
 
     private void ApplyMultiItemPowerDefault()
     {
-        if (OptItemPowerTiers) return;
-        _suppressRecompile = true;
-        OptItemPowerTiers = true;
-        _suppressRecompile = false;
-        _multiItemPowerDefaultApplied = true;
+        // Item-power bands stay off unless the player turns them on. A second build used to
+        // flip them on and spend two rules that the slot layout needs.
     }
 
     private void RestoreSingleBuildItemPowerDefault()
@@ -2014,7 +2133,15 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(UniqueCharmsSummary));
         CopyConfirmation = "";   // a fresh code makes any prior "Copied" confirmation stale
 
-        if (_resolved is null) return;
+        if (_importPristine && cause == RecompileCause.OptionToggled)
+            _importPristine = false;
+        if (_importPristine) return;
+        if (_resolved is null)
+        {
+            if (_importedPlans.Count == 0) return;
+            CompileImportedOnly();
+            return;
+        }
 
         var selectedBuilds = new List<ResolvedBuild>(VariantGroups.Count);
         foreach (var group in VariantGroups)
@@ -2113,6 +2240,10 @@ public partial class MainViewModel : ObservableObject
             noneDetected |= thisBuildNone;
             defaultSetIds.UnionWith(defaults.Select(s => s.Id));
         }
+        foreach (var plan in _importedPlans)
+            foreach (var setName in plan.TalismanSets)
+                if (TalismanSetDatabase.TryGetByName(setName, out var importedSet))
+                    defaultSetIds.Add(importedSet.Id);
         bool unknownSetsDetected = unknownTalismanSets.Count > 0;
         // A source can name one set we know and one the current catalog does not. Narrowing to the
         // known set would quietly feed the renamed set's charms to Hide the rest, so drift anywhere
@@ -2147,6 +2278,8 @@ public partial class MainViewModel : ObservableObject
         // sits right at it, and curating uniques adds a hide rule), compile combined instead so the
         // code is always importable. The per-slot checkbox stays as the user set it; a calm note
         // below explains the swap. See FilterCompiler.CompileWithinCap.
+        if (_importedPlans.Count > 0)
+            compiledBuilds.AddRange(_importedPlans);
         var (output, fitReport) = _compileWithinCap(
             compiledBuilds, CurrentOptions, MaxRules, "Filter", title);
         _copyBlockReason = CopySafety.BlockReason(output, MaxRules);
@@ -2325,6 +2458,8 @@ public partial class MainViewModel : ObservableObject
         State = AppState.Input;
         StatusMessage = "";
         _resolved = null;
+        _importedPlans.Clear();
+        _importPristine = false;
         _secondResolved = null;
         _superResolved.Clear();
         _buildColorCustomizations.Clear();

@@ -7,6 +7,10 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- The Windows desktop runtime is not installed on Linux, so the test host aborts there.
+         The project still builds; Windows runs the suite. -->
+    <IsTestProject Condition="'$(OS)' != 'Windows_NT'">false</IsTestProject>
   </PropertyGroup>
 
   <!-- The WindowsDesktop SDK (UseWPF, needed to test the ViewModels directly) drops System.IO and

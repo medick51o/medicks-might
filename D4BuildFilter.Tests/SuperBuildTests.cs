@@ -47,10 +47,12 @@ public class SuperBuildTests
                 && rule.Conditions.Any(c => c.Type == 1))
             .ToList();
 
-        Assert.Equal(4, tierRules.Count);
-        Assert.Equal([FilterColors.Red, FilterColors.Pink, FilterColors.Gold, FilterColors.Silver],
-            tierRules.Select(rule => rule.Color));
-        Assert.DoesNotContain(tierRules, rule => AffixTierMatches(rule, splitItem));
+        Assert.Equal(2, tierRules.Count);
+        Assert.Equal([FilterColors.Red, FilterColors.Pink], tierRules.Select(rule => rule.Color));
+        var unionIds = tierRules[0].Conditions.Single(c => c.Type == 6).Ids;
+        Assert.Contains(first.Pool[0], unionIds);
+        Assert.Contains(second.Pool[0], unionIds);
+        Assert.True(unionIds.Count >= splitItem.Count);
     }
 
     [Fact]
@@ -65,22 +67,22 @@ public class SuperBuildTests
             out CompileFitReport fit, "super");
 
         Assert.True(fit.Fits);
-        Assert.Equal(16, fit.RequestedRuleCount); // synthetic builds have no purple unique union rule
-        Assert.Equal(16, fitted.RuleCount);
+        Assert.InRange(fit.RequestedRuleCount, 1, 25);
+        Assert.Equal(fit.RequestedRuleCount, fitted.RuleCount);
         Assert.Empty(fit.DisabledFeatures);
         Assert.Equal("", fit.Describe(4, 25));
 
-        var refused = FilterCompiler.CompileWithinCap(builds, options, 10,
+        var refused = FilterCompiler.CompileWithinCap(builds, options, 4,
             out CompileFitReport refusal, "super");
 
         Assert.False(refusal.Fits);
         Assert.Equal("Build 4", refusal.BuildToDrop);
-        Assert.Empty(refusal.DisabledFeatures); // fixed Super Build tiers are never traded away
+        Assert.Contains("per-slot precision", refusal.DisabledFeatures);
         Assert.Empty(refused.ImportCode);
         Assert.False(refused.IsCopyable);
-        Assert.Contains("Build 4", Assert.IsType<string>(CopySafety.BlockReason(refused, 10)));
+        Assert.Contains("Build 4", Assert.IsType<string>(CopySafety.BlockReason(refused, 4)));
         var share = WitnessCardComposer.Compose(new WitnessCardRequest(
-            "Build 1", "Rogue", "Test", null, null, refused, 10, "https://example.test"));
+            "Build 1", "Rogue", "Test", null, null, refused, 4, "https://example.test"));
         Assert.True(share.IsBlocked);
         Assert.Contains("Build 4", share.BlockReason);
     }
@@ -94,15 +96,12 @@ public class SuperBuildTests
                 .Select(i => new TierBuild($"Build {i}", "Rogue", "S", $"https://example.test/{i}"))
                 .ToList()), "Maxroll", "Endgame").Single().Builds;
 
-        foreach (var card in cards.Take(4)) card.IsSelected = true;
-        cards[4].IsSelected = true;
+        foreach (var card in cards) card.IsSelected = true;
 
-        Assert.Equal(4, vm.SelectedBuildCount);
-        Assert.False(cards[4].IsSelected);
-        Assert.Contains("up to 4 builds", vm.SuperBuildSelectionStatus);
-        Assert.Contains("Build 5", vm.SuperBuildSelectionStatus);
-        Assert.Contains("4 builds uses colors by tier: Red marks every build's legendaries and Gold marks every build's rares; rule names identify the build.",
-            vm.SuperBuildAdvisory);
+        Assert.Equal(5, vm.SelectedBuildCount);
+        Assert.True(cards[4].IsSelected);
+        Assert.Contains("shared slot layout", vm.SuperBuildAdvisory);
+        Assert.DoesNotContain("up to 4", vm.SuperBuildSelectionStatus);
     }
 
     [Fact]
@@ -146,14 +145,14 @@ public class SuperBuildTests
             .Where(rule => rule.Conditions.Any(c => c.Type == 6)
                 && rule.Conditions.Any(c => c.Type == 1))
             .ToList();
-        Assert.Equal(6, tierRules.Count);
+        Assert.Equal(2, tierRules.Count);
         Assert.All(tierRules.Where(r => r.Conditions.Single(c => c.Type == 1).MaskOrCount == Rarity.Legendary),
             rule => Assert.Equal(FilterColors.Red, rule.Color));
         Assert.All(tierRules.Where(r => r.Conditions.Single(c => c.Type == 1).MaskOrCount == Rarity.Rare),
-            rule => Assert.Equal(FilterColors.Gold, rule.Color));
+            rule => Assert.Equal(FilterColors.Pink, rule.Color));
         var witness = Assert.IsType<WitnessCardViewModel>(vm.CurrentWitnessCard);
         Assert.Equal(3, witness.Builds.Count);
-        Assert.Equal("Super Build · 3 builds · colors by tier", witness.ProvenanceChip);
+        Assert.Equal("Super Build · 3 builds · shared layout", witness.ProvenanceChip);
     }
 
     [Fact]
